@@ -6,7 +6,7 @@ def main(page: ft.Page):
     page.title = "שמור וזכור"
     page.rtl = True
     page.theme_mode = ft.ThemeMode.LIGHT
-    page.theme = ft.Theme(color_scheme_seed="#2196f3")
+    page.theme = ft.Theme(color_scheme_seed=ft.colors.BROWN)
     page.vertical_alignment = ft.MainAxisAlignment.START
     page.horizontal_alignment = ft.CrossAxisAlignment.CENTER
     page.padding = 20
@@ -51,8 +51,6 @@ def main(page: ft.Page):
                                 value=progress.get(str(i), {}).get("a", False),
                                 on_change=on_change,
                                 data={"daf": i, "amud": "a"},
-                                fill_color=ft.colors.GREEN_100,
-                                check_color=ft.colors.GREEN_700,
                             )
                         ),
                         ft.DataCell(
@@ -60,8 +58,6 @@ def main(page: ft.Page):
                                 value=progress.get(str(i), {}).get("b", False),
                                 on_change=on_change,
                                 data={"daf": i, "amud": "b"},
-                                fill_color=ft.colors.GREEN_100,
-                                check_color=ft.colors.GREEN_700,
                             )
                         ),
                     ],
@@ -120,8 +116,9 @@ def main(page: ft.Page):
                             ],
                             alignment=ft.MainAxisAlignment.CENTER,  # Center title and icon
                         ),
-                        bgcolor=ft.colors.BLUE_GREY_900,  # Darker app bar color
+                        color=ft.colors.ON_PRIMARY,  # Darker app bar color
                         center_title=True, # Center the appbar content
+                        bgcolor=ft.colors.PRIMARY,
                         
                     ),
                     ft.Container( # Add Container for scrolling on main page
