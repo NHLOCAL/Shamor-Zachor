@@ -3,5 +3,5 @@
 
 
 <p align="center">
-    <img src="https://github.com/NHLOCAL/Shamor-Zachor/blob/main/assets/screen.png?raw=true"/>
+    <img src="https://github.com/NHLOCAL/Shamor-Zachor/blob/main/assets/screen.png?raw=true" width="300"/>
 </p>
