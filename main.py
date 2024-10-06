@@ -132,14 +132,17 @@ def main(page: ft.Page):
                                 text=masechta,
                                 data=masechta,
                                 on_click=show_masechta,
-                                style=ft.ButtonStyle(padding=15),
+                                style=ft.ButtonStyle(
+                                    shape=ft.RoundedRectangleBorder(radius=10),
+                                    padding=15,
+                                ),
                                 width=150,
                                 height=50,
                             )
                             for masechta in shas_data
                                     ],
                                     runs_count=3,  # Number of columns in the grid
-                                    max_extent=200, # set the width of the button to fill the gridview
+                                    max_extent=100, # set the width of the button to fill the gridview
                                     run_spacing=10,
                                     spacing=10,
                                     padding=10,
