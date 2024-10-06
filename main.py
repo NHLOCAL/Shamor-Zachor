@@ -2,15 +2,15 @@ import flet as ft
 from backend import save_progress, load_progress, load_shas_data
 from hebrew_numbers import int_to_gematria
 
-
 def main(page: ft.Page):
-    page.title = "Shamor & Zachor"
+    page.title = "שמור וזכור"
     page.rtl = True
-    page.vertical_alignment = ft.MainAxisAlignment.START # Align content to the top
+    page.theme_mode = ft.ThemeMode.LIGHT
+    page.theme = ft.Theme(color_scheme_seed="#2196f3")
+    page.vertical_alignment = ft.MainAxisAlignment.START
     page.horizontal_alignment = ft.CrossAxisAlignment.CENTER
     page.padding = 20
-    page.scroll = "always"
-
+    page.scroll = "adaptive"
 
     shas_data = load_shas_data("shas.json")
 
@@ -23,11 +23,12 @@ def main(page: ft.Page):
     def create_table(masechta_name):
         masechta_data = shas_data.get(masechta_name)
         if not masechta_data:
-             page.add(ft.Text(f"Error: Masechta '{masechta_name}' not found in data."))
-             return None
+            page.snack_bar = ft.SnackBar(ft.Text(f"Error: Masechta '{masechta_name}' not found in data."))
+            page.snack_bar.open = True
+            page.update()
+            return None
 
         progress = load_progress(masechta_name)
-
 
         def on_change(e):
             daf = int(e.control.data["daf"])
@@ -44,12 +45,14 @@ def main(page: ft.Page):
             rows=[
                 ft.DataRow(
                     cells=[
-                        ft.DataCell(ft.Text(int_to_gematria(i))),
+                        ft.DataCell(ft.Container(ft.Text(int_to_gematria(i)), height=40)),
                         ft.DataCell(
                             ft.Checkbox(
                                 value=progress.get(str(i), {}).get("a", False),
                                 on_change=on_change,
                                 data={"daf": i, "amud": "a"},
+                                fill_color=ft.colors.GREEN_100,
+                                check_color=ft.colors.GREEN_700,
                             )
                         ),
                         ft.DataCell(
@@ -57,79 +60,110 @@ def main(page: ft.Page):
                                 value=progress.get(str(i), {}).get("b", False),
                                 on_change=on_change,
                                 data={"daf": i, "amud": "b"},
+                                fill_color=ft.colors.GREEN_100,
+                                check_color=ft.colors.GREEN_700,
                             )
                         ),
-                    ]
+                    ],
+                   
                 )
                 for i in range(1, masechta_data["pages"] + 1)
             ],
             border=ft.border.all(1, "black"),
+            column_spacing=30,
         )
 
-        return ft.Container(
-            content=ft.Column(
-                [ft.Text(masechta_name, size=20), table],
-                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+        return ft.Card(
+            content=ft.Container(
+                content=ft.Column(
+                    [ft.Text(masechta_name, size=20, weight=ft.FontWeight.BOLD), table],
+                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                ),
+                padding=20,
             ),
-            padding=10,
-            border_radius=10,
         )
 
-
-    page.add(
-         ft.Column(
-             [create_table(masechta) for masechta in shas_data.keys() if create_table(masechta) is not None],
-             scroll="always",
-             spacing=20,
-         )
-    )
 
 
     def show_masechta(e):
         nonlocal current_masechta
         current_masechta = e.control.data
-        page.clean() # clear the page
-        page.add(ft.IconButton(icon=ft.icons.ARROW_BACK, on_click=show_main_menu), create_table(current_masechta))
-        page.update()
-
-
-
-    def show_main_menu(e):
-        nonlocal current_masechta
-        current_masechta = None
-        page.clean()
-        page.add(
-            ft.Column(
+        page.views.clear()
+        page.views.append(
+            ft.View(
+                "/masechta",
                 [
-                    ft.Text("בחר מסכת:", size=24, weight=ft.FontWeight.BOLD),  # Title with bold font
-                    ft.GridView(  # Use GridView for better layout
-                        [
-                            ft.ElevatedButton(
-                                text=masechta,
-                                data=masechta,
-                                on_click=show_masechta,
-                                width=150,  # Set a fixed width for buttons
-                                height=50,
-                            )
-                            for masechta in shas_data
-                        ],
-                        runs_count=3,  # Number of columns in the grid
-                        run_spacing=10,  # Spacing between columns
-                        spacing=10,  # Spacing between rows
-                        padding=10,
-                        child_aspect_ratio=1.5, # adjust the aspect ratio of the buttons
-                        
-                    )
-
+                    ft.AppBar(title=ft.Text(current_masechta), leading=ft.IconButton(icon=ft.icons.ARROW_BACK, on_click=show_main_menu)),
+                    create_table(current_masechta)
                 ],
-                horizontal_alignment=ft.CrossAxisAlignment.CENTER
+                vertical_alignment=ft.MainAxisAlignment.START,
+                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                scroll="always"
             )
         )
         page.update()
 
 
-    show_main_menu(None)
+    def show_main_menu(e=None):
+        nonlocal current_masechta
+        current_masechta = None
+        page.views.clear()
+        page.views.append(
+            ft.View(
+                "/",
+                [
+                    ft.AppBar(
+                        title=ft.Row(
+                            [
+                                ft.Icon(ft.icons.BOOK_OUTLINED),  # Icon next to title
+                                ft.Text("שמור וזכור", size=20, weight=ft.FontWeight.BOLD),
+                            ],
+                            alignment=ft.MainAxisAlignment.CENTER,  # Center title and icon
+                        ),
+                        bgcolor=ft.colors.BLUE_GREY_900,  # Darker app bar color
+                        center_title=True, # Center the appbar content
+                        
+                    ),
+                    ft.Container( # Add Container for scrolling on main page
+                        content=ft.Column(
+                            [
+                                ft.Text("בחר מסכת:", size=24, weight=ft.FontWeight.BOLD, text_align=ft.TextAlign.CENTER, style=ft.TextStyle(color=ft.colors.BLUE_GREY_700)), # Stylized title
+                                ft.GridView(
+                                    controls=[
 
+                            ft.ElevatedButton(
+                                text=masechta,
+                                data=masechta,
+                                on_click=show_masechta,
+                                style=ft.ButtonStyle(padding=15),
+                                width=150,
+                                height=50,
+                            )
+                            for masechta in shas_data
+                                    ],
+                                    runs_count=3,  # Number of columns in the grid
+                                    max_extent=200, # set the width of the button to fill the gridview
+                                    run_spacing=10,
+                                    spacing=10,
+                                    padding=10,
+                                ),
+                            ],
+                            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                            scroll=ft.ScrollMode.AUTO
+                            
+                        ),
+                        expand=True, # Allow container to expand and fill view
 
+                    )
+
+                ],
+                vertical_alignment=ft.MainAxisAlignment.START,
+                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                
+            )
+        )
+        page.update()
+
+    show_main_menu()
 
 ft.app(target=main)
