@@ -55,11 +55,15 @@ def load_progress(masechta):
         
 def load_shas_data(filename):
     try:
-        with open(filename, "r", encoding="utf-8") as f:  # encoding for Hebrew
-            return json.load(f)
-    except FileNotFoundError:
-        print(f"Error: File '{filename}' not found.")
-        return None
-    except json.JSONDecodeError:
-        print(f"Error: Invalid JSON format in '{filename}'.")
+        with open(filename, "r", encoding="utf-8") as f:
+            data = json.load(f)
+            # Validate data structure if necessary
+            if not isinstance(data, dict):
+                raise ValueError("Invalid shas data format. Expected a dictionary.")
+            for masechta_data in data.values():
+                if "pages" not in masechta_data or not isinstance(masechta_data["pages"], int):
+                    raise ValueError("Invalid masechta data format. 'pages' key missing or not an integer.")
+            return data
+    except (FileNotFoundError, json.JSONDecodeError, ValueError) as e:
+        print(f"Error loading shas data: {e}")
         return None
