@@ -1,6 +1,6 @@
 import flet as ft
-from backend import save_progress, load_progress, load_shas_data
-from hebrew_numbers import int_to_gematria
+from backend import save_progress, save_all_masechta, load_progress, load_shas_data
+from hebrew_numbers import int_to_gematria, gematria_to_int
 
 def main(page: ft.Page):
     page.title = "שמור וזכור"
@@ -34,15 +34,38 @@ def main(page: ft.Page):
             daf = int(e.control.data["daf"])
             amud = e.control.data["amud"]
             save_progress(masechta_name, daf, amud, e.control.value)
+            update_completion_status(masechta_name) # Update completion status
             page.update()
 
+        def check_all(e):
+            
+            for row in table.rows:
+                row.cells[1].content.value = e.control.value
+                row.cells[2].content.value = e.control.value
+            # עדכון כל הערכים במסכת הנוכחית בהתאם לערך שנבחר
+            
+            save_all_masechta(masechta_name, len(table.rows), e.control.value)
+            
+            # עדכון סטטוס ההשלמה של המסכת
+            update_completion_status(masechta_name)
+            
+            # עדכון תצוגת הדף
+            page.update()
+
+                
         table = ft.DataTable(
             columns=[
                 ft.DataColumn(ft.Text("דף")),
                 ft.DataColumn(ft.Text("עמוד א")),
                 ft.DataColumn(ft.Text("עמוד ב")),
             ],
-            rows=[
+            rows=[], # Rows will be added dynamically
+            border=ft.border.all(1, "black"),
+            column_spacing=30,
+        )
+
+        for i in range(1, masechta_data["pages"] + 1):
+           table.rows.append(
                 ft.DataRow(
                     cells=[
                         ft.DataCell(ft.Container(ft.Text(int_to_gematria(i)), height=40)),
@@ -63,16 +86,17 @@ def main(page: ft.Page):
                     ],
                    
                 )
-                for i in range(1, masechta_data["pages"] + 1)
-            ],
-            border=ft.border.all(1, "black"),
-            column_spacing=30,
-        )
+           )
+
 
         return ft.Card(
             content=ft.Container(
                 content=ft.Column(
-                    [ft.Text(masechta_name, size=20, weight=ft.FontWeight.BOLD), table],
+                    [
+                        ft.Row([ft.Text(masechta_name, size=20, weight=ft.FontWeight.BOLD), completion_indicators.get(masechta_name)], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
+                        ft.Checkbox(label="בחר הכל", on_change=check_all),
+                        table
+                    ],
                     horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                 ),
                 padding=20,
@@ -100,10 +124,39 @@ def main(page: ft.Page):
         page.update()
 
 
+
+    completion_indicators = {} # Store completion indicators for each masechta
+
+    def update_completion_status(masechta_name):
+
+        progress = load_progress(masechta_name)
+        masechta_data = shas_data.get(masechta_name)
+        total_pages = 2 * masechta_data["pages"] # Assuming every daf has 2 amudim
+        completed_pages = 0
+        for i in range(1, masechta_data["pages"] + 1):
+
+             if progress.get(str(i), {}).get("a", False):
+                 completed_pages += 1
+             if progress.get(str(i), {}).get("b", False):
+                  completed_pages += 1
+
+        if completed_pages == total_pages:
+
+             completion_indicators[masechta_name] = ft.Icon(ft.icons.CHECK_CIRCLE, color=ft.colors.GREEN)
+        else:
+           completion_indicators[masechta_name] = ft.Text("")
+
+
+
     def show_main_menu(e=None):
         nonlocal current_masechta
         current_masechta = None
+        
+        # Initialize Completion indicators
+        for masechta in shas_data:
+            update_completion_status(masechta)
         page.views.clear()
+
         page.views.append(
             ft.View(
                 "/",
@@ -111,55 +164,54 @@ def main(page: ft.Page):
                     ft.AppBar(
                         title=ft.Row(
                             [
-                                ft.Icon(ft.icons.BOOK_OUTLINED),  # Icon next to title
+                                ft.Icon(ft.icons.BOOK_OUTLINED),
                                 ft.Text("שמור וזכור", size=20, weight=ft.FontWeight.BOLD),
                             ],
-                            alignment=ft.MainAxisAlignment.CENTER,  # Center title and icon
+                            alignment=ft.MainAxisAlignment.CENTER,
                         ),
-                        color=ft.colors.ON_PRIMARY,  # Darker app bar color
-                        center_title=True, # Center the appbar content
+                        color=ft.colors.ON_PRIMARY,
+                        center_title=True,
                         bgcolor=ft.colors.PRIMARY,
-                        
                     ),
-                    ft.Container( # Add Container for scrolling on main page
+                    ft.Container(
                         content=ft.Column(
-                            [
-                                ft.Text("בחר מסכת:", size=24, weight=ft.FontWeight.BOLD, text_align=ft.TextAlign.CENTER, style=ft.TextStyle(color=ft.colors.BLUE_GREY_700)), # Stylized title
+                           [
+                                ft.Text("בחר מסכת:", size=24, weight=ft.FontWeight.BOLD, text_align=ft.TextAlign.CENTER, style=ft.TextStyle(color=ft.colors.BLUE_GREY_700)),
                                 ft.GridView(
                                     controls=[
+                                        ft.ElevatedButton(
+                                            text=masechta,
+                                            data=masechta,
+                                            on_click=show_masechta,
+                                            style=ft.ButtonStyle(
+                                                shape=ft.RoundedRectangleBorder(radius=10),
+                                                padding=15,
+                                            ),
+                                            width=150,
+                                            height=50,
+                                        )
+                                        for masechta in shas_data
 
-                            ft.ElevatedButton(
-                                text=masechta,
-                                data=masechta,
-                                on_click=show_masechta,
-                                style=ft.ButtonStyle(
-                                    shape=ft.RoundedRectangleBorder(radius=10),
-                                    padding=15,
-                                ),
-                                width=150,
-                                height=50,
-                            )
-                            for masechta in shas_data
                                     ],
                                     runs_count=3,  # Number of columns in the grid
-                                    max_extent=100, # set the width of the button to fill the gridview
+                                    max_extent=200, # set the width of the button to fill the gridview
                                     run_spacing=10,
                                     spacing=10,
                                     padding=10,
                                 ),
                             ],
                             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                            scroll=ft.ScrollMode.AUTO
-                            
+                            scroll=ft.ScrollMode.AUTO,
+
                         ),
-                        expand=True, # Allow container to expand and fill view
+                        expand=True,
 
                     )
 
                 ],
                 vertical_alignment=ft.MainAxisAlignment.START,
                 horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                
+
             )
         )
         page.update()
