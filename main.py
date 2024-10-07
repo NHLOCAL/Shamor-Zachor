@@ -168,7 +168,7 @@ def main(page: ft.Page):
                                                 for masechta in masechtot
                                             ] if section_name == "תלמוד בבלי" else [], # Only enable buttons for Talmud Bavli initially
                                             runs_count=3,
-                                            max_extent=200,
+                                            max_extent=150,
                                             run_spacing=10,
                                             spacing=10,
                                             padding=10,
