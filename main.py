@@ -98,7 +98,7 @@ def main(page: ft.Page):
             # שתי עמודות: מספר פרק/סימן + Checkbox לבדיקת סטטוס
             table_columns = [
                 ft.DataColumn(ft.Text("פרק" if category == "תנ״ך" else "סימן")),
-                ft.DataColumn(ft.Text("סטטוס"))
+                ft.DataColumn(ft.Text("מצב"))
             ]
 
         table = ft.DataTable(
