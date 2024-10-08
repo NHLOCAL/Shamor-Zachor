@@ -29,9 +29,15 @@ def main(page: ft.Page):
 
         total_pages = 2 * masechta_data["pages"]
         completed_pages = sum(1 for daf_data in progress.values() for amud_value in daf_data.values() if amud_value)
-        completion_indicators[masechta_name].icon = ft.icons.CHECK_CIRCLE if completed_pages == total_pages else ft.icons.CIRCLE_OUTLINED
-        completion_indicators[masechta_name].color = ft.colors.GREEN if completed_pages == total_pages else ft.colors.GREY_400
+        
+        complication = completed_pages == total_pages
+        
+        completion_indicators[masechta_name].icon = ft.icons.CHECK_CIRCLE if complication else ft.icons.CIRCLE_OUTLINED
+        completion_indicators[masechta_name].color = ft.colors.GREEN if complication else ft.colors.GREY_400
         page.update()
+        
+        return complication
+
 
     def create_table(masechta_name):
         masechta_data = shas_data.get(masechta_name)
@@ -85,9 +91,10 @@ def main(page: ft.Page):
             )
 
         completion_indicators[masechta_name] = ft.Icon(ft.icons.CIRCLE_OUTLINED)
-        update_completion_status(masechta_name)
+        
+        complication = update_completion_status(masechta_name)
 
-        check_all_checkbox = ft.Checkbox(label="בחר הכל", on_change=check_all)
+        check_all_checkbox = ft.Checkbox(label="בחר הכל", on_change=check_all, value=complication)
 
         header = ft.Row(
             [
