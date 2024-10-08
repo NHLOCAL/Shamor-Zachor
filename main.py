@@ -29,9 +29,11 @@ def main(page: ft.Page):
 
         total_pages = 2 * masechta_data["pages"]
         completed_pages = sum(1 for daf_data in progress.values() for amud_value in daf_data.values() if amud_value)
+        
+        # שינוי כאן: שימוש ב-ft.icons.CHECK_CIRCLE במקום ft.icons.CHECK_CIRCLE_OUTLINE
         completion_indicators[masechta_name].icon = ft.icons.CHECK_CIRCLE if completed_pages == total_pages else ft.icons.CIRCLE_OUTLINED
-        completion_indicators[masechta_name].color = ft.colors.GREEN if completed_pages == total_pages else ft.colors.BLACK
-        page.update()  # Update within the function
+        completion_indicators[masechta_name].color = ft.colors.GREEN if completed_pages == total_pages else ft.colors.GREY_400
+        page.update()
 
     def create_table(masechta_name):
         masechta_data = shas_data.get(masechta_name)
@@ -47,15 +49,19 @@ def main(page: ft.Page):
             amud = e.control.data["amud"]
             save_progress(masechta_name, daf, amud, e.control.value)
             update_completion_status(masechta_name)
-
+            update_check_all_status(masechta_name, table)
 
         def check_all(e):
             for row in table.rows:
                 row.cells[1].content.value = e.control.value
                 row.cells[2].content.value = e.control.value
-            save_all_masechta(masechta_name, masechta_data["pages"], e.control.value)  # Use masechta_data
+            save_all_masechta(masechta_name, masechta_data["pages"], e.control.value)
             update_completion_status(masechta_name)
 
+        def update_check_all_status(masechta_name, table):
+            all_checked = all(row.cells[1].content.value and row.cells[2].content.value for row in table.rows)
+            check_all_checkbox.value = all_checked
+            page.update()
 
         table = ft.DataTable(
             columns=[
@@ -80,15 +86,26 @@ def main(page: ft.Page):
                 )
             )
 
-        completion_indicators[masechta_name] = ft.Icon(ft.icons.CIRCLE_OUTLINED)  # Initialize here
-        update_completion_status(masechta_name) # Initial update
+        completion_indicators[masechta_name] = ft.Icon(ft.icons.CIRCLE_OUTLINED)
+        update_completion_status(masechta_name)
+
+        check_all_checkbox = ft.Checkbox(label="בחר הכל", on_change=check_all)
+
+        header = ft.Row(
+            [
+                ft.Text(masechta_name, size=20, weight=ft.FontWeight.BOLD),
+                completion_indicators[masechta_name],
+                check_all_checkbox,
+            ],
+            alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+            vertical_alignment=ft.CrossAxisAlignment.CENTER,
+        )
 
         return ft.Card(
             content=ft.Container(
                 content=ft.Column(
                     [
-                        ft.Row([ft.Text(masechta_name, size=20, weight=ft.FontWeight.BOLD), completion_indicators[masechta_name]], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
-                        ft.Checkbox(label="בחר הכל", on_change=check_all),
+                        header,
                         table,
                     ],
                     horizontal_alignment=ft.CrossAxisAlignment.CENTER,
@@ -96,8 +113,6 @@ def main(page: ft.Page):
                 padding=20,
             ),
         )
-
-
 
     def show_masechta(e):
         nonlocal current_masechta
@@ -130,6 +145,31 @@ def main(page: ft.Page):
 
         }
 
+        def create_masechta_button(masechta):
+            completed = check_masechta_completion(masechta)
+            return ft.ElevatedButton(
+                text=masechta,
+                data=masechta,
+                on_click=show_masechta,
+                style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=10), padding=15),
+                width=150,
+                height=50,
+                # שינוי כאן: שימוש ב-ft.icons.CHECK_CIRCLE במקום None
+                icon=ft.icons.CHECK_CIRCLE if completed else None,
+                icon_color=ft.colors.GREEN if completed else None,
+            )
+
+        def check_masechta_completion(masechta_name):
+            progress = load_progress(masechta_name)
+            masechta_data = shas_data.get(masechta_name)
+            if not masechta_data:
+                return False
+
+            total_pages = 2 * masechta_data["pages"]
+            completed_pages = sum(1 for daf_data in progress.values() for amud_value in daf_data.values() if amud_value)
+            return completed_pages == total_pages
+
+
         page.views.clear()
         page.views.append(
             ft.View(
@@ -143,8 +183,8 @@ def main(page: ft.Page):
                             ],
                             alignment=ft.MainAxisAlignment.CENTER,
                         ),
-                        bgcolor=ft.colors.PRIMARY_CONTAINER, # צבע מתוך ערכת הצבעים של Flet
-                        color=ft.colors.ON_PRIMARY_CONTAINER,    # צבע מתוך ערכת הצבעים של Flet
+                        bgcolor=ft.colors.PRIMARY_CONTAINER,
+                        color=ft.colors.ON_PRIMARY_CONTAINER,
                     ),
                     ft.Column(
                         [
@@ -154,37 +194,29 @@ def main(page: ft.Page):
                                 tabs=[
                                     ft.Tab(
                                         text=section_name,
-                                        content=ft.Container( # הוספת Container לגלילה
+                                        content=ft.Container(
                                             content=ft.GridView(
                                                 controls=[
-                                                ft.ElevatedButton(
-                                                    text=masechta,
-                                                    data=masechta,
-                                                    on_click=show_masechta,
-                                                    style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=10), padding=15),
-                                                    width=150,
-                                                    height=50,
-                                                )
-                                                for masechta in masechtot
-                                            ] if section_name == "תלמוד בבלי" else [], # Only enable buttons for Talmud Bavli initially
-                                            runs_count=3,
-                                            max_extent=150,
-                                            run_spacing=10,
-                                            spacing=10,
-                                            padding=10,
-                                            visible= section_name == "תלמוד בבלי",
+                                                    create_masechta_button(masechta)
+                                                    for masechta in masechtot
+                                                ] if section_name == "תלמוד בבלי" else [],
+                                                runs_count=3,
+                                                max_extent=150,
+                                                run_spacing=10,
+                                                spacing=10,
+                                                padding=10,
+                                                visible=section_name == "תלמוד בבלי",
                                             ),
-                                            expand=True, # מאפשר גלילה
-                                            #scroll=ft.ScrollMode.AUTO, # הגדרת גלילה אוטומטית
+                                            expand=True,
                                         ),
                                     )
                                     for section_name, masechtot in sections.items()
                                 ],
-                                expand=1,  # לתפוס את כל הגובה הזמין
+                                expand=1,
                             ),
                         ],
                         horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                        expand=True, # לתפוס את כל הגובה הזמין
+                        expand=True,
                     ),
                 ],
             )
