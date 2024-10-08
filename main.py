@@ -47,7 +47,7 @@ def main(page: ft.Page):
             amud = e.control.data["amud"]
             save_progress(masechta_name, daf, amud, e.control.value)
             update_completion_status(masechta_name)
-            update_check_all_status(masechta_name, table)
+            update_check_all_status(table) # עדכון פונקציה
 
         def check_all(e):
             for row in table.rows:
@@ -56,7 +56,7 @@ def main(page: ft.Page):
             save_all_masechta(masechta_name, masechta_data["pages"], e.control.value)
             update_completion_status(masechta_name)
 
-        def update_check_all_status(masechta_name, table):
+        def update_check_all_status(table): # עדכון פונקציה
             all_checked = all(row.cells[1].content.value and row.cells[2].content.value for row in table.rows)
             check_all_checkbox.value = all_checked
             page.update()
