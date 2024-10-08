@@ -1,5 +1,5 @@
 import flet as ft
-from backend import save_progress, save_all_masechta, load_progress, load_shas_data
+from backend import save_progress, save_all_masechta, load_progress, load_data
 from hebrew_numbers import int_to_gematria
 
 def main(page: ft.Page):
@@ -12,38 +12,40 @@ def main(page: ft.Page):
     page.padding = 20
     page.scroll = "adaptive"
 
-    shas_data = load_shas_data("shas.json")
+    # טוען את כל הנתונים הרלוונטיים מקבצי ה-JSON השונים
+    data = load_data()
 
-    if not shas_data:
-        page.add(ft.Text("Error loading shas data."))
+    if not data:
+        page.overlay.append(ft.SnackBar(ft.Text("Error loading data.")))  # שינוי ל-overlay.append
+        page.update()
         return
 
     current_masechta = None
     completion_indicators = {}
 
-    def update_completion_status(masechta_name):
+    def update_completion_status(category, masechta_name):
         progress = load_progress(masechta_name)
-        masechta_data = shas_data.get(masechta_name)
+        masechta_data = data[category].get(masechta_name)
         if not masechta_data:
             return
 
-        total_pages = 2 * masechta_data["pages"]
+        total_pages = 2 * masechta_data["pages"] if category == "תלמוד בבלי" else masechta_data["pages"]
         completed_pages = sum(1 for daf_data in progress.values() for amud_value in daf_data.values() if amud_value)
-        
+
         complication = completed_pages == total_pages
-        
+
         completion_indicators[masechta_name].icon = ft.icons.CHECK_CIRCLE if complication else ft.icons.CIRCLE_OUTLINED
         completion_indicators[masechta_name].color = ft.colors.GREEN if complication else ft.colors.GREY_400
         page.update()
-        
+
         return complication
 
-
-    def create_table(masechta_name):
-        masechta_data = shas_data.get(masechta_name)
+    def create_table(category, masechta_name):
+        # גישה נכונה לקטגוריה ולמסכת בתוך הנתונים
+        masechta_data = data[category].get(masechta_name)
         if not masechta_data:
-            page.snack_bar = ft.SnackBar(ft.Text(f"Error: Masechta '{masechta_name}' not found."))
-            page.snack_bar.open = True
+            page.overlay.append(ft.SnackBar(ft.Text(f"Error: Masechta '{masechta_name}' not found.")))
+            page.update()
             return None
 
         progress = load_progress(masechta_name)
@@ -52,27 +54,40 @@ def main(page: ft.Page):
             daf = int(e.control.data["daf"])
             amud = e.control.data["amud"]
             save_progress(masechta_name, daf, amud, e.control.value)
-            update_completion_status(masechta_name)
-            update_check_all_status(table) # עדכון פונקציה
+            update_completion_status(category, masechta_name)
+            update_check_all_status(table)
 
         def check_all(e):
             for row in table.rows:
-                row.cells[1].content.value = e.control.value
-                row.cells[2].content.value = e.control.value
+                if category == "תלמוד בבלי":
+                    row.cells[1].content.value = e.control.value
+                    row.cells[2].content.value = e.control.value
+                else:
+                    row.cells[1].content.value = e.control.value
             save_all_masechta(masechta_name, masechta_data["pages"], e.control.value)
-            update_completion_status(masechta_name)
+            update_completion_status(category, masechta_name)
 
-        def update_check_all_status(table): # עדכון פונקציה
-            all_checked = all(row.cells[1].content.value and row.cells[2].content.value for row in table.rows)
+        def update_check_all_status(table):
+            all_checked = all(row.cells[1].content.value for row in table.rows)
             check_all_checkbox.value = all_checked
             page.update()
 
-        table = ft.DataTable(
-            columns=[
+        # הגדרת השמות המותאמים לכל נושא
+        if category == "תלמוד בבלי":
+            table_columns = [
                 ft.DataColumn(ft.Text("דף")),
                 ft.DataColumn(ft.Text("עמוד א")),
                 ft.DataColumn(ft.Text("עמוד ב")),
-            ],
+            ]
+        else:
+            # שתי עמודות: מספר פרק/סימן + Checkbox לבדיקת סטטוס
+            table_columns = [
+                ft.DataColumn(ft.Text("פרק" if category == "תנ״ך" else "סימן")),
+                ft.DataColumn(ft.Text("מצב"))
+            ]
+
+        table = ft.DataTable(
+            columns=table_columns,
             rows=[],
             border=ft.border.all(1, "black"),
             column_spacing=30,
@@ -80,19 +95,31 @@ def main(page: ft.Page):
 
         for i in range(1, masechta_data["pages"] + 1):
             daf_progress = progress.get(str(i), {})
-            table.rows.append(
-                ft.DataRow(
-                    cells=[
-                        ft.DataCell(ft.Text(int_to_gematria(i))),
-                        ft.DataCell(ft.Checkbox(value=daf_progress.get("a", False), on_change=on_change, data={"daf": i, "amud": "a"})),
-                        ft.DataCell(ft.Checkbox(value=daf_progress.get("b", False), on_change=on_change, data={"daf": i, "amud": "b"})),
-                    ],
+
+            if category == "תלמוד בבלי":
+                table.rows.append(
+                    ft.DataRow(
+                        cells=[
+                            ft.DataCell(ft.Text(int_to_gematria(i))),
+                            ft.DataCell(ft.Checkbox(value=daf_progress.get("a", False), on_change=on_change, data={"daf": i, "amud": "a"})),
+                            ft.DataCell(ft.Checkbox(value=daf_progress.get("b", False), on_change=on_change, data={"daf": i, "amud": "b"})),
+                        ],
+                    )
                 )
-            )
+            else:
+                # פרק/סימן + סטטוס (Checkbox)
+                table.rows.append(
+                    ft.DataRow(
+                        cells=[
+                            ft.DataCell(ft.Text(int_to_gematria(i))),
+                            ft.DataCell(ft.Checkbox(value=daf_progress.get("a", False), on_change=on_change, data={"daf": i, "amud": "a"})),
+                        ],
+                    )
+                )
 
         completion_indicators[masechta_name] = ft.Icon(ft.icons.CIRCLE_OUTLINED)
-        
-        complication = update_completion_status(masechta_name)
+
+        complication = update_completion_status(category, masechta_name)
 
         check_all_checkbox = ft.Checkbox(label="בחר הכל", on_change=check_all, value=complication)
 
@@ -121,14 +148,21 @@ def main(page: ft.Page):
 
     def show_masechta(e):
         nonlocal current_masechta
-        current_masechta = e.control.data
+        current_masechta = e.control.data["masechta"]
+        category = e.control.data["category"]
         page.views.clear()
+
+        # יצירת הטבלה למסכת הנבחרת
+        masechta_table = create_table(category, current_masechta)
+        if masechta_table is None:
+            return  # עצור את הביצוע אם יש שגיאה ביצירת הטבלה
+        
         page.views.append(
             ft.View(
                 "/masechta",
                 [
                     ft.AppBar(title=ft.Text(current_masechta), leading=ft.IconButton(icon=ft.icons.ARROW_BACK, on_click=show_main_menu)),
-                    create_table(current_masechta),
+                    masechta_table,
                 ],
                 vertical_alignment=ft.MainAxisAlignment.START,
                 horizontal_alignment=ft.CrossAxisAlignment.CENTER,
@@ -142,19 +176,18 @@ def main(page: ft.Page):
         current_masechta = None
 
         sections = {
-         "תנ״ך": [],
-         "תלמוד בבלי": list(shas_data.keys()),
-         "תלמוד ירושלמי": [],
-         "רמב״ם": [],
-         "שולחן ערוך": [],
-
+         "תנ״ך": list(data.get("תנ״ך", {}).keys()),
+         "תלמוד בבלי": list(data.get("תלמוד בבלי", {}).keys()),
+         "תלמוד ירושלמי": [],  # ניתן להוסיף בהמשך
+         "רמב״ם": list(data.get("רמב״ם", {}).keys()),
+         "שולחן ערוך": list(data.get("שולחן ערוך", {}).keys())
         }
 
-        def create_masechta_button(masechta):
-            completed = check_masechta_completion(masechta)
+        def create_masechta_button(masechta, category):
+            completed = check_masechta_completion(category, masechta)
             return ft.ElevatedButton(
                 text=masechta,
-                data=masechta,
+                data={"masechta": masechta, "category": category},
                 on_click=show_masechta,
                 style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=10), padding=15),
                 width=150,
@@ -163,16 +196,15 @@ def main(page: ft.Page):
                 icon_color=ft.colors.GREEN if completed else None,
             )
 
-        def check_masechta_completion(masechta_name):
+        def check_masechta_completion(category, masechta_name):
             progress = load_progress(masechta_name)
-            masechta_data = shas_data.get(masechta_name)
+            masechta_data = data[category].get(masechta_name)
             if not masechta_data:
                 return False
 
-            total_pages = 2 * masechta_data["pages"]
+            total_pages = 2 * masechta_data["pages"] if category == "תלמוד בבלי" else masechta_data["pages"]
             completed_pages = sum(1 for daf_data in progress.values() for amud_value in daf_data.values() if amud_value)
             return completed_pages == total_pages
-
 
         page.views.clear()
         page.views.append(
@@ -201,15 +233,15 @@ def main(page: ft.Page):
                                         content=ft.Container(
                                             content=ft.GridView(
                                                 controls=[
-                                                    create_masechta_button(masechta)
+                                                    create_masechta_button(masechta, section_name)
                                                     for masechta in masechtot
-                                                ] if section_name == "תלמוד בבלי" else [],
+                                                ] if masechtot else [],
                                                 runs_count=3,
                                                 max_extent=150,
                                                 run_spacing=10,
                                                 spacing=10,
                                                 padding=10,
-                                                visible=section_name == "תלמוד בבלי",
+                                                visible=bool(masechtot),
                                             ),
                                             expand=True,
                                         ),

@@ -51,17 +51,33 @@ def load_progress(masechta):
         return {}
 
 
-def load_shas_data(filename):
-    try:
-        with open(filename, "r", encoding="utf-8") as f:
-            data = json.load(f)
-            # Validate data structure if necessary
-            if not isinstance(data, dict):
-                raise ValueError("Invalid shas data format. Expected a dictionary.")
-            for masechta_data in data.values():
-                if "pages" not in masechta_data or not isinstance(masechta_data["pages"], int):
-                    raise ValueError("Invalid masechta data format. 'pages' key missing or not an integer.")
-            return data
-    except (FileNotFoundError, json.JSONDecodeError, ValueError) as e:
-        print(f"Error loading shas data: {e}")
-        return None
+def load_data():
+    def load_json_file(filename):
+        try:
+            with open(filename, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                if not isinstance(data, dict):
+                    raise ValueError(f"Invalid data format in {filename}. Expected a dictionary.")
+                for masechta_data in data.values():
+                    if "pages" not in masechta_data or not isinstance(masechta_data["pages"], int):
+                        raise ValueError(f"Invalid masechta data format in {filename}. 'pages' key missing or not an integer.")
+                return data
+        except (FileNotFoundError, json.JSONDecodeError, ValueError) as e:
+            print(f"Error loading {filename}: {e}")
+            return {}
+
+    # Load data from different sources
+    shas_data = load_json_file("data/shas.json")
+    tanach_data = load_json_file("data/tanach.json")
+    rambam_data = load_json_file("data/rambam.json")
+    shulchan_aruch_data = load_json_file("data/shulchan_aruch.json")
+
+    # Combine all data into a single dictionary
+    combined_data = {
+        "תלמוד בבלי": shas_data,
+        "תנ״ך": tanach_data,
+        "רמב״ם": rambam_data,
+        "שולחן ערוך": shulchan_aruch_data
+    }
+
+    return combined_data
