@@ -12,11 +12,14 @@ def main(page: ft.Page):
     page.padding = 20
     page.scroll = "adaptive"
 
+    # משתנה לשמירת הכרטיסייה הנוכחית
+    current_tab_index = 0
+
     # טוען את כל הנתונים הרלוונטיים מקבצי ה-JSON השונים
     data = load_data()
 
     if not data:
-        page.overlay.append(ft.SnackBar(ft.Text("Error loading data.")))  # שינוי ל-overlay.append
+        page.overlay.append(ft.SnackBar(ft.Text("Error loading data.")))
         page.update()
         return
 
@@ -24,13 +27,21 @@ def main(page: ft.Page):
     completion_indicators = {}
 
     def update_completion_status(category, masechta_name):
+        """ עדכון סטטוס להשלמת מסכת, ספר תנ"ך, סימן רמב"ם וכו' בהתאם לקטגוריה """
         progress = load_progress(masechta_name)
         masechta_data = data[category].get(masechta_name)
         if not masechta_data:
             return
 
-        total_pages = 2 * masechta_data["pages"] if category == "תלמוד בבלי" else masechta_data["pages"]
-        completed_pages = sum(1 for daf_data in progress.values() for amud_value in daf_data.values() if amud_value)
+        total_pages = 2 * masechta_data["pages"] if category in ["תלמוד בבלי", "תלמוד ירושלמי"] else masechta_data["pages"]
+        
+        # בתלמוד בבלי וירושלמי נבדוק עמוד א' ועמוד ב', בשאר רק פרק/סימן
+        if category in ["תלמוד בבלי", "תלמוד ירושלמי"]:
+            completed_pages = sum(
+                1 for daf_data in progress.values() for amud_value in daf_data.values() if amud_value
+            )
+        else:
+            completed_pages = sum(1 for daf_data in progress.values() if daf_data.get("a", False))
 
         complication = completed_pages == total_pages
 
@@ -59,7 +70,7 @@ def main(page: ft.Page):
 
         def check_all(e):
             for row in table.rows:
-                if category == "תלמוד בבלי":
+                if category in ["תלמוד בבלי", "תלמוד ירושלמי"]:
                     row.cells[1].content.value = e.control.value
                     row.cells[2].content.value = e.control.value
                 else:
@@ -68,12 +79,15 @@ def main(page: ft.Page):
             update_completion_status(category, masechta_name)
 
         def update_check_all_status(table):
-            all_checked = all(row.cells[1].content.value for row in table.rows)
+            all_checked = all(
+                row.cells[1].content.value if category in ["תלמוד בבלי", "תלמוד ירושלמי"] else row.cells[0].content.value
+                for row in table.rows
+            )
             check_all_checkbox.value = all_checked
             page.update()
 
         # הגדרת השמות המותאמים לכל נושא
-        if category == "תלמוד בבלי":
+        if category in ["תלמוד בבלי", "תלמוד ירושלמי"]:
             table_columns = [
                 ft.DataColumn(ft.Text("דף")),
                 ft.DataColumn(ft.Text("עמוד א")),
@@ -83,7 +97,7 @@ def main(page: ft.Page):
             # שתי עמודות: מספר פרק/סימן + Checkbox לבדיקת סטטוס
             table_columns = [
                 ft.DataColumn(ft.Text("פרק" if category == "תנ״ך" else "סימן")),
-                ft.DataColumn(ft.Text("מצב"))
+                ft.DataColumn(ft.Text("סטטוס"))
             ]
 
         table = ft.DataTable(
@@ -96,13 +110,13 @@ def main(page: ft.Page):
         for i in range(1, masechta_data["pages"] + 1):
             daf_progress = progress.get(str(i), {})
 
-            if category == "תלמוד בבלי":
+            if category in ["תלמוד בבלי", "תלמוד ירושלמי"]:
                 table.rows.append(
                     ft.DataRow(
                         cells=[
                             ft.DataCell(ft.Text(int_to_gematria(i))),
                             ft.DataCell(ft.Checkbox(value=daf_progress.get("a", False), on_change=on_change, data={"daf": i, "amud": "a"})),
-                            ft.DataCell(ft.Checkbox(value=daf_progress.get("b", False), on_change=on_change, data={"daf": i, "amud": "b"})),
+                            ft.DataCell(ft.Checkbox(value=daf_progress.get("b", False), on_change=on_change, data={"daf": i, "amud": "b"}))
                         ],
                     )
                 )
@@ -147,10 +161,13 @@ def main(page: ft.Page):
         )
 
     def show_masechta(e):
-        nonlocal current_masechta
+        nonlocal current_masechta, current_tab_index
         current_masechta = e.control.data["masechta"]
         category = e.control.data["category"]
         page.views.clear()
+
+        # שמירת הכרטיסייה הפעילה לפני המעבר לתצוגת המסכת
+        current_tab_index = section_to_index(category)
 
         # יצירת הטבלה למסכת הנבחרת
         masechta_table = create_table(category, current_masechta)
@@ -178,7 +195,7 @@ def main(page: ft.Page):
         sections = {
          "תנ״ך": list(data.get("תנ״ך", {}).keys()),
          "תלמוד בבלי": list(data.get("תלמוד בבלי", {}).keys()),
-         "תלמוד ירושלמי": [],  # ניתן להוסיף בהמשך
+         "תלמוד ירושלמי": list(data.get("תלמוד ירושלמי", {}).keys()),
          "רמב״ם": list(data.get("רמב״ם", {}).keys()),
          "שולחן ערוך": list(data.get("שולחן ערוך", {}).keys())
         }
@@ -197,15 +214,24 @@ def main(page: ft.Page):
             )
 
         def check_masechta_completion(category, masechta_name):
+            """ בדיקה האם מסכת/ספר הושלם. בתלמוד בבלי וירושלמי עמוד א' ועמוד ב', בשאר רק פרק/סימן """
             progress = load_progress(masechta_name)
             masechta_data = data[category].get(masechta_name)
             if not masechta_data:
                 return False
 
-            total_pages = 2 * masechta_data["pages"] if category == "תלמוד בבלי" else masechta_data["pages"]
-            completed_pages = sum(1 for daf_data in progress.values() for amud_value in daf_data.values() if amud_value)
+            total_pages = 2 * masechta_data["pages"] if category in ["תלמוד בבלי", "תלמוד ירושלמי"] else masechta_data["pages"]
+            
+            if category in ["תלמוד בבלי", "תלמוד ירושלמי"]:
+                completed_pages = sum(
+                    1 for daf_data in progress.values() for amud_value in daf_data.values() if amud_value
+                )
+            else:
+                completed_pages = sum(1 for daf_data in progress.values() if daf_data.get("a", False))
+
             return completed_pages == total_pages
 
+        # הפעם נקבע את הכרטיסייה הנבחרת לפי המשתנה הנוכחי
         page.views.clear()
         page.views.append(
             ft.View(
@@ -226,7 +252,7 @@ def main(page: ft.Page):
                         [
                             ft.Text("בחר מקור:", size=24, weight=ft.FontWeight.BOLD, text_align=ft.TextAlign.CENTER, style=ft.TextStyle(color=ft.colors.SECONDARY)),
                             ft.Tabs(
-                                selected_index=1,
+                                selected_index=current_tab_index,  # הגדרת הכרטיסייה הנבחרת לפי המשתנה
                                 tabs=[
                                     ft.Tab(
                                         text=section_name,
@@ -258,6 +284,17 @@ def main(page: ft.Page):
             )
         )
         page.update()
+
+    def section_to_index(section_name):
+        """ המרת שם קטגוריה לאינדקס מתאים עבור הכרטיסיות """
+        section_mapping = {
+            "תנ״ך": 0,
+            "תלמוד בבלי": 1,
+            "תלמוד ירושלמי": 2,
+            "רמב״ם": 3,
+            "שולחן ערוך": 4
+        }
+        return section_mapping.get(section_name, 1)  # ברירת מחדל "תלמוד בבלי"
 
     show_main_menu()
 

@@ -68,6 +68,7 @@ def load_data():
 
     # Load data from different sources
     shas_data = load_json_file("data/shas.json")
+    yerushalmi_data = load_json_file("data/yerushalmi.json")
     tanach_data = load_json_file("data/tanach.json")
     rambam_data = load_json_file("data/rambam.json")
     shulchan_aruch_data = load_json_file("data/shulchan_aruch.json")
@@ -75,6 +76,7 @@ def load_data():
     # Combine all data into a single dictionary
     combined_data = {
         "תלמוד בבלי": shas_data,
+        "תלמוד ירושלמי": yerushalmi_data,
         "תנ״ך": tanach_data,
         "רמב״ם": rambam_data,
         "שולחן ערוך": shulchan_aruch_data
