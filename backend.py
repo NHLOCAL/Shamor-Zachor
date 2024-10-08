@@ -1,54 +1,64 @@
 import json
+import os
 
-def save_progress(masechta, daf, amud, value):
-    try:
-        with open("progress.json", "r") as f:
-            progress = json.load(f)
-    except FileNotFoundError:
-        progress = {}
+progress_file_path = "progress.json"
 
-    if masechta not in progress:
-        progress[masechta] = {}
+def load_progress(masechta_name, category):
+    """ טוען את ההתקדמות עבור מסכת מסוימת לפי הנושא שלה """
+    if os.path.exists(progress_file_path):
+        with open(progress_file_path, "r", encoding="utf-8") as file:
+            progress_data = json.load(file)
+            return progress_data.get(category, {}).get(masechta_name, {})
+    return {}
 
-    if str(daf) not in progress[masechta]:
-        progress[masechta][str(daf)] = {}
+def save_progress(masechta_name, daf, amud, value, category):
+    """ שומר את ההתקדמות לפי מסכת, דף ועמוד בהתאם לקטגוריה """
+    progress_data = {}
+    if os.path.exists(progress_file_path):
+        with open(progress_file_path, "r", encoding="utf-8") as file:
+            progress_data = json.load(file)
 
-    progress[masechta][str(daf)][amud] = value
+    # וידוא שיש קטגוריה רלוונטית
+    if category not in progress_data:
+        progress_data[category] = {}
 
-    with open("progress.json", "w") as f:
-        json.dump(progress, f, indent=4)
+    # וידוא שיש רשומת מסכת רלוונטית בקטגוריה
+    if masechta_name not in progress_data[category]:
+        progress_data[category][masechta_name] = {}
 
+    # שמירת ההתקדמות עבור המסכת
+    if daf not in progress_data[category][masechta_name]:
+        progress_data[category][masechta_name][daf] = {}
 
-def save_all_masechta(masechta, pages_num, value):
-    try:
-        with open("progress.json", "r") as f:
-            progress = json.load(f)
-    except FileNotFoundError:
-        progress = {}
+    progress_data[category][masechta_name][daf][amud] = value
 
-    if masechta not in progress:
-        progress[masechta] = {}
+    with open(progress_file_path, "w", encoding="utf-8") as file:
+        json.dump(progress_data, file, ensure_ascii=False, indent=4)
 
-    if masechta in progress:
-        for daf in range(1, pages_num + 1):
+def save_all_masechta(masechta_name, total_pages, value, category):
+    """ שומר את ההתקדמות עבור כל דפי המסכת במסכת מסוימת בהתאם לקטגוריה """
+    progress_data = {}
+    if os.path.exists(progress_file_path):
+        with open(progress_file_path, "r", encoding="utf-8") as file:
+            progress_data = json.load(file)
 
-            if str(daf) not in progress[masechta]:
-                progress[masechta][str(daf)] = {}
+    # וידוא שיש קטגוריה רלוונטית
+    if category not in progress_data:
+        progress_data[category] = {}
 
-            progress[masechta][str(daf)]['a'] = value
-            progress[masechta][str(daf)]['b'] = value
+    # וידוא שיש רשומת מסכת רלוונטית בקטגוריה
+    if masechta_name not in progress_data[category]:
+        progress_data[category][masechta_name] = {}
 
-    with open("progress.json", "w") as f:
-        json.dump(progress, f, indent=4)
+    # עדכון כל העמודים במסכת
+    for daf in range(1, total_pages + 1):
+        progress_data[category][masechta_name][str(daf)] = {
+            "a": value,
+            "b": value
+        }
 
-
-def load_progress(masechta):
-    try:
-        with open("progress.json", "r") as f:
-            progress = json.load(f)
-            return progress.get(masechta, {})
-    except FileNotFoundError:
-        return {}
+    with open(progress_file_path, "w", encoding="utf-8") as file:
+        json.dump(progress_data, file, ensure_ascii=False, indent=4)
 
 
 def load_data():

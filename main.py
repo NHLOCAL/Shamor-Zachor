@@ -28,7 +28,7 @@ def main(page: ft.Page):
 
     def update_completion_status(category, masechta_name):
         """ עדכון סטטוס להשלמת מסכת, ספר תנ"ך, סימן רמב"ם וכו' בהתאם לקטגוריה """
-        progress = load_progress(masechta_name)
+        progress = load_progress(masechta_name, category)  # נוספה קטגוריה
         masechta_data = data[category].get(masechta_name)
         if not masechta_data:
             return
@@ -59,12 +59,12 @@ def main(page: ft.Page):
             page.update()
             return None
 
-        progress = load_progress(masechta_name)
+        progress = load_progress(masechta_name, category)  # נוספה קטגוריה
 
         def on_change(e):
             daf = int(e.control.data["daf"])
             amud = e.control.data["amud"]
-            save_progress(masechta_name, daf, amud, e.control.value)
+            save_progress(masechta_name, daf, amud, e.control.value, category)  # נוספה קטגוריה
             update_completion_status(category, masechta_name)
             update_check_all_status(table)
 
@@ -75,7 +75,7 @@ def main(page: ft.Page):
                     row.cells[2].content.value = e.control.value
                 else:
                     row.cells[1].content.value = e.control.value
-            save_all_masechta(masechta_name, masechta_data["pages"], e.control.value)
+            save_all_masechta(masechta_name, masechta_data["pages"], e.control.value, category)  # נוספה קטגוריה
             update_completion_status(category, masechta_name)
 
         def update_check_all_status(table):
@@ -85,6 +85,7 @@ def main(page: ft.Page):
             )
             check_all_checkbox.value = all_checked
             page.update()
+
 
         # הגדרת השמות המותאמים לכל נושא
         if category in ["תלמוד בבלי", "תלמוד ירושלמי"]:
@@ -201,7 +202,7 @@ def main(page: ft.Page):
         }
 
         def create_masechta_button(masechta, category):
-            completed = check_masechta_completion(category, masechta)
+            completed = check_masechta_completion(category, masechta)  # נוספה קטגוריה
             return ft.ElevatedButton(
                 text=masechta,
                 data={"masechta": masechta, "category": category},
@@ -209,13 +210,14 @@ def main(page: ft.Page):
                 style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=10), padding=15),
                 width=150,
                 height=50,
-                icon=ft.icons.CHECK_CIRCLE if completed else None, 
+                icon=ft.icons.CHECK_CIRCLE if completed else None,
                 icon_color=ft.colors.GREEN if completed else None,
             )
 
+
         def check_masechta_completion(category, masechta_name):
             """ בדיקה האם מסכת/ספר הושלם. בתלמוד בבלי וירושלמי עמוד א' ועמוד ב', בשאר רק פרק/סימן """
-            progress = load_progress(masechta_name)
+            progress = load_progress(masechta_name, category)  # נוספה קטגוריה
             masechta_data = data[category].get(masechta_name)
             if not masechta_data:
                 return False
@@ -230,6 +232,7 @@ def main(page: ft.Page):
                 completed_pages = sum(1 for daf_data in progress.values() if daf_data.get("a", False))
 
             return completed_pages == total_pages
+
 
         # הפעם נקבע את הכרטיסייה הנבחרת לפי המשתנה הנוכחי
         page.views.clear()
