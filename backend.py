@@ -1,5 +1,6 @@
 import json
 import os
+from pathlib import Path
 
 progress_file_path = "progress.json"
 
@@ -61,35 +62,36 @@ def save_all_masechta(masechta_name, total_pages, value, category):
         json.dump(progress_data, file, ensure_ascii=False, indent=4)
 
 
+
 def load_data():
-    def load_json_file(filename):
+    data_directory = Path("data")  # Define the directory
+    json_files = data_directory.glob("*.json")  # Get all JSON files in the directory
+
+    combined_data = {}
+
+    for json_file in json_files:
         try:
-            with open(filename, "r", encoding="utf-8") as f:
+            with json_file.open("r", encoding="utf-8") as f:
                 data = json.load(f)
-                if not isinstance(data, dict):
-                    raise ValueError(f"Invalid data format in {filename}. Expected a dictionary.")
-                for masechta_data in data.values():
+                
+                # Ensure the data contains the 'name' key and it's a string
+                if "name" not in data or not isinstance(data["name"], str):
+                    raise ValueError(f"Missing or invalid 'name' field in {json_file}. Expected a string.")
+                
+                topic_name = data["name"]  # Use the 'name' field in the JSON file
+                
+                # Ensure 'data' key exists and contains valid information
+                if "data" not in data or not isinstance(data["data"], dict):
+                    raise ValueError(f"Missing or invalid 'data' field in {json_file}. Expected a dictionary.")
+
+                # Optional: Validate structure within 'data'
+                for masechta_data in data["data"].values():
                     if "pages" not in masechta_data or not isinstance(masechta_data["pages"], int):
-                        raise ValueError(f"Invalid masechta data format in {filename}. 'pages' key missing or not an integer.")
-                return data
+                        raise ValueError(f"Invalid masechta data format in {json_file}. 'pages' key missing or not an integer.")
+                
+                combined_data[topic_name] = data["data"]  # Add the 'data' content under the Hebrew topic name
+
         except (FileNotFoundError, json.JSONDecodeError, ValueError) as e:
-            print(f"Error loading {filename}: {e}")
-            return {}
-
-    # Load data from different sources
-    shas_data = load_json_file("data/shas.json")
-    yerushalmi_data = load_json_file("data/yerushalmi.json")
-    tanach_data = load_json_file("data/tanach.json")
-    rambam_data = load_json_file("data/rambam.json")
-    shulchan_aruch_data = load_json_file("data/shulchan_aruch.json")
-
-    # Combine all data into a single dictionary
-    combined_data = {
-        "תלמוד בבלי": shas_data,
-        "תלמוד ירושלמי": yerushalmi_data,
-        "תנ״ך": tanach_data,
-        "רמב״ם": rambam_data,
-        "שולחן ערוך": shulchan_aruch_data
-    }
+            print(f"Error loading {json_file}: {e}")
 
     return combined_data
