@@ -42,7 +42,7 @@
    ```
 3. הריצו את האפליקציה:
    ```bash
-   python main.py
+   flet run main.py
    ```
 
 ## דרישות מערכת 📋
