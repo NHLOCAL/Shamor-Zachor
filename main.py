@@ -274,7 +274,7 @@ def main(page: ft.Page):
 
                     # שינוי צבע הטקסט בהתאם לאחוז ההתקדמות
                     if percentage < 50:
-                        text_color = ft.colors.BLACK
+                        text_color = ft.colors.BROWN_700
                     else:
                         text_color = ft.colors.WHITE
 
