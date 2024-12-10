@@ -19,15 +19,12 @@ def save_progress(masechta_name, daf, amud, value, category):
         with open(progress_file_path, "r", encoding="utf-8") as file:
             progress_data = json.load(file)
 
-    # וידוא שיש קטגוריה רלוונטית
     if category not in progress_data:
         progress_data[category] = {}
 
-    # וידוא שיש רשומת מסכת רלוונטית בקטגוריה
     if masechta_name not in progress_data[category]:
         progress_data[category][masechta_name] = {}
 
-    # שמירת ההתקדמות עבור המסכת
     if daf not in progress_data[category][masechta_name]:
         progress_data[category][masechta_name][daf] = {}
 
@@ -43,15 +40,12 @@ def save_all_masechta(masechta_name, total_pages, value, category):
         with open(progress_file_path, "r", encoding="utf-8") as file:
             progress_data = json.load(file)
 
-    # וידוא שיש קטגוריה רלוונטית
     if category not in progress_data:
         progress_data[category] = {}
 
-    # וידוא שיש רשומת מסכת רלוונטית בקטגוריה
     if masechta_name not in progress_data[category]:
         progress_data[category][masechta_name] = {}
 
-    # עדכון כל העמודים במסכת
     for daf in range(1, total_pages + 1):
         progress_data[category][masechta_name][str(daf)] = {
             "a": value,
@@ -64,8 +58,8 @@ def save_all_masechta(masechta_name, total_pages, value, category):
 
 
 def load_data():
-    data_directory = Path("data")  # Define the directory
-    json_files = data_directory.glob("*.json")  # Get all JSON files in the directory
+    data_directory = Path("data")
+    json_files = data_directory.glob("*.json")
 
     combined_data = {}
 
@@ -74,24 +68,36 @@ def load_data():
             with json_file.open("r", encoding="utf-8") as f:
                 data = json.load(f)
                 
-                # Ensure the data contains the 'name' key and it's a string
                 if "name" not in data or not isinstance(data["name"], str):
                     raise ValueError(f"Missing or invalid 'name' field in {json_file}. Expected a string.")
                 
-                topic_name = data["name"]  # Use the 'name' field in the JSON file
+                topic_name = data["name"]
                 
-                # Ensure 'data' key exists and contains valid information
                 if "data" not in data or not isinstance(data["data"], dict):
                     raise ValueError(f"Missing or invalid 'data' field in {json_file}. Expected a dictionary.")
 
-                # Optional: Validate structure within 'data'
                 for masechta_data in data["data"].values():
                     if "pages" not in masechta_data or not isinstance(masechta_data["pages"], int):
                         raise ValueError(f"Invalid masechta data format in {json_file}. 'pages' key missing or not an integer.")
                 
-                combined_data[topic_name] = data["data"]  # Add the 'data' content under the Hebrew topic name
+                combined_data[topic_name] = data["data"]
 
         except (FileNotFoundError, json.JSONDecodeError, ValueError) as e:
             print(f"Error loading {json_file}: {e}")
 
     return combined_data
+
+def calculate_completion_percentage(masechta_name, category, total_pages):
+    """ מחשב את אחוז ההשלמה עבור מסכת נתונה """
+    progress = load_progress(masechta_name, category)
+    if not progress:
+        return 0
+
+    if category in ["תלמוד בבלי", "תלמוד ירושלמי"]:
+        completed_pages = sum(
+            1 for daf_data in progress.values() for amud_value in daf_data.values() if amud_value
+        )
+    else:
+        completed_pages = sum(1 for daf_data in progress.values() if daf_data.get("a", False))
+
+    return round((completed_pages / total_pages) * 100)
