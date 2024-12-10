@@ -274,7 +274,9 @@ def main(page: ft.Page):
 
                     in_progress_items.append(
                         ft.Card(
+                            width=page.width,  # הוספת רוחב כרטיס
                             content=ft.Container(
+                                expand=True,  # הרחבת המיכל
                                 content=ft.Column(
                                     [
                                         ft.Text(f"{masechta_name} ({category})", size=18, weight=ft.FontWeight.BOLD),
@@ -295,10 +297,12 @@ def main(page: ft.Page):
 
         # מחזירים רק את תוכן התצוגה, ללא AppBar ו-NavigationBar
         return ft.Column(
-            controls=in_progress_items,
+            controls=[
+                ft.Text("ספרים בתהליך:", size=24, weight=ft.FontWeight.BOLD, text_align=ft.TextAlign.CENTER, style=ft.TextStyle(color=ft.colors.SECONDARY)),
+                *in_progress_items  # הוספת כותרת
+            ],
             scroll="always",
             expand=True,
-            alignment=ft.MainAxisAlignment.START,
             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
         )
 
