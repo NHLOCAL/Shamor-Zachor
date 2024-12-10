@@ -274,7 +274,8 @@ def main(page: ft.Page):
 
                 if completed_pages < total_pages:
                     percentage = calculate_completion_percentage(masechta_name, category, total_pages)
-                    last_page = get_last_page(progress, category, masechta_data)
+                    # שימוש בפונקציה get_last_page_display
+                    last_page_display = get_last_page_display(progress, masechta_data)
 
                     # שינוי צבע הטקסט בהתאם לאחוז ההתקדמות
                     if percentage < 50:
@@ -305,7 +306,8 @@ def main(page: ft.Page):
                                         [
                                             ft.Text(f"{masechta_name} ({category})", size=18, weight=ft.FontWeight.BOLD),
                                             progress_bar_with_text,
-                                            ft.Text(f"עמוד אחרון: {last_page}"),
+                                            # עדכון תיאור הכרטיס
+                                            ft.Text(f"אתה אוחז ב{last_page_display}"),
                                         ],
                                         spacing=5,
                                         alignment=ft.MainAxisAlignment.CENTER,
@@ -340,15 +342,17 @@ def main(page: ft.Page):
             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
         )
 
-    def get_last_page(progress, category, masechta_data):
-        """ מחזיר את מספר העמוד/פרק האחרון שנלמד """
+    # שינוי שם הפונקציה ל-get_last_page_display
+    def get_last_page_display(progress, masechta_data):
+        """ מחזיר את תיאור העמוד/פרק האחרון שנלמד """
+        content_type = masechta_data["content_type"]
         if masechta_data["columns"] == ["עמוד א", "עמוד ב"]:
             last_daf = max(progress.keys(), key=int)
             last_amud = "ב" if progress[last_daf].get("b", False) else "א"
-            return f"{int_to_gematria(int(last_daf))}{last_amud}"
+            return f"{content_type} {int_to_gematria(int(last_daf))} עמוד {last_amud}"
         else:
             last_chapter = max(progress.keys(), key=int)
-            return int_to_gematria(int(last_chapter))
+            return f"{content_type} {int_to_gematria(int(last_chapter))}"
 
     def navigation_changed(e):
         """ מטפל באירוע שינוי ניווט """
