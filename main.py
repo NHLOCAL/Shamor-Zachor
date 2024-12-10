@@ -159,133 +159,85 @@ def main(page: ft.Page):
         )
 
     def show_masechta(e):
-        nonlocal current_masechta, current_tab_index
-        current_masechta = e.control.data["masechta"]
-        category = e.control.data["category"]
-        page.views.clear()
-
-        current_tab_index = section_to_index(category)
-
-        masechta_table = create_table(category, current_masechta)
-        if masechta_table is None:
-            return
-
-        page.views.append(
-            ft.View(
-                "/masechta",
-                [
-                    ft.AppBar(title=ft.Text(current_masechta), leading=ft.IconButton(icon=ft.icons.ARROW_BACK, on_click=lambda _: show_view())),
-                    masechta_table,
-                ],
-                vertical_alignment=ft.MainAxisAlignment.START,
-                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                scroll="always",
-            )
-        )
+        # ניווט לדף הספר באמצעות page.route
+        page.route = f"/masechta/{e.control.data['category']}/{e.control.data['masechta']}"
         page.update()
 
     def show_main_menu(e=None):
-      nonlocal current_masechta
-      current_masechta = None
+        nonlocal current_masechta
+        current_masechta = None
 
-      sections = {
-          "תנ״ך": list(data.get("תנ״ך", {}).keys()),
-          "תלמוד בבלי": list(data.get("תלמוד בבלי", {}).keys()),
-          "תלמוד ירושלמי": list(data.get("תלמוד ירושלמי", {}).keys()),
-          "רמב״ם": list(data.get("רמב״ם", {}).keys()),
-          "שולחן ערוך": list(data.get("שולחן ערוך", {}).keys())
-      }
+        sections = {
+            "תנ״ך": list(data.get("תנ״ך", {}).keys()),
+            "תלמוד בבלי": list(data.get("תלמוד בבלי", {}).keys()),
+            "תלמוד ירושלמי": list(data.get("תלמוד ירושלמי", {}).keys()),
+            "רמב״ם": list(data.get("רמב״ם", {}).keys()),
+            "שולחן ערוך": list(data.get("שולחן ערוך", {}).keys())
+        }
 
-      def create_masechta_button(masechta, category):
-          completed = check_masechta_completion(category, masechta)
-          return ft.ElevatedButton(
-              text=masechta,
-              data={"masechta": masechta, "category": category},
-              on_click=show_masechta,
-              style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=10), padding=15),
-              width=150,
-              height=50,
-              icon=ft.icons.CHECK_CIRCLE if completed else None,
-              icon_color=ft.colors.GREEN if completed else None,
-          )
+        def create_masechta_button(masechta, category):
+            completed = check_masechta_completion(category, masechta)
+            return ft.ElevatedButton(
+                text=masechta,
+                data={"masechta": masechta, "category": category},
+                on_click=show_masechta,
+                style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=10), padding=15),
+                width=150,
+                height=50,
+                icon=ft.icons.CHECK_CIRCLE if completed else None,
+                icon_color=ft.colors.GREEN if completed else None,
+            )
 
-      def check_masechta_completion(category, masechta_name):
-          progress = load_progress(masechta_name, category)
-          masechta_data = data[category].get(masechta_name)
-          if not masechta_data:
-              return False
+        def check_masechta_completion(category, masechta_name):
+            progress = load_progress(masechta_name, category)
+            masechta_data = data[category].get(masechta_name)
+            if not masechta_data:
+                return False
 
-          total_pages = 2 * masechta_data["pages"] if category in ["תלמוד בבלי", "תלמוד ירושלמי"] else masechta_data["pages"]
-          
-          if category in ["תלמוד בבלי", "תלמוד ירושלמי"]:
-              completed_pages = sum(
-                  1 for daf_data in progress.values() for amud_value in daf_data.values() if amud_value
-              )
-          else:
-              completed_pages = sum(1 for daf_data in progress.values() if daf_data.get("a", False))
+            total_pages = 2 * masechta_data["pages"] if category in ["תלמוד בבלי", "תלמוד ירושלמי"] else masechta_data["pages"]
+            
+            if category in ["תלמוד בבלי", "תלמוד ירושלמי"]:
+                completed_pages = sum(
+                    1 for daf_data in progress.values() for amud_value in daf_data.values() if amud_value
+                )
+            else:
+                completed_pages = sum(1 for daf_data in progress.values() if daf_data.get("a", False))
 
-          return completed_pages == total_pages
-
-      page.views.clear()
-      page.views.append(
-          ft.View(
-              "/",
-              [
-                  ft.AppBar(
-                      title=ft.Row(
-                          [
-                              ft.Icon(ft.icons.BOOK_OUTLINED),
-                              ft.Text("שמור וזכור", size=20, weight=ft.FontWeight.BOLD),
-                          ],
-                          alignment=ft.MainAxisAlignment.CENTER,
-                      ),
-                      bgcolor=ft.colors.PRIMARY_CONTAINER,
-                      color=ft.colors.ON_PRIMARY_CONTAINER,
-                  ),
-                  ft.Column(
-                      [
-                          ft.Text("בחר מקור:", size=24, weight=ft.FontWeight.BOLD, text_align=ft.TextAlign.CENTER, style=ft.TextStyle(color=ft.colors.SECONDARY)),
-                          ft.Tabs(
-                              selected_index=current_tab_index,
-                              tabs=[
-                                  ft.Tab(
-                                      text=section_name,
-                                      content=ft.Container(
-                                          content=ft.GridView(
-                                              controls=[
-                                                  create_masechta_button(masechta, section_name)
-                                                  for masechta in masechtot
-                                              ] if masechtot else [],
-                                              runs_count=3,
-                                              max_extent=150,
-                                              run_spacing=10,
-                                              spacing=10,
-                                              padding=10,
-                                              visible=bool(masechtot),
-                                          ),
-                                          expand=True,
-                                      ),
-                                  )
-                                  for section_name, masechtot in sections.items()
-                              ],
-                              expand=1,
-                          ),
-                      ],
-                      horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                      expand=True,
-                  ),
-                  ft.NavigationBar(
-                      destinations=[
-                          ft.NavigationDestination(icon=ft.icons.TRACK_CHANGES, label="מעקב"),
-                          ft.NavigationDestination(icon=ft.icons.MENU_BOOK, label="ספרים"),
-                      ],
-                      selected_index=1,
-                      on_change=navigation_changed,
-                  )
-              ],
-          )
-      )
-      page.update()
+            return completed_pages == total_pages
+        
+        # מחזירים רק את תוכן התצוגה, ללא AppBar ו-NavigationBar
+        return ft.Column(
+            [
+                ft.Text("בחר מקור:", size=24, weight=ft.FontWeight.BOLD, text_align=ft.TextAlign.CENTER, style=ft.TextStyle(color=ft.colors.SECONDARY)),
+                ft.Tabs(
+                    selected_index=current_tab_index,
+                    tabs=[
+                        ft.Tab(
+                            text=section_name,
+                            content=ft.Container(
+                                content=ft.GridView(
+                                    controls=[
+                                        create_masechta_button(masechta, section_name)
+                                        for masechta in masechtot
+                                    ] if masechtot else [],
+                                    runs_count=3,
+                                    max_extent=150,
+                                    run_spacing=10,
+                                    spacing=10,
+                                    padding=10,
+                                    visible=bool(masechtot),
+                                ),
+                                expand=True,
+                            ),
+                        )
+                        for section_name, masechtot in sections.items()
+                    ],
+                    expand=1,
+                ),
+            ],
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+            expand=True,
+        )
 
     def section_to_index(section_name):
         section_mapping = {
@@ -341,36 +293,20 @@ def main(page: ft.Page):
                         )
                     )
 
-        return ft.View(
-            "/tracking",
-            [
-                ft.AppBar(
-                    title=ft.Text("מעקב התקדמות"),
-                    leading=ft.IconButton(icon=ft.icons.ARROW_BACK, on_click=lambda _: show_view("books")),
-                ),
-                ft.Column(
-                    controls=in_progress_items,
-                    scroll="always",
-                    expand=True,
-                    alignment=ft.MainAxisAlignment.START,
-                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                ),
-                ft.NavigationBar(
-                    destinations=[
-                        ft.NavigationDestination(icon=ft.icons.TRACK_CHANGES, label="מעקב"),
-                        ft.NavigationDestination(icon=ft.icons.MENU_BOOK, label="ספרים"),
-                    ],
-                    selected_index=0,
-                    on_change=navigation_changed,
-                )
-            ],
+        # מחזירים רק את תוכן התצוגה, ללא AppBar ו-NavigationBar
+        return ft.Column(
+            controls=in_progress_items,
+            scroll="always",
+            expand=True,
+            alignment=ft.MainAxisAlignment.START,
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
         )
 
     def get_last_page(progress, category):
         """ מחזיר את מספר העמוד/פרק האחרון שנלמד """
         if category in ["תלמוד בבלי", "תלמוד ירושלמי"]:
             last_daf = max(progress.keys(), key=int)
-            last_amud = "ב" if progress[last_daf]["b"] else "א"
+            last_amud = "ב" if progress[last_daf].get("b", False) else "א"
             return f"{int_to_gematria(int(last_daf))}{last_amud}"
         else:
             last_chapter = max(progress.keys(), key=int)
@@ -382,21 +318,83 @@ def main(page: ft.Page):
         current_view = "tracking" if e.control.selected_index == 0 else "books"
         show_view()
 
-    def show_view(view_name=None):
-        """ מציג את התצוגה המבוקשת (מעקב או ספרים) """
-        nonlocal current_view
+    # יצירת AppBar ו-NavigationBar
+    appbar = ft.AppBar(
+        title=ft.Row(
+            [
+                ft.Icon(ft.icons.BOOK_OUTLINED),
+                ft.Text("שמור וזכור", size=20, weight=ft.FontWeight.BOLD),
+            ],
+            alignment=ft.MainAxisAlignment.CENTER,
+        ),
+        bgcolor=ft.colors.PRIMARY_CONTAINER,
+        color=ft.colors.ON_PRIMARY_CONTAINER,
+    )
 
-        if view_name:
-          current_view = view_name
+    navigation_bar = ft.NavigationBar(
+        destinations=[
+            ft.NavigationDestination(icon=ft.icons.TRACK_CHANGES, label="מעקב"),
+            ft.NavigationDestination(icon=ft.icons.MENU_BOOK, label="ספרים"),
+        ],
+        selected_index=0,  # מעקב כברירת מחדל
+        on_change=navigation_changed,
+    )
 
-        if current_view == "tracking":
-            page.views.clear()
-            page.views.append(create_tracking_page())
-        else:
-            show_main_menu()
+    def route_change(e):
+        nonlocal current_view, current_masechta, current_tab_index
+        page.views.clear()
+
+        if page.route == "/books" or page.route == "/":
+            current_view = "books"
+            page.views.append(
+                ft.View(
+                    "/",
+                    [
+                        appbar,
+                        show_main_menu(),
+                        navigation_bar, # הוספת סרגל ניווט
+                    ],
+                )
+            )
+        elif page.route == "/tracking":
+            current_view = "tracking"
+            page.views.append(
+                ft.View(
+                    "/tracking",
+                    [
+                        appbar,
+                        create_tracking_page(),
+                        navigation_bar, # הוספת סרגל ניווט
+                    ],
+                )
+            )
+        elif page.route.startswith("/masechta"):
+            category, masechta_name = page.route.split("/")[2], page.route.split("/")[3]
+            current_masechta = masechta_name
+            current_tab_index = section_to_index(category)
+            page.views.append(
+                ft.View(
+                    f"/masechta/{category}/{masechta_name}",
+                    [
+                        appbar,
+                        create_table(category, current_masechta),
+                        navigation_bar,  # הוספת סרגל ניווט
+                    ],
+                    scroll="always",
+                )
+            )
 
         page.update()
 
+    def show_view(view_name=None):
+        """ מציג את התצוגה המבוקשת (מעקב או ספרים) """
+        if view_name:
+            page.route = f"/{view_name}"
+        else:
+            page.route = f"/{current_view}"
+        page.update()
+
+    page.on_route_change = route_change
     show_view()
 
 ft.app(target=main)
