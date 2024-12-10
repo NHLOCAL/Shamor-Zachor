@@ -36,9 +36,14 @@ def main(page: ft.Page):
         if not masechta_data:
             return
 
-        total_pages = 2 * masechta_data["pages"] if category in ["תלמוד בבלי", "תלמוד ירושלמי"] else masechta_data["pages"]
+        total_pages = 0
+        # שימוש במספר העמודים בהתאם להגדרות
+        if masechta_data["columns"] == ["עמוד א", "עמוד ב"]:
+            total_pages = 2 * masechta_data["pages"]
+        else:
+            total_pages = masechta_data["pages"]
 
-        if category in ["תלמוד בבלי", "תלמוד ירושלמי"]:
+        if masechta_data["columns"] == ["עמוד א", "עמוד ב"]:
             completed_pages = sum(
                 1 for daf_data in progress.values() for amud_value in daf_data.values() if amud_value
             )
@@ -61,6 +66,8 @@ def main(page: ft.Page):
             return None
 
         progress = load_progress(masechta_name, category)
+        content_type = masechta_data["content_type"]
+        columns = masechta_data["columns"]
 
         def on_change(e):
             daf = int(e.control.data["daf"])
@@ -71,7 +78,7 @@ def main(page: ft.Page):
 
         def check_all(e):
             for row in table.rows:
-                if category in ["תלמוד בבלי", "תלמוד ירושלמי"]:
+                if len(columns) > 1:
                     row.cells[1].content.value = e.control.value
                     row.cells[2].content.value = e.control.value
                 else:
@@ -81,23 +88,18 @@ def main(page: ft.Page):
 
         def update_check_all_status(table):
             all_checked = all(
-                row.cells[1].content.value if category in ["תלמוד בבלי", "תלמוד ירושלמי"] else row.cells[0].content.value
+                row.cells[1].content.value if len(columns) > 1 else row.cells[0].content.value
                 for row in table.rows
             )
             check_all_checkbox.value = all_checked
             page.update()
 
-        if category in ["תלמוד בבלי", "תלמוד ירושלמי"]:
-            table_columns = [
-                ft.DataColumn(ft.Text("דף")),
-                ft.DataColumn(ft.Text("עמוד א")),
-                ft.DataColumn(ft.Text("עמוד ב")),
-            ]
-        else:
-            table_columns = [
-                ft.DataColumn(ft.Text("פרק" if category == "תנ״ך" else "סימן")),
-                ft.DataColumn(ft.Text("מצב"))
-            ]
+        table_columns = [
+            ft.DataColumn(ft.Text(content_type)),
+        ]
+
+        for column in columns:
+            table_columns.append(ft.DataColumn(ft.Text(column)))
 
         table = ft.DataTable(
             columns=table_columns,
@@ -109,25 +111,17 @@ def main(page: ft.Page):
         for i in range(1, masechta_data["pages"] + 1):
             daf_progress = progress.get(str(i), {})
 
-            if category in ["תלמוד בבלי", "תלמוד ירושלמי"]:
-                table.rows.append(
-                    ft.DataRow(
-                        cells=[
-                            ft.DataCell(ft.Text(int_to_gematria(i))),
-                            ft.DataCell(ft.Checkbox(value=daf_progress.get("a", False), on_change=on_change, data={"daf": i, "amud": "a"})),
-                            ft.DataCell(ft.Checkbox(value=daf_progress.get("b", False), on_change=on_change, data={"daf": i, "amud": "b"}))
-                        ],
-                    )
-                )
+            row_cells = [
+                ft.DataCell(ft.Text(int_to_gematria(i))),
+            ]
+
+            if len(columns) > 1:
+                row_cells.append(ft.DataCell(ft.Checkbox(value=daf_progress.get("a", False), on_change=on_change, data={"daf": i, "amud": "a"})))
+                row_cells.append(ft.DataCell(ft.Checkbox(value=daf_progress.get("b", False), on_change=on_change, data={"daf": i, "amud": "b"})))
             else:
-                table.rows.append(
-                    ft.DataRow(
-                        cells=[
-                            ft.DataCell(ft.Text(int_to_gematria(i))),
-                            ft.DataCell(ft.Checkbox(value=daf_progress.get("a", False), on_change=on_change, data={"daf": i, "amud": "a"})),
-                        ],
-                    )
-                )
+                row_cells.append(ft.DataCell(ft.Checkbox(value=daf_progress.get("a", False), on_change=on_change, data={"daf": i, "amud": "a"})))
+            
+            table.rows.append(ft.DataRow(cells=row_cells))
 
         completion_indicators[masechta_name] = ft.Icon(ft.icons.CIRCLE_OUTLINED)
 
@@ -194,9 +188,14 @@ def main(page: ft.Page):
             if not masechta_data:
                 return False
 
-            total_pages = 2 * masechta_data["pages"] if category in ["תלמוד בבלי", "תלמוד ירושלמי"] else masechta_data["pages"]
+            total_pages = 0
+            # שימוש במספר העמודים בהתאם להגדרות
+            if masechta_data["columns"] == ["עמוד א", "עמוד ב"]:
+                total_pages = 2 * masechta_data["pages"]
+            else:
+                total_pages = masechta_data["pages"]
             
-            if category in ["תלמוד בבלי", "תלמוד ירושלמי"]:
+            if masechta_data["columns"] == ["עמוד א", "עמוד ב"]:
                 completed_pages = sum(
                     1 for daf_data in progress.values() for amud_value in daf_data.values() if amud_value
                 )
@@ -259,9 +258,14 @@ def main(page: ft.Page):
                 if not progress:
                     continue
 
-                total_pages = 2 * masechta_data["pages"] if category in ["תלמוד בבלי", "תלמוד ירושלמי"] else masechta_data["pages"]
+                total_pages = 0
+                # שימוש במספר העמודים בהתאם להגדרות
+                if masechta_data["columns"] == ["עמוד א", "עמוד ב"]:
+                    total_pages = 2 * masechta_data["pages"]
+                else:
+                    total_pages = masechta_data["pages"]
 
-                if category in ["תלמוד בבלי", "תלמוד ירושלמי"]:
+                if masechta_data["columns"] == ["עמוד א", "עמוד ב"]:
                     completed_pages = sum(
                         1 for daf_data in progress.values() for amud_value in daf_data.values() if amud_value
                     )
@@ -270,7 +274,7 @@ def main(page: ft.Page):
 
                 if completed_pages < total_pages:
                     percentage = calculate_completion_percentage(masechta_name, category, total_pages)
-                    last_page = get_last_page(progress, category)
+                    last_page = get_last_page(progress, category, masechta_data)
 
                     # שינוי צבע הטקסט בהתאם לאחוז ההתקדמות
                     if percentage < 50:
@@ -336,9 +340,9 @@ def main(page: ft.Page):
             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
         )
 
-    def get_last_page(progress, category):
+    def get_last_page(progress, category, masechta_data):
         """ מחזיר את מספר העמוד/פרק האחרון שנלמד """
-        if category in ["תלמוד בבלי", "תלמוד ירושלמי"]:
+        if masechta_data["columns"] == ["עמוד א", "עמוד ב"]:
             last_daf = max(progress.keys(), key=int)
             last_amud = "ב" if progress[last_daf].get("b", False) else "א"
             return f"{int_to_gematria(int(last_daf))}{last_amud}"

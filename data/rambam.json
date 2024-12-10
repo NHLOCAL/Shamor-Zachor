@@ -1,5 +1,7 @@
 {
     "name": "רמב״ם",
+    "content_type": "סימן",
+    "columns": ["מצב"],
     "data": {
         "היד החזקה": {
             "pages": 1000
