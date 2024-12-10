@@ -275,10 +275,9 @@ def main(page: ft.Page):
                     # יצירת Stack עבור סרגל ההתקדמות והטקסט
                     progress_bar_with_text = ft.Stack(
                         [
-                            ft.ProgressBar(width=page.width/2 - 80, value=percentage / 100, height=25),
+                            ft.ProgressBar(value=percentage / 100, height=25),
                             ft.Text(f"{percentage}%", color=ft.colors.BLACK, weight=ft.FontWeight.BOLD),
                         ],
-                        width=page.width/2 - 80,
                         height=25,
                     )
 
@@ -286,7 +285,6 @@ def main(page: ft.Page):
                     card_column = ft.Column(
                         [
                             ft.Card(
-                                width=page.width/2 - 40,
                                 content=ft.Container(
                                     expand=True,
                                     content=ft.Column(
