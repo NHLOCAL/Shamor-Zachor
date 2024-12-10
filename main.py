@@ -272,34 +272,56 @@ def main(page: ft.Page):
                     percentage = calculate_completion_percentage(masechta_name, category, total_pages)
                     last_page = get_last_page(progress, category)
 
-                    in_progress_items.append(
-                        ft.Card(
-                            width=page.width,  # הוספת רוחב כרטיס
-                            content=ft.Container(
-                                expand=True,  # הרחבת המיכל
-                                content=ft.Column(
-                                    [
-                                        ft.Text(f"{masechta_name} ({category})", size=18, weight=ft.FontWeight.BOLD),
-                                        ft.Text(f"הושלמו {percentage}%"),
-                                        ft.Text(f"עמוד אחרון: {last_page}"),
-                                        ft.ElevatedButton(
-                                            "עבור לספר",
-                                            on_click=show_masechta,
-                                            data={"masechta": masechta_name, "category": category},
-                                        ),
-                                    ],
-                                    spacing=5,
-                                ),
-                                padding=10,
-                            )
-                        )
+                    # יצירת Stack עבור סרגל ההתקדמות והטקסט
+                    progress_bar_with_text = ft.Stack(
+                        [
+                            ft.ProgressBar(width=page.width/2 - 80, value=percentage / 100, height=25),
+                            ft.Text(f"{percentage}%", color=ft.colors.BLACK, weight=ft.FontWeight.BOLD),
+                        ],
+                        width=page.width/2 - 80,
+                        height=25,
                     )
+
+                    # יצירת Column עבור כל כרטיס ספר
+                    card_column = ft.Column(
+                        [
+                            ft.Card(
+                                width=page.width/2 - 40,
+                                content=ft.Container(
+                                    expand=True,
+                                    content=ft.Column(
+                                        [
+                                            ft.Text(f"{masechta_name} ({category})", size=18, weight=ft.FontWeight.BOLD),
+                                            progress_bar_with_text,
+                                            ft.Text(f"עמוד אחרון: {last_page}"),
+                                            ft.ElevatedButton(
+                                                "עבור לספר",
+                                                on_click=show_masechta,
+                                                data={"masechta": masechta_name, "category": category},
+                                            ),
+                                        ],
+                                        spacing=5,
+                                        alignment=ft.MainAxisAlignment.CENTER,
+                                    ),
+                                    padding=10,
+                                ),
+                            )
+                        ],
+                        col={"xs": 12, "sm": 6},
+                    )
+                    in_progress_items.append(card_column)
+
+        # יצירת ResponsiveRow עבור כרטיסי הספרים
+        responsive_row = ft.ResponsiveRow(
+            controls=in_progress_items,
+            alignment=ft.MainAxisAlignment.CENTER,
+        )
 
         # מחזירים רק את תוכן התצוגה, ללא AppBar ו-NavigationBar
         return ft.Column(
             controls=[
                 ft.Text("ספרים בתהליך:", size=24, weight=ft.FontWeight.BOLD, text_align=ft.TextAlign.CENTER, style=ft.TextStyle(color=ft.colors.SECONDARY)),
-                *in_progress_items  # הוספת כותרת
+                responsive_row, # הוספת ResponsiveRow
             ],
             scroll="always",
             expand=True,
