@@ -272,11 +272,21 @@ def main(page: ft.Page):
                     percentage = calculate_completion_percentage(masechta_name, category, total_pages)
                     last_page = get_last_page(progress, category)
 
+                    # שינוי צבע הטקסט בהתאם לאחוז ההתקדמות
+                    if percentage < 50:
+                        text_color = ft.colors.BLACK
+                    else:
+                        text_color = ft.colors.WHITE
+
                     # יצירת Stack עבור סרגל ההתקדמות והטקסט
                     progress_bar_with_text = ft.Stack(
                         [
                             ft.ProgressBar(value=percentage / 100, height=25),
-                            ft.Text(f"{percentage}%", color=ft.colors.BLACK, weight=ft.FontWeight.BOLD),
+                            ft.Container(
+                                content=ft.Text(f"{percentage}%", color=text_color, weight=ft.FontWeight.BOLD),
+                                alignment=ft.alignment.center,
+                                height=25,
+                            )
                         ],
                         height=25,
                     )
