@@ -359,7 +359,7 @@ def main(page: ft.Page):
 
     navigation_bar = ft.NavigationBar(
         destinations=[
-            ft.NavigationDestination(icon=ft.icons.TRACK_CHANGES, label="מעקב"),
+            ft.NavigationDestination(icon=ft.icons.TIMELINE_OUTLINED, label="מעקב"),
             ft.NavigationDestination(icon=ft.icons.MENU_BOOK, label="ספרים"),
         ],
         selected_index=0,  # מעקב כברירת מחדל
