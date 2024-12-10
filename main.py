@@ -281,10 +281,10 @@ def main(page: ft.Page):
                         height=25,
                     )
 
-                    # יצירת Column עבור כל כרטיס ספר
-                    card_column = ft.Column(
+                    # יצירת כפתור במקום כרטיס עבור כל ספר
+                    button_column = ft.Column(
                         [
-                            ft.Card(
+                            ft.ElevatedButton(
                                 content=ft.Container(
                                     expand=True,
                                     content=ft.Column(
@@ -292,22 +292,22 @@ def main(page: ft.Page):
                                             ft.Text(f"{masechta_name} ({category})", size=18, weight=ft.FontWeight.BOLD),
                                             progress_bar_with_text,
                                             ft.Text(f"עמוד אחרון: {last_page}"),
-                                            ft.ElevatedButton(
-                                                "עבור לספר",
-                                                on_click=show_masechta,
-                                                data={"masechta": masechta_name, "category": category},
-                                            ),
                                         ],
                                         spacing=5,
                                         alignment=ft.MainAxisAlignment.CENTER,
                                     ),
                                     padding=10,
                                 ),
+                                style=ft.ButtonStyle(
+                                    shape=ft.RoundedRectangleBorder(radius=10),
+                                ),
+                                on_click=show_masechta,
+                                data={"masechta": masechta_name, "category": category},
                             )
                         ],
                         col={"xs": 12, "sm": 6},
                     )
-                    in_progress_items.append(card_column)
+                    in_progress_items.append(button_column)
 
         # יצירת ResponsiveRow עבור כרטיסי הספרים
         responsive_row = ft.ResponsiveRow(
