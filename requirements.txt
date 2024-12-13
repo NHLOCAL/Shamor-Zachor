@@ -1,1 +1,2 @@
 python-hebrew-numbers
+flet==0.25.1
