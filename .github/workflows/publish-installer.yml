@@ -2,8 +2,6 @@ name: Build and Release ZIP from dev
 
 on:
   push:
-    branches:
-      - dev
     tags:
       - 'v*'
 
