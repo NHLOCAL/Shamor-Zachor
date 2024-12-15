@@ -273,7 +273,7 @@ def main(page: ft.Page):
                     )
                 else:
                     completed_pages = sum(1 for daf_data in progress.values() if daf_data.get("a", False))
-                
+
                 percentage = calculate_completion_percentage(page, masechta_name, category, total_pages)
 
                 # שינוי צבע הטקסט בהתאם לאחוז ההתקדמות
@@ -329,16 +329,34 @@ def main(page: ft.Page):
                     in_progress_items.append(button_column)
                 else:
                     completion_date = get_completion_date(page, masechta_name, category)
-                    completed_items.append(
-                        ft.Column(
-                            [
-                                ft.Text(f"{masechta_name} ({category})", size=18, weight=ft.FontWeight.BOLD),
-                                ft.Text(f"סיום: {completion_date}"),
-                            ],
-                            col={"xs": 12, "sm": 6},
-                        )
+                    # יצירת כפתור עבור ספר שסיימו
+                    button_column = ft.Column(
+                        [
+                            ft.ElevatedButton(
+                                content=ft.Container(
+                                    expand=True,
+                                    content=ft.Column(
+                                        [
+                                            ft.Text(f"{masechta_name} ({category})", size=18, weight=ft.FontWeight.BOLD),
+                                            # הסרת סרגל ההתקדמות מספר שסוים
+                                            ft.Text(f"סיום: {completion_date}"),
+                                        ],
+                                        spacing=5,
+                                        alignment=ft.MainAxisAlignment.CENTER,
+                                    ),
+                                    padding=10,
+                                ),
+                                style=ft.ButtonStyle(
+                                    shape=ft.RoundedRectangleBorder(radius=10),
+                                ),
+                                on_click=show_masechta,
+                                data={"masechta": masechta_name, "category": category},
+                            )
+                        ],
+                        col={"xs": 12, "sm": 6},
                     )
-        
+                    completed_items.append(button_column)
+    
         # יצירת ResponsiveRow עבור כרטיסי הספרים
         in_progress_responsive_row = ft.ResponsiveRow(
             controls=in_progress_items,
