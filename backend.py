@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 from flet import Page
 from datetime import datetime
+from pyluach import dates
 
 APP_PREFIX = "nhlocal.shamor_vezachor"  # הקידומת הייחודית שלך
 
@@ -68,7 +69,12 @@ def save_completion_date(page: Page, masechta_name, category):
 def get_completion_date(page: Page, masechta_name, category):
     """ מחזיר את תאריך הסיום של מסכת """
     completion_dates = page.client_storage.get(_get_storage_key("completion_dates")) or {}
-    return completion_dates.get(category, {}).get(masechta_name)
+    date_str = completion_dates.get(category, {}).get(masechta_name)
+    if date_str:
+        date_obj = datetime.strptime(date_str, "%Y-%m-%d").date()
+        hebrew_date = dates.GregorianDate(date_obj.year, date_obj.month, date_obj.day).to_heb()
+        return hebrew_date.hebrew_date_string()
+    return None
 
 def load_data():
     data_directory = Path("data")
