@@ -1,7 +1,6 @@
 import flet as ft
-from backend import save_progress, save_all_masechta, load_progress, load_data, calculate_completion_percentage
+from backend import save_progress, save_all_masechta, load_progress, load_data, calculate_completion_percentage, get_completion_date
 from hebrew_numbers import int_to_gematria
-
 
 def main(page: ft.Page):
     page.title = "שמור וזכור"
@@ -86,6 +85,7 @@ def main(page: ft.Page):
                     row.cells[1].content.value = e.control.value
             save_all_masechta(page, masechta_name, masechta_data["pages"], e.control.value, category)
             update_completion_status(category, masechta_name)
+            page.update()
 
         def update_check_all_status(table):
             all_checked = all(
@@ -250,8 +250,9 @@ def main(page: ft.Page):
         return section_mapping.get(section_name, 1)
 
     def create_tracking_page():
-        """ יוצר את דף המעקב אחר ספרים לא גמורים """
+        """ יוצר את דף המעקב אחר ספרים לא גמורים וגם גמורים """
         in_progress_items = []
+        completed_items = []
 
         for category, masechtot in data.items():
             for masechta_name, masechta_data in masechtot.items():
@@ -272,30 +273,31 @@ def main(page: ft.Page):
                     )
                 else:
                     completed_pages = sum(1 for daf_data in progress.values() if daf_data.get("a", False))
+                
+                percentage = calculate_completion_percentage(page, masechta_name, category, total_pages)
+
+                # שינוי צבע הטקסט בהתאם לאחוז ההתקדמות
+                if percentage < 50:
+                    text_color = ft.colors.BROWN_700
+                else:
+                    text_color = ft.colors.WHITE
+
+                # יצירת Stack עבור סרגל ההתקדמות והטקסט
+                progress_bar_with_text = ft.Stack(
+                    [
+                        ft.ProgressBar(value=percentage / 100, height=25),
+                        ft.Container(
+                            content=ft.Text(f"{percentage}%", color=text_color, weight=ft.FontWeight.BOLD),
+                            alignment=ft.alignment.center,
+                            height=25,
+                        )
+                    ],
+                    height=25,
+                )
 
                 if completed_pages < total_pages:
-                    percentage = calculate_completion_percentage(page, masechta_name, category, total_pages)
                     # שימוש בפונקציה get_last_page_display
                     last_page_display = get_last_page_display(progress, masechta_data)
-
-                    # שינוי צבע הטקסט בהתאם לאחוז ההתקדמות
-                    if percentage < 50:
-                        text_color = ft.colors.BROWN_700
-                    else:
-                        text_color = ft.colors.WHITE
-
-                    # יצירת Stack עבור סרגל ההתקדמות והטקסט
-                    progress_bar_with_text = ft.Stack(
-                        [
-                            ft.ProgressBar(value=percentage / 100, height=25),
-                            ft.Container(
-                                content=ft.Text(f"{percentage}%", color=text_color, weight=ft.FontWeight.BOLD),
-                                alignment=ft.alignment.center,
-                                height=25,
-                            )
-                        ],
-                        height=25,
-                    )
 
                     # יצירת כפתור במקום כרטיס עבור כל ספר
                     button_column = ft.Column(
@@ -325,22 +327,70 @@ def main(page: ft.Page):
                         col={"xs": 12, "sm": 6},
                     )
                     in_progress_items.append(button_column)
-
+                else:
+                    completion_date = get_completion_date(page, masechta_name, category)
+                    completed_items.append(
+                        ft.Column(
+                            [
+                                ft.Text(f"{masechta_name} ({category})", size=18, weight=ft.FontWeight.BOLD),
+                                ft.Text(f"סיום: {completion_date}"),
+                            ],
+                            col={"xs": 12, "sm": 6},
+                        )
+                    )
+        
         # יצירת ResponsiveRow עבור כרטיסי הספרים
-        responsive_row = ft.ResponsiveRow(
+        in_progress_responsive_row = ft.ResponsiveRow(
             controls=in_progress_items,
             alignment=ft.MainAxisAlignment.CENTER,
+            visible=True
+        )
+
+        completed_responsive_row = ft.ResponsiveRow(
+            controls=completed_items,
+            alignment=ft.MainAxisAlignment.CENTER,
+            visible=False
+        )
+
+        def on_segmented_button_change(e):
+            """ מטפל בשינוי מצב ה-Segmented Control """
+            if e.control.selected == {"in_progress"}:
+                in_progress_responsive_row.visible = True
+                completed_responsive_row.visible = False
+            elif e.control.selected == {"completed"}:
+                in_progress_responsive_row.visible = False
+                completed_responsive_row.visible = True
+            page.update()
+
+        segmented_control = ft.SegmentedButton(
+            selected={"in_progress"},
+            allow_multiple_selection=False,
+            on_change=on_segmented_button_change,
+            segments=[
+                ft.Segment(
+                    value="in_progress",
+                    label=ft.Text("בתהליך"),
+                    icon=ft.Icon(ft.icons.HOURGLASS_EMPTY),
+                ),
+                ft.Segment(
+                    value="completed",
+                    label=ft.Text("סיימתי"),
+                    icon=ft.Icon(ft.icons.CHECK_CIRCLE_OUTLINE),
+                ),
+            ],
         )
 
         # מחזירים רק את תוכן התצוגה, ללא AppBar ו-NavigationBar
         return ft.Column(
             controls=[
-                ft.Text("ספרים בתהליך:", size=24, weight=ft.FontWeight.BOLD, text_align=ft.TextAlign.CENTER, style=ft.TextStyle(color=ft.colors.SECONDARY)),
-                responsive_row, # הוספת ResponsiveRow
+                segmented_control,
+                in_progress_responsive_row,
+                completed_responsive_row,
             ],
             scroll="always",
             expand=True,
             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+            visible=True,  # ודא שהתצוגה הראשית מוצגת כברירת מחדל
         )
 
     # שינוי שם הפונקציה ל-get_last_page_display

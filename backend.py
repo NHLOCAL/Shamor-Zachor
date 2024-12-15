@@ -2,6 +2,7 @@ import json
 import os
 from pathlib import Path
 from flet import Page
+from datetime import datetime
 
 APP_PREFIX = "nhlocal.shamor_vezachor"  # הקידומת הייחודית שלך
 
@@ -15,7 +16,6 @@ def load_progress(page: Page, masechta_name, category):
     if progress_data and isinstance(progress_data, dict):
         return progress_data.get(category, {}).get(masechta_name, {})
     return {}
-
 
 def save_progress(page: Page, masechta_name, daf, amud, value, category):
     """ Saves the progress by masechta, daf and amud according to the category in client_storage """
@@ -33,7 +33,6 @@ def save_progress(page: Page, masechta_name, daf, amud, value, category):
     progress_data[category][masechta_name][daf][amud] = value
 
     page.client_storage.set(_get_storage_key("progress_data"), progress_data)
-
 
 def save_all_masechta(page: Page, masechta_name, total_pages, value, category):
     """ Saves the progress for all pages of a masechta according to the category in client_storage """
@@ -53,6 +52,23 @@ def save_all_masechta(page: Page, masechta_name, total_pages, value, category):
 
     page.client_storage.set(_get_storage_key("progress_data"), progress_data)
 
+    # שמירת תאריך סיום
+    if value:
+        save_completion_date(page, masechta_name, category)
+        page.update()
+
+def save_completion_date(page: Page, masechta_name, category):
+    """ שומר את תאריך הסיום של מסכת """
+    completion_dates = page.client_storage.get(_get_storage_key("completion_dates")) or {}
+    if category not in completion_dates:
+        completion_dates[category] = {}
+    completion_dates[category][masechta_name] = datetime.now().strftime("%Y-%m-%d")
+    page.client_storage.set(_get_storage_key("completion_dates"), completion_dates)
+
+def get_completion_date(page: Page, masechta_name, category):
+    """ מחזיר את תאריך הסיום של מסכת """
+    completion_dates = page.client_storage.get(_get_storage_key("completion_dates")) or {}
+    return completion_dates.get(category, {}).get(masechta_name)
 
 def load_data():
     data_directory = Path("data")
@@ -95,7 +111,6 @@ def load_data():
             print(f"Error loading {json_file}: {e}")
 
     return combined_data
-
 
 def calculate_completion_percentage(page: Page, masechta_name, category, total_pages):
     """ Calculates the completion percentage for a given masechta """
