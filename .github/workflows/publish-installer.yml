@@ -23,6 +23,7 @@ jobs:
     - name: Install dependencies
       run: |
         pip install -r requirements.txt
+        pip install pyinstaller  # מתקין PyInstaller אם לא הוספת ל-requirements.txt
 
     - name: Get the version
       id: get_version
