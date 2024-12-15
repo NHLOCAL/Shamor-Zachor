@@ -1,23 +1,25 @@
 import json
 import os
 from pathlib import Path
+from flet import Page
 
-progress_file_path = "progress.json"
+APP_PREFIX = "nhlocal.shamor_vezachor"  # הקידומת הייחודית שלך
 
-def load_progress(masechta_name, category):
-    """ טוען את ההתקדמות עבור מסכת מסוימת לפי הנושא שלה """
-    if os.path.exists(progress_file_path):
-        with open(progress_file_path, "r", encoding="utf-8") as file:
-            progress_data = json.load(file)
-            return progress_data.get(category, {}).get(masechta_name, {})
+def _get_storage_key(key):
+    """ Creates a prefixed storage key """
+    return f"{APP_PREFIX}.{key}"
+
+def load_progress(page: Page, masechta_name, category):
+    """ Loads the progress for a specific masechta by category from client_storage """
+    progress_data = page.client_storage.get(_get_storage_key("progress_data"))
+    if progress_data and isinstance(progress_data, dict):
+        return progress_data.get(category, {}).get(masechta_name, {})
     return {}
 
-def save_progress(masechta_name, daf, amud, value, category):
-    """ שומר את ההתקדמות לפי מסכת, דף ועמוד בהתאם לקטגוריה """
-    progress_data = {}
-    if os.path.exists(progress_file_path):
-        with open(progress_file_path, "r", encoding="utf-8") as file:
-            progress_data = json.load(file)
+
+def save_progress(page: Page, masechta_name, daf, amud, value, category):
+    """ Saves the progress by masechta, daf and amud according to the category in client_storage """
+    progress_data = page.client_storage.get(_get_storage_key("progress_data")) or {}
 
     if category not in progress_data:
         progress_data[category] = {}
@@ -30,15 +32,12 @@ def save_progress(masechta_name, daf, amud, value, category):
 
     progress_data[category][masechta_name][daf][amud] = value
 
-    with open(progress_file_path, "w", encoding="utf-8") as file:
-        json.dump(progress_data, file, ensure_ascii=False, indent=4)
+    page.client_storage.set(_get_storage_key("progress_data"), progress_data)
 
-def save_all_masechta(masechta_name, total_pages, value, category):
-    """ שומר את ההתקדמות עבור כל דפי המסכת במסכת מסוימת בהתאם לקטגוריה """
-    progress_data = {}
-    if os.path.exists(progress_file_path):
-        with open(progress_file_path, "r", encoding="utf-8") as file:
-            progress_data = json.load(file)
+
+def save_all_masechta(page: Page, masechta_name, total_pages, value, category):
+    """ Saves the progress for all pages of a masechta according to the category in client_storage """
+    progress_data = page.client_storage.get(_get_storage_key("progress_data")) or {}
 
     if category not in progress_data:
         progress_data[category] = {}
@@ -52,8 +51,8 @@ def save_all_masechta(masechta_name, total_pages, value, category):
             "b": value
         }
 
-    with open(progress_file_path, "w", encoding="utf-8") as file:
-        json.dump(progress_data, file, ensure_ascii=False, indent=4)
+    page.client_storage.set(_get_storage_key("progress_data"), progress_data)
+
 
 def load_data():
     data_directory = Path("data")
@@ -97,9 +96,10 @@ def load_data():
 
     return combined_data
 
-def calculate_completion_percentage(masechta_name, category, total_pages):
-    """ מחשב את אחוז ההשלמה עבור מסכת נתונה """
-    progress = load_progress(masechta_name, category)
+
+def calculate_completion_percentage(page: Page, masechta_name, category, total_pages):
+    """ Calculates the completion percentage for a given masechta """
+    progress = load_progress(page, masechta_name, category)
     if not progress:
         return 0
 

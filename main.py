@@ -2,6 +2,7 @@ import flet as ft
 from backend import save_progress, save_all_masechta, load_progress, load_data, calculate_completion_percentage
 from hebrew_numbers import int_to_gematria
 
+
 def main(page: ft.Page):
     page.title = "שמור וזכור"
     page.rtl = True
@@ -31,7 +32,7 @@ def main(page: ft.Page):
 
     def update_completion_status(category, masechta_name):
         """ עדכון סטטוס להשלמת מסכת, ספר תנ"ך, סימן רמב"ם וכו' בהתאם לקטגוריה """
-        progress = load_progress(masechta_name, category)
+        progress = load_progress(page, masechta_name, category)
         masechta_data = data[category].get(masechta_name)
         if not masechta_data:
             return
@@ -65,14 +66,14 @@ def main(page: ft.Page):
             page.update()
             return None
 
-        progress = load_progress(masechta_name, category)
+        progress = load_progress(page, masechta_name, category)
         content_type = masechta_data["content_type"]
         columns = masechta_data["columns"]
 
         def on_change(e):
             daf = int(e.control.data["daf"])
             amud = e.control.data["amud"]
-            save_progress(masechta_name, daf, amud, e.control.value, category)
+            save_progress(page, masechta_name, daf, amud, e.control.value, category)
             update_completion_status(category, masechta_name)
             update_check_all_status(table)
 
@@ -83,7 +84,7 @@ def main(page: ft.Page):
                     row.cells[2].content.value = e.control.value
                 else:
                     row.cells[1].content.value = e.control.value
-            save_all_masechta(masechta_name, masechta_data["pages"], e.control.value, category)
+            save_all_masechta(page, masechta_name, masechta_data["pages"], e.control.value, category)
             update_completion_status(category, masechta_name)
 
         def update_check_all_status(table):
@@ -183,7 +184,7 @@ def main(page: ft.Page):
             )
 
         def check_masechta_completion(category, masechta_name):
-            progress = load_progress(masechta_name, category)
+            progress = load_progress(page, masechta_name, category)
             masechta_data = data[category].get(masechta_name)
             if not masechta_data:
                 return False
@@ -254,7 +255,7 @@ def main(page: ft.Page):
 
         for category, masechtot in data.items():
             for masechta_name, masechta_data in masechtot.items():
-                progress = load_progress(masechta_name, category)
+                progress = load_progress(page, masechta_name, category)
                 if not progress:
                     continue
 
@@ -273,7 +274,7 @@ def main(page: ft.Page):
                     completed_pages = sum(1 for daf_data in progress.values() if daf_data.get("a", False))
 
                 if completed_pages < total_pages:
-                    percentage = calculate_completion_percentage(masechta_name, category, total_pages)
+                    percentage = calculate_completion_percentage(page, masechta_name, category, total_pages)
                     # שימוש בפונקציה get_last_page_display
                     last_page_display = get_last_page_display(progress, masechta_data)
 
