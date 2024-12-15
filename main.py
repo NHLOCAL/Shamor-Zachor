@@ -322,9 +322,11 @@ def main(page: ft.Page):
                                 ),
                                 on_click=show_masechta,
                                 data={"masechta": masechta_name, "category": category},
+                                expand=True,
                             )
                         ],
                         col={"xs": 12, "sm": 6},
+                        expand=True, #הוספנו כאן expand=True
                     )
                     in_progress_items.append(button_column)
                 else:
@@ -338,10 +340,11 @@ def main(page: ft.Page):
                                     content=ft.Column(
                                         [
                                             ft.Text(f"{masechta_name} ({category})", size=18, weight=ft.FontWeight.BOLD),
+                                            progress_bar_with_text,
                                             # הסרת סרגל ההתקדמות מספר שסוים
-                                            ft.Text(f"סיום: {completion_date}"),
+                                            ft.Text(f"סיימת בתאריך {completion_date}"),
                                         ],
-                                        spacing=5,
+                                        spacing=10,
                                         alignment=ft.MainAxisAlignment.CENTER,
                                     ),
                                     padding=10,
@@ -351,9 +354,11 @@ def main(page: ft.Page):
                                 ),
                                 on_click=show_masechta,
                                 data={"masechta": masechta_name, "category": category},
+                                expand=True,
                             )
                         ],
                         col={"xs": 12, "sm": 6},
+                        expand=True,  #הוספנו כאן expand=True
                     )
                     completed_items.append(button_column)
     
