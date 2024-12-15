@@ -1,8 +1,11 @@
 import flet as ft
-from backend import save_progress, save_all_masechta, load_progress, load_data, calculate_completion_percentage, get_completion_date
+from flet import Page
 from hebrew_numbers import int_to_gematria
 
-def main(page: ft.Page):
+from progress_manager import ProgressManager, get_completed_pages
+from data_loader import load_data, get_total_pages, get_completion_date_string
+
+def main(page: Page):
     page.title = "שמור וזכור"
     page.rtl = True
     page.theme_mode = ft.ThemeMode.LIGHT
@@ -14,91 +17,91 @@ def main(page: ft.Page):
 
     # משתנה לשמירת הכרטיסייה הנוכחית
     current_tab_index = 0
-
     # משתנה למעקב אחר התצוגה הנוכחית
     current_view = "tracking"  # "tracking" או "books"
 
-    # טוען את כל הנתונים הרלוונטיים מקבצי ה-JSON השונים
-    data = load_data()
-
+    data = load_data()  # נטען את הנתונים בעזרת הפונקציה עם cache
     if not data:
-        page.overlay.append(ft.SnackBar(ft.Text("Error loading data.")))
+        page.overlay.append(ft.SnackBar(ft.Text("😬 Oops! לא הצלחתי לטעון את הנתונים.")))
         page.update()
         return
 
+    completion_icons = {}
     current_masechta = None
-    completion_indicators = {}
 
-    def update_completion_status(category, masechta_name):
-        """ עדכון סטטוס להשלמת מסכת, ספר תנ"ך, סימן רמב"ם וכו' בהתאם לקטגוריה """
-        progress = load_progress(page, masechta_name, category)
+    def update_masechta_completion_status(category: str, masechta_name: str):
+        """
+        עדכון אייקון השלמה (CHECK או OUTLINED) לצד מסכת או ספר.
+        """
+        progress = ProgressManager.load_progress(page, masechta_name, category)
         masechta_data = data[category].get(masechta_name)
         if not masechta_data:
-            return
+            return False
 
-        total_pages = 0
-        # שימוש במספר העמודים בהתאם להגדרות
-        if masechta_data["columns"] == ["עמוד א", "עמוד ב"]:
-            total_pages = 2 * masechta_data["pages"]
-        else:
-            total_pages = masechta_data["pages"]
+        total_pages = get_total_pages(masechta_data)
+        completed_pages = get_completed_pages(progress, masechta_data["columns"])
 
-        if masechta_data["columns"] == ["עמוד א", "עמוד ב"]:
-            completed_pages = sum(
-                1 for daf_data in progress.values() for amud_value in daf_data.values() if amud_value
-            )
-        else:
-            completed_pages = sum(1 for daf_data in progress.values() if daf_data.get("a", False))
-
-        complication = completed_pages == total_pages
-
-        completion_indicators[masechta_name].icon = ft.icons.CHECK_CIRCLE if complication else ft.icons.CIRCLE_OUTLINED
-        completion_indicators[masechta_name].color = ft.colors.GREEN if complication else ft.colors.GREY_400
+        is_completed = (completed_pages == total_pages)
+        completion_icons[masechta_name].icon = ft.icons.CHECK_CIRCLE if is_completed else ft.icons.CIRCLE_OUTLINED
+        completion_icons[masechta_name].color = ft.colors.GREEN if is_completed else ft.colors.GREY_400
         page.update()
 
-        return complication
+        return is_completed
 
-    def create_table(category, masechta_name):
+    def create_table(category: str, masechta_name: str):
+        """
+        יוצרת טבלת מעקב (DataTable) עבור מסכת/ספר עם עמודים וטופס מעקב.
+        """
         masechta_data = data[category].get(masechta_name)
         if not masechta_data:
-            page.overlay.append(ft.SnackBar(ft.Text(f"Error: Masechta '{masechta_name}' not found.")))
+            page.overlay.append(ft.SnackBar(ft.Text(f"🥸 Error: Masechta '{masechta_name}' not found.")))
             page.update()
             return None
 
-        progress = load_progress(page, masechta_name, category)
-        content_type = masechta_data["content_type"]
+        progress = ProgressManager.load_progress(page, masechta_name, category)
         columns = masechta_data["columns"]
 
         def on_change(e):
             daf = int(e.control.data["daf"])
             amud = e.control.data["amud"]
-            save_progress(page, masechta_name, daf, amud, e.control.value, category)
-            update_completion_status(category, masechta_name)
-            update_check_all_status(table)
+            ProgressManager.save_progress(page, masechta_name, daf, amud, e.control.value, category)
+            update_masechta_completion_status(category, masechta_name)
+            update_check_all_status()
 
         def check_all(e):
+            total_pages_ = masechta_data["pages"]
             for row in table.rows:
+                # אם יש שני עמודים, נסמן את שניהם
                 if len(columns) > 1:
                     row.cells[1].content.value = e.control.value
                     row.cells[2].content.value = e.control.value
                 else:
                     row.cells[1].content.value = e.control.value
-            save_all_masechta(page, masechta_name, masechta_data["pages"], e.control.value, category)
-            update_completion_status(category, masechta_name)
+
+            ProgressManager.save_all_masechta(page, masechta_name, get_total_pages(masechta_data), e.control.value, category)
+            update_masechta_completion_status(category, masechta_name)
             page.update()
 
-        def update_check_all_status(table):
-            all_checked = all(
-                row.cells[1].content.value if len(columns) > 1 else row.cells[0].content.value
-                for row in table.rows
-            )
+        def update_check_all_status():
+            """
+            בודק אם כל התיבות מסומנות, ומעדכן את ה-check_all_checkbox.
+            """
+            all_checked = True
+            for row in table.rows:
+                if len(columns) > 1:
+                    # אם יש עמוד א' וב', בודקים את שניהם
+                    if not (row.cells[1].content.value and row.cells[2].content.value):
+                        all_checked = False
+                        break
+                else:
+                    if not row.cells[1].content.value:
+                        all_checked = False
+                        break
             check_all_checkbox.value = all_checked
             page.update()
 
-        table_columns = [
-            ft.DataColumn(ft.Text(content_type)),
-        ]
-
+        # יצירת כותרות לטבלה
+        table_columns = [ft.DataColumn(ft.Text(masechta_data["content_type"]))]
         for column in columns:
             table_columns.append(ft.DataColumn(ft.Text(column)))
 
@@ -109,31 +112,39 @@ def main(page: ft.Page):
             column_spacing=30,
         )
 
+        # מילוי שורות הטבלה
         for i in range(1, masechta_data["pages"] + 1):
             daf_progress = progress.get(str(i), {})
-
-            row_cells = [
-                ft.DataCell(ft.Text(int_to_gematria(i))),
-            ]
-
+            row_cells = [ft.DataCell(ft.Text(int_to_gematria(i)))]
             if len(columns) > 1:
-                row_cells.append(ft.DataCell(ft.Checkbox(value=daf_progress.get("a", False), on_change=on_change, data={"daf": i, "amud": "a"})))
-                row_cells.append(ft.DataCell(ft.Checkbox(value=daf_progress.get("b", False), on_change=on_change, data={"daf": i, "amud": "b"})))
+                row_cells.append(
+                    ft.DataCell(ft.Checkbox(value=daf_progress.get("a", False),
+                                            on_change=on_change,
+                                            data={"daf": i, "amud": "a"}))
+                )
+                row_cells.append(
+                    ft.DataCell(ft.Checkbox(value=daf_progress.get("b", False),
+                                            on_change=on_change,
+                                            data={"daf": i, "amud": "b"}))
+                )
             else:
-                row_cells.append(ft.DataCell(ft.Checkbox(value=daf_progress.get("a", False), on_change=on_change, data={"daf": i, "amud": "a"})))
-            
+                row_cells.append(
+                    ft.DataCell(ft.Checkbox(value=daf_progress.get("a", False),
+                                            on_change=on_change,
+                                            data={"daf": i, "amud": "a"}))
+                )
+
             table.rows.append(ft.DataRow(cells=row_cells))
 
-        completion_indicators[masechta_name] = ft.Icon(ft.icons.CIRCLE_OUTLINED)
+        completion_icons[masechta_name] = ft.Icon(ft.icons.CIRCLE_OUTLINED)
+        is_completed = update_masechta_completion_status(category, masechta_name)
 
-        complication = update_completion_status(category, masechta_name)
-
-        check_all_checkbox = ft.Checkbox(label="בחר הכל", on_change=check_all, value=complication)
+        check_all_checkbox = ft.Checkbox(label="בחר הכל", on_change=check_all, value=is_completed)
 
         header = ft.Row(
             [
                 ft.Text(masechta_name, size=20, weight=ft.FontWeight.BOLD),
-                completion_indicators[masechta_name],
+                completion_icons[masechta_name],
                 check_all_checkbox,
             ],
             alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
@@ -153,12 +164,27 @@ def main(page: ft.Page):
             ),
         )
 
+    def is_masechta_completed(category: str, masechta_name: str) -> bool:
+        """
+        פונקציה שבודקת האם מסכת/ספר הושלמו לגמרי.
+        """
+        progress = ProgressManager.load_progress(page, masechta_name, category)
+        masechta_data = data[category].get(masechta_name)
+        if not masechta_data:
+            return False
+
+        total = get_total_pages(masechta_data)
+        completed = get_completed_pages(progress, masechta_data["columns"])
+        return completed == total
+
     def show_masechta(e):
-        # ניווט לדף הספר באמצעות page.route
+        """
+        עובר לנתיב של מסכת/ספר מסוים מתוך כפתור בחירה.
+        """
         page.route = f"/masechta/{e.control.data['category']}/{e.control.data['masechta']}"
         page.update()
 
-    def show_main_menu(e=None):
+    def show_main_menu():
         nonlocal current_masechta
         current_masechta = None
 
@@ -171,7 +197,6 @@ def main(page: ft.Page):
         }
 
         def create_masechta_button(masechta, category):
-            completed = check_masechta_completion(category, masechta)
             return ft.ElevatedButton(
                 text=masechta,
                 data={"masechta": masechta, "category": category},
@@ -179,36 +204,14 @@ def main(page: ft.Page):
                 style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=10), padding=15),
                 width=150,
                 height=50,
-                icon=ft.icons.CHECK_CIRCLE if completed else None,
-                icon_color=ft.colors.GREEN if completed else None,
+                icon=ft.icons.CHECK_CIRCLE if is_masechta_completed(category, masechta) else None,
+                icon_color=ft.colors.GREEN if is_masechta_completed(category, masechta) else None,
             )
 
-        def check_masechta_completion(category, masechta_name):
-            progress = load_progress(page, masechta_name, category)
-            masechta_data = data[category].get(masechta_name)
-            if not masechta_data:
-                return False
-
-            total_pages = 0
-            # שימוש במספר העמודים בהתאם להגדרות
-            if masechta_data["columns"] == ["עמוד א", "עמוד ב"]:
-                total_pages = 2 * masechta_data["pages"]
-            else:
-                total_pages = masechta_data["pages"]
-            
-            if masechta_data["columns"] == ["עמוד א", "עמוד ב"]:
-                completed_pages = sum(
-                    1 for daf_data in progress.values() for amud_value in daf_data.values() if amud_value
-                )
-            else:
-                completed_pages = sum(1 for daf_data in progress.values() if daf_data.get("a", False))
-
-            return completed_pages == total_pages
-        
-        # מחזירים רק את תוכן התצוגה, ללא AppBar ו-NavigationBar
         return ft.Column(
             [
-                ft.Text("בחר מקור:", size=24, weight=ft.FontWeight.BOLD, text_align=ft.TextAlign.CENTER, style=ft.TextStyle(color=ft.colors.SECONDARY)),
+                ft.Text("בחר מקור:", size=24, weight=ft.FontWeight.BOLD,
+                        text_align=ft.TextAlign.CENTER, style=ft.TextStyle(color=ft.colors.SECONDARY)),
                 ft.Tabs(
                     selected_index=current_tab_index,
                     tabs=[
@@ -239,53 +242,46 @@ def main(page: ft.Page):
             expand=True,
         )
 
-    def section_to_index(section_name):
-        section_mapping = {
-            "תנ״ך": 0,
-            "תלמוד בבלי": 1,
-            "תלמוד ירושלמי": 2,
-            "רמב״ם": 3,
-            "שולחן ערוך": 4
-        }
-        return section_mapping.get(section_name, 1)
+    def get_last_page_display(progress, masechta_data):
+        """
+        מחזיר מחרוזת המתארת את העמוד/פרק האחרון שנלמד.
+        """
+        if not progress:
+            return "עדיין לא התחלת 😇"
+        if masechta_data["columns"] == ["עמוד א", "עמוד ב"]:
+            # מוצאים את הדף האחרון שסימנו
+            last_daf = max(progress.keys(), key=int)
+            last_amud = "ב" if progress[last_daf].get("b", False) else "א"
+            return f"{masechta_data['content_type']} {int_to_gematria(int(last_daf))} עמוד {last_amud}"
+        else:
+            # אם יש רק עמוד אחד לפרק
+            last_chapter = max(progress.keys(), key=int)
+            return f"{masechta_data['content_type']} {int_to_gematria(int(last_chapter))}"
 
     def create_tracking_page():
-        """ יוצר את דף המעקב אחר ספרים לא גמורים וגם גמורים """
+        """
+        דף מעקב המציג ספרים בתהליך וספרים שהושלמו.
+        """
         in_progress_items = []
         completed_items = []
 
         for category, masechtot in data.items():
             for masechta_name, masechta_data in masechtot.items():
-                progress = load_progress(page, masechta_name, category)
+                progress = ProgressManager.load_progress(page, masechta_name, category)
                 if not progress:
-                    continue
+                    continue  # לא נוצרה שום התקדמות
 
-                total_pages = 0
-                # שימוש במספר העמודים בהתאם להגדרות
-                if masechta_data["columns"] == ["עמוד א", "עמוד ב"]:
-                    total_pages = 2 * masechta_data["pages"]
-                else:
-                    total_pages = masechta_data["pages"]
+                total_pages = get_total_pages(masechta_data)
+                completed_pages = get_completed_pages(progress, masechta_data["columns"])
+                percentage = round((completed_pages / total_pages) * 100) if total_pages else 0
 
-                if masechta_data["columns"] == ["עמוד א", "עמוד ב"]:
-                    completed_pages = sum(
-                        1 for daf_data in progress.values() for amud_value in daf_data.values() if amud_value
-                    )
-                else:
-                    completed_pages = sum(1 for daf_data in progress.values() if daf_data.get("a", False))
+                # צבע טקסט בתוך bar לפי אחוזים
+                text_color = ft.colors.WHITE if percentage >= 50 else ft.colors.BROWN_700
 
-                percentage = calculate_completion_percentage(page, masechta_name, category, total_pages)
-
-                # שינוי צבע הטקסט בהתאם לאחוז ההתקדמות
-                if percentage < 50:
-                    text_color = ft.colors.BROWN_700
-                else:
-                    text_color = ft.colors.WHITE
-
-                # יצירת Stack עבור סרגל ההתקדמות והטקסט
+                # Stack עבור סרגל ההתקדמות
                 progress_bar_with_text = ft.Stack(
                     [
-                        ft.ProgressBar(value=percentage / 100, height=25),
+                        ft.ProgressBar(value=percentage/100, height=25),
                         ft.Container(
                             content=ft.Text(f"{percentage}%", color=text_color, weight=ft.FontWeight.BOLD),
                             alignment=ft.alignment.center,
@@ -296,79 +292,73 @@ def main(page: ft.Page):
                 )
 
                 if completed_pages < total_pages:
-                    # שימוש בפונקציה get_last_page_display
+                    # ספר בתהליך
                     last_page_display = get_last_page_display(progress, masechta_data)
-
-                    # יצירת כפתור במקום כרטיס עבור כל ספר
-                    button_column = ft.Column(
-                        [
-                            ft.ElevatedButton(
-                                content=ft.Container(
-                                    expand=True,
-                                    content=ft.Column(
-                                        [
-                                            ft.Text(f"{masechta_name} ({category})", size=18, weight=ft.FontWeight.BOLD),
-                                            progress_bar_with_text,
-                                            # עדכון תיאור הכרטיס
-                                            ft.Text(f"אתה אוחז ב{last_page_display}"),
-                                        ],
-                                        spacing=5,
-                                        alignment=ft.MainAxisAlignment.CENTER,
+                    in_progress_items.append(
+                        ft.Column(
+                            [
+                                ft.ElevatedButton(
+                                    content=ft.Container(
+                                        expand=True,
+                                        content=ft.Column(
+                                            [
+                                                ft.Text(f"{masechta_name} ({category})", size=18, weight=ft.FontWeight.BOLD),
+                                                progress_bar_with_text,
+                                                ft.Text(f"אתה אוחז ב{last_page_display}"),
+                                            ],
+                                            spacing=5,
+                                            alignment=ft.MainAxisAlignment.CENTER,
+                                        ),
+                                        padding=10,
                                     ),
-                                    padding=10,
-                                ),
-                                style=ft.ButtonStyle(
-                                    shape=ft.RoundedRectangleBorder(radius=10),
-                                ),
-                                on_click=show_masechta,
-                                data={"masechta": masechta_name, "category": category},
-                                expand=True,
-                            )
-                        ],
-                        col={"xs": 12, "sm": 6},
-                        expand=True, #הוספנו כאן expand=True
+                                    style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=10)),
+                                    on_click=show_masechta,
+                                    data={"masechta": masechta_name, "category": category},
+                                    expand=True,
+                                )
+                            ],
+                            col={"xs": 12, "sm": 6},
+                            expand=True,
+                        )
                     )
-                    in_progress_items.append(button_column)
                 else:
-                    completion_date = get_completion_date(page, masechta_name, category)
-                    # יצירת כפתור עבור ספר שסיימו
-                    button_column = ft.Column(
-                        [
-                            ft.ElevatedButton(
-                                content=ft.Container(
-                                    expand=True,
-                                    content=ft.Column(
-                                        [
-                                            ft.Text(f"{masechta_name} ({category})", size=18, weight=ft.FontWeight.BOLD),
-                                            progress_bar_with_text,
-                                            # הסרת סרגל ההתקדמות מספר שסוים
-                                            ft.Text(f"סיימת בתאריך {completion_date}"),
-                                        ],
-                                        spacing=10,
-                                        alignment=ft.MainAxisAlignment.CENTER,
+                    # ספר שהושלם
+                    date_str = ProgressManager.get_completion_date(page, masechta_name, category)
+                    hebrew_date_str = get_completion_date_string(date_str) if date_str else "לא ידוע"
+                    completed_items.append(
+                        ft.Column(
+                            [
+                                ft.ElevatedButton(
+                                    content=ft.Container(
+                                        expand=True,
+                                        content=ft.Column(
+                                            [
+                                                ft.Text(f"{masechta_name} ({category})", size=18, weight=ft.FontWeight.BOLD),
+                                                progress_bar_with_text,
+                                                ft.Text(f"סיימת בתאריך {hebrew_date_str}"),
+                                            ],
+                                            spacing=10,
+                                            alignment=ft.MainAxisAlignment.CENTER,
+                                        ),
+                                        padding=10,
                                     ),
-                                    padding=10,
-                                ),
-                                style=ft.ButtonStyle(
-                                    shape=ft.RoundedRectangleBorder(radius=10),
-                                ),
-                                on_click=show_masechta,
-                                data={"masechta": masechta_name, "category": category},
-                                expand=True,
-                            )
-                        ],
-                        col={"xs": 12, "sm": 6},
-                        expand=True,  #הוספנו כאן expand=True
+                                    style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=10)),
+                                    on_click=show_masechta,
+                                    data={"masechta": masechta_name, "category": category},
+                                    expand=True,
+                                )
+                            ],
+                            col={"xs": 12, "sm": 6},
+                            expand=True,
+                        )
                     )
-                    completed_items.append(button_column)
-    
-        # יצירת ResponsiveRow עבור כרטיסי הספרים
+
+        # יצירת Rows רספונסיביים
         in_progress_responsive_row = ft.ResponsiveRow(
             controls=in_progress_items,
             alignment=ft.MainAxisAlignment.CENTER,
             visible=True
         )
-
         completed_responsive_row = ft.ResponsiveRow(
             controls=completed_items,
             alignment=ft.MainAxisAlignment.CENTER,
@@ -376,7 +366,6 @@ def main(page: ft.Page):
         )
 
         def on_segmented_button_change(e):
-            """ מטפל בשינוי מצב ה-Segmented Control """
             if e.control.selected == {"in_progress"}:
                 in_progress_responsive_row.visible = True
                 completed_responsive_row.visible = False
@@ -403,7 +392,6 @@ def main(page: ft.Page):
             ],
         )
 
-        # מחזירים רק את תוכן התצוגה, ללא AppBar ו-NavigationBar
         return ft.Column(
             controls=[
                 segmented_control,
@@ -413,28 +401,18 @@ def main(page: ft.Page):
             scroll="always",
             expand=True,
             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-            visible=True,  # ודא שהתצוגה הראשית מוצגת כברירת מחדל
+            visible=True,
         )
 
-    # שינוי שם הפונקציה ל-get_last_page_display
-    def get_last_page_display(progress, masechta_data):
-        """ מחזיר את תיאור העמוד/פרק האחרון שנלמד """
-        content_type = masechta_data["content_type"]
-        if masechta_data["columns"] == ["עמוד א", "עמוד ב"]:
-            last_daf = max(progress.keys(), key=int)
-            last_amud = "ב" if progress[last_daf].get("b", False) else "א"
-            return f"{content_type} {int_to_gematria(int(last_daf))} עמוד {last_amud}"
-        else:
-            last_chapter = max(progress.keys(), key=int)
-            return f"{content_type} {int_to_gematria(int(last_chapter))}"
-
     def navigation_changed(e):
-        """ מטפל באירוע שינוי ניווט """
         nonlocal current_view
-        current_view = "tracking" if e.control.selected_index == 0 else "books"
+        if e.control.selected_index == 0:
+            current_view = "tracking"
+        else:
+            current_view = "books"
         show_view()
 
-    # יצירת AppBar ו-NavigationBar
+    # AppBar ו-NavigationBar
     appbar = ft.AppBar(
         title=ft.Row(
             [
@@ -456,54 +434,71 @@ def main(page: ft.Page):
         on_change=navigation_changed,
     )
 
-    def route_change(e):
-        nonlocal current_view, current_masechta, current_tab_index
-        page.views.clear()
+    def handle_books_route():
+        page.views.append(
+            ft.View(
+                "/books",
+                [
+                    appbar,
+                    show_main_menu(),
+                    navigation_bar,
+                ],
+            )
+        )
 
-        if page.route == "/books" or page.route == "/":
-            current_view = "books"
-            page.views.append(
-                ft.View(
-                    "/",
-                    [
-                        appbar,
-                        show_main_menu(),
-                        navigation_bar, # הוספת סרגל ניווט
-                    ],
-                )
+    def handle_tracking_route():
+        page.views.append(
+            ft.View(
+                "/tracking",
+                [
+                    appbar,
+                    create_tracking_page(),
+                    navigation_bar,
+                ],
             )
+        )
+
+    def handle_masechta_route(category: str, masechta_name: str):
+        nonlocal current_masechta, current_tab_index
+        current_masechta = masechta_name
+
+        # עדכון ה-Tabs לקטגוריה הנוכחית
+        section_mapping = {
+            "תנ״ך": 0,
+            "תלמוד בבלי": 1,
+            "תלמוד ירושלמי": 2,
+            "רמב״ם": 3,
+            "שולחן ערוך": 4
+        }
+        current_tab_index = section_mapping.get(category, 0)
+
+        page.views.append(
+            ft.View(
+                f"/masechta/{category}/{masechta_name}",
+                [
+                    appbar,
+                    create_table(category, current_masechta),
+                    navigation_bar,
+                ],
+                scroll="always",
+            )
+        )
+
+    def route_change(e):
+        page.views.clear()
+        route_parts = page.route.strip("/").split("/")
+
+        if page.route in ["/", "/books"]:
+            handle_books_route()
         elif page.route == "/tracking":
-            current_view = "tracking"
-            page.views.append(
-                ft.View(
-                    "/tracking",
-                    [
-                        appbar,
-                        create_tracking_page(),
-                        navigation_bar, # הוספת סרגל ניווט
-                    ],
-                )
-            )
-        elif page.route.startswith("/masechta"):
-            category, masechta_name = page.route.split("/")[2], page.route.split("/")[3]
-            current_masechta = masechta_name
-            current_tab_index = section_to_index(category)
-            page.views.append(
-                ft.View(
-                    f"/masechta/{category}/{masechta_name}",
-                    [
-                        appbar,
-                        create_table(category, current_masechta),
-                        navigation_bar,  # הוספת סרגל ניווט
-                    ],
-                    scroll="always",
-                )
-            )
+            handle_tracking_route()
+        elif len(route_parts) == 3 and route_parts[0] == "masechta":
+            category, masechta_name = route_parts[1], route_parts[2]
+            handle_masechta_route(category, masechta_name)
 
         page.update()
 
     def show_view(view_name=None):
-        """ מציג את התצוגה המבוקשת (מעקב או ספרים) """
         if view_name:
             page.route = f"/{view_name}"
         else:
