@@ -13,7 +13,7 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
       with:
-        ref: dev  # ודא שאתה מבצע checkout על הענף dev
+        ref: ${{ github.ref_name }}
 
     - name: Setup Python
       uses: actions/setup-python@v5
@@ -27,31 +27,31 @@ jobs:
     - name: Get the version
       id: get_version
       run: |
-        VERSION=${GITHUB_REF#refs/tags/}
-        echo "VERSION=$VERSION" >> $GITHUB_ENV
-        echo "RELEASE_TITLE=Shamor Vezachor $VERSION" >> $GITHUB_ENV
+        $version = $env:GITHUB_REF -replace 'refs/tags/', ''
+        echo "VERSION=$version" >> $env:GITHUB_ENV
+        echo "RELEASE_TITLE=Shamor Vezachor $version" >> $env:GITHUB_ENV
 
     - name: Build EXE
       run: |
-        flet pack -i assets/icon.ico main.py --product-name "Shamor Vezachor" --product-version "$VERSION" --file-description "Shamor Vezachor" --copyright "nh.local"
+        flet pack -i assets/icon.ico main.py --product-name "Shamor Vezachor" --product-version "$VERSION" --file-description "Shamor Vezachor"
 
     - name: Prepare ZIP package
       run: |
         mkdir release
-        mkdir release/Shamor-Vezachor
+        mkdir release\Shamor-Vezachor
         xcopy dist\* release\Shamor-Vezachor\ /s /e /q
         xcopy data release\Shamor-Vezachor\data /s /e /q
         xcopy LICENSE release\Shamor-Vezachor\ /q
-        Compress-Archive -Path release\Shamor-Vezachor\* -DestinationPath release/Shamor-Vezachor-$VERSION.zip -CompressionLevel Optimal
+        Compress-Archive -Path release\Shamor-Vezachor\* -DestinationPath release\Shamor-Vezachor-$env:VERSION.zip -CompressionLevel Optimal
 
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v2.0.6
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: $VERSION
-        name: $RELEASE_TITLE
+        tag_name: ${{ env.VERSION }}
+        name: ${{ env.RELEASE_TITLE }}
         files: |
-          release/Shamor-Vezachor-$VERSION.zip
+          release/Shamor-Vezachor-${{ env.VERSION }}.zip
         draft: false
         prerelease: false
