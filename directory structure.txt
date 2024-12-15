@@ -1,11 +1,17 @@
 C:.
 │   .gitattributes
 │   .gitignore
-│   backend.py
+│   data_loader.py
+│   directory structure.txt
 │   LICENSE
 │   main.py
+│   progress_manager.py
 │   README.md
 │   requirements.txt
+│
+├───.github
+│   └───workflows
+│           publish-installer.yml
 │
 ├───assets
 │       screen.png

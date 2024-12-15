@@ -34,7 +34,7 @@ jobs:
 
     - name: Build EXE
       run: |
-        flet pack --product-name "Shamor Vezachor" --product-version "$VERSION" --file-description "Shamor Vezachor"
+        flet pack main.py --product-name "Shamor Vezachor" --product-version "$VERSION" --file-description "Shamor Vezachor"
 
     - name: Prepare ZIP package
       run: |
