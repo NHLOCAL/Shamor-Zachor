@@ -1,0 +1,59 @@
+name: Build and Release ZIP from dev
+
+on:
+  push:
+    branches:
+      - dev
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        ref: dev  # ודא שאתה מבצע checkout על הענף dev
+
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name: Install dependencies
+      run: |
+        pip install -r requirements.txt
+
+    - name: Get the version
+      id: get_version
+      run: |
+        VERSION=${GITHUB_REF#refs/tags/}
+        echo "VERSION=$VERSION" >> $GITHUB_ENV
+        echo "RELEASE_TITLE=Shamor Vezachor $VERSION" >> $GITHUB_ENV
+
+    - name: Build EXE
+      run: |
+        flet pack -i assets/icon.ico main.py --product-name "Shamor Vezachor" --product-version "$VERSION" --file-description "Shamor Vezachor" --copyright "nh.local"
+
+    - name: Prepare ZIP package
+      run: |
+        mkdir release
+        mkdir release/Shamor-Vezachor
+        xcopy dist\* release\Shamor-Vezachor\ /s /e /q
+        xcopy data release\Shamor-Vezachor\data /s /e /q
+        xcopy LICENSE release\Shamor-Vezachor\ /q
+        Compress-Archive -Path release\Shamor-Vezachor\* -DestinationPath release/Shamor-Vezachor-$VERSION.zip -CompressionLevel Optimal
+
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v2.0.6
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: $VERSION
+        name: $RELEASE_TITLE
+        files: |
+          release/Shamor-Vezachor-$VERSION.zip
+        draft: false
+        prerelease: false
