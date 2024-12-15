@@ -1,0 +1,22 @@
+C:.
+│   .gitattributes
+│   .gitignore
+│   backend.py
+│   LICENSE
+│   main.py
+│   README.md
+│   requirements.txt
+│
+├───assets
+│       screen.png
+│
+├───data
+│       rambam.json
+│       shas.json
+│       shulchan_aruch.json
+│       tanach.json
+│       yerushalmi.json
+│
+├───scripts
+│       convert_hebdate.py
+│       shas_icons.py
