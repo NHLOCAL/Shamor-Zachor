@@ -3,7 +3,7 @@ name: Build and Release ZIP from dev
 on:
   push:
     tags:
-      - 'v*'
+      - '*'
 
 jobs:
   build:
