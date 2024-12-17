@@ -16,7 +16,7 @@ org = "com.nhlocal" # מזהה ארגוני ייחודי
 product = "שמור וזכור" # שם המוצר המוצג
 company = "NHLOCAL Apps" # שם החברה
 copyright = "Copyright (C) 2024 by NHLOCAL"
-build_number = 1 # מספר בנייה פנימי
+build_number = 2 # מספר בנייה פנימי
 # permissions = ["camera", "microphone"] # הרשאות אפשריות
 
 [tool.flet.app]
@@ -28,9 +28,9 @@ path = "src" # שורש הפרויקט
 color = "#FFFFFF" # צבע רקע לספלש
 dark_color = "#333333" # צבע רקע לספלש במצב כהה
 web = false # השבתת ספלש עבור גרסת ווב
-android = true # ספלש עבור אנדרואיד
+# android = true # ספלש עבור אנדרואיד
 
 [tool.flet.compile]
-app = true # קומפילציה של קבצי האפליקציה
-packages = false # השבתת קומפילציה עבור ספריות
-cleanup = true # ניקוי קבצים מיותרים לאחר הקומפילציה
+# app = true # קומפילציה של קבצי האפליקציה
+# packages = false # השבתת קומפילציה עבור ספריות
+# cleanup = true # ניקוי קבצים מיותרים לאחר הקומפילציה
