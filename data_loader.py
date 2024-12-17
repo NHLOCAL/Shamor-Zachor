@@ -37,6 +37,13 @@ def load_data():
                 content_type = data["content_type"]
                 columns = data["columns"]
 
+                # בדיקה אם זה קובץ ש"ס ואז מגדירים start_page ל-2 אחרת 1
+                if json_file.name in ["shas.json", "yerushalmi.json"]:
+                   start_page = 2
+                else:
+                   start_page = 1
+
+
                 if "data" not in data or not isinstance(data["data"], dict):
                     raise ValueError(f"Missing or invalid 'data' field in {json_file}. Expected a dictionary.")
 
@@ -46,6 +53,7 @@ def load_data():
                         raise ValueError(f"Invalid masechta data format in {json_file}. 'pages' key missing or not an integer.")
                     masechta_data["content_type"] = content_type
                     masechta_data["columns"] = columns
+                    masechta_data["start_page"] = start_page # הוספה של start_page לכל מסכת
 
                 combined_data[topic_name] = data["data"]
 
