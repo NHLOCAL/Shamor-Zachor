@@ -76,6 +76,11 @@ def main(page: Page):
             update_masechta_completion_status(category, masechta_name)
             update_check_all_status()
 
+            # בדיקה האם כל הדפים/עמודים סומנו כ"לימוד"
+            if is_masechta_completed(category, masechta_name):
+                ProgressManager.save_completion_date(page, masechta_name, category)
+
+
         def check_all(e):
             total_pages_ = masechta_data["pages"]
             for row in table.rows:
@@ -245,6 +250,7 @@ def main(page: Page):
     def is_masechta_completed(category: str, masechta_name: str) -> bool:
         """
         פונקציה שבודקת האם מסכת/ספר הושלמו לגמרי.
+        הבדיקה נעשית ע"י ספירת כל העמודים שסומנו כ"לימוד"
         """
         progress = ProgressManager.load_progress(page, masechta_name, category)
         masechta_data = data[category].get(masechta_name)
@@ -254,6 +260,7 @@ def main(page: Page):
         total = get_total_pages(masechta_data)
         completed = get_completed_pages(progress, masechta_data["columns"])
         return completed == total
+
 
     def show_masechta(e):
         """

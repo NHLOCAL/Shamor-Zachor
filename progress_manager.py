@@ -90,10 +90,14 @@ class ProgressManager:
     def save_completion_date(page: Page, masechta_name: str, category: str):
         """
         שמירת תאריך סיום עבור מסכת/ספר ב-client_storage.
+        התאריך נשמר רק אם סימנו את כל הדפים כ"לימוד" בפעם הראשונה.
         """
         completion_dates = page.client_storage.get(ProgressManager._get_storage_key("completion_dates")) or {}
-        completion_dates.setdefault(category, {})[masechta_name] = datetime.now().strftime("%Y-%m-%d")
-        page.client_storage.set(ProgressManager._get_storage_key("completion_dates"), completion_dates)
+        
+        # בדיקה האם המסכת כבר קיימת במילון התאריכים
+        if masechta_name not in completion_dates.get(category, {}):
+            completion_dates.setdefault(category, {})[masechta_name] = datetime.now().strftime("%Y-%m-%d")
+            page.client_storage.set(ProgressManager._get_storage_key("completion_dates"), completion_dates)
 
     @staticmethod
     def get_completion_date(page: Page, masechta_name: str, category: str) -> str:
@@ -102,7 +106,7 @@ class ProgressManager:
         """
         completion_dates = page.client_storage.get(ProgressManager._get_storage_key("completion_dates")) or {}
         date_str = completion_dates.get(category, {}).get(masechta_name)
-        return date_str  # מחזירים את התאריך בפורמט 'YYYY-MM-DD'. נעשה המרה בתצוגה עצמה.
+        return date_str
 
 def get_completed_pages(progress: dict, columns: list) -> int:
     """
