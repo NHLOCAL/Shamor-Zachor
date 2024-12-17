@@ -22,7 +22,7 @@ def main(page: Page):
 
     data = load_data()  # נטען את הנתונים בעזרת הפונקציה עם cache
     if not data:
-        page.overlay.append(ft.SnackBar(ft.Text("😬 Oops! לא הצלחתי לטעון את הנתונים.")))
+        page.overlay.append(ft.SnackBar(ft.Text("אופס! לא הצלחנו לטעון את הנתונים")))
         page.update()
         return
 
@@ -325,7 +325,7 @@ def main(page: Page):
         מחזיר מחרוזת המתארת את העמוד/פרק האחרון שנלמד.
         """
         if not progress:
-            return "עדיין לא התחלת 😇"
+            return "עדיין לא התחלת"
         
         if masechta_data["content_type"] == "דף":
             # מוצאים את הדף האחרון שסימנו
@@ -334,14 +334,14 @@ def main(page: Page):
                 last_amud = "ב" if progress[last_daf].get("b", {}).get("learn", False) else "א"
                 return f"{masechta_data['content_type']} {int_to_gematria(int(last_daf))} עמוד {last_amud}"
             else:
-                return "עדיין לא התחלת 😇"
+                return "עדיין לא התחלת"
         else:
             # אם יש רק עמוד אחד לפרק
             last_chapter = max((daf for daf in progress.keys() if progress[daf].get("a", {}).get("learn", False)), default=None)
             if last_chapter:
                 return f"{masechta_data['content_type']} {int_to_gematria(int(last_chapter))}"
             else:
-                return "עדיין לא התחלת 😇"
+                return "עדיין לא התחלת"
 
     def create_tracking_page():
         """
