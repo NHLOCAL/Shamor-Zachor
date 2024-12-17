@@ -1,42 +1,50 @@
-name: Build Flet Windows App
+name: Build Flet Windows
 
 on:
   push:
     branches:
-      - flet-build
+      - main # או כל ענף אחר שאתה רוצה להשתמש בו לבנייה
 
 jobs:
   build-windows:
     runs-on: windows-latest
     steps:
-      - name: Check out the repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'  # גרסת פייתון נדרשת
+          python-version: '3.11'
+
+      - name: Install Flutter SDK
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24' # או גרסה עדכנית יותר
+          channel: 'stable' # או 'beta' או 'dev' אם אתה רוצה
+
+      - name: Verify Flutter Installation
+        run: |
+          flutter --version # הדפס את גרסת Flutter כדי לוודא שהיא מותקנת
+          echo "PATH is: $env:PATH" # הדפס את ה-PATH כדי לוודא ש-flutter נוסף
+
+      - name: Create and activate virtual environment
+        run: |
+          python -m venv .venv
+          .venv\Scripts\activate
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+          pip install flet --upgrade # עדכון לגרסה העדכנית ביותר
+          pip install cython
 
-      - name: Install Flutter SDK
-        uses: subosito/flutter-action@v2
-        with:
-          flutter-version: '3.24'
-          channel: 'stable'
-
-      - name: Verify Flutter Installation
-        run: flutter doctor
-
-      - name: Build Flet Windows App
+      - name: Build Windows executable
         run: |
-          flet build windows --output build/windows
+          flet build windows .
 
-      - name: Upload Windows Executable as Artifact
+      - name: Upload Windows executable as artifact
         uses: actions/upload-artifact@v4
         with:
-          name: flet_windows_app
-          path: build/windows/*
+          name: my_flet_app_windows
+          path: build/windows/*.zip
