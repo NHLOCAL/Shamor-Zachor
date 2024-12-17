@@ -10,10 +10,10 @@ dependencies = [
 ]
 
 [tool.flet]
-# org = "com.nhlocal" # מזהה ארגוני ייחודי
+org = "com.nhlocal" # מזהה ארגוני ייחודי
 product = "shamor vezachor" # שם המוצר המוצג
-# company = "NHLOCAL Apps" # שם החברה
-# copyright = "Copyright (C) 2024 by NHLOCAL"
+company = "NHLOCAL" # שם החברה
+copyright = "Copyright (C) 2024 by NHLOCAL"
 build_number = 2 # מספר בנייה פנימי
 # permissions = ["camera", "microphone"] # הרשאות אפשריות
 
