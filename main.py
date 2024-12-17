@@ -48,121 +48,199 @@ def main(page: Page):
 
         return is_completed
 
+
     def create_table(category: str, masechta_name: str):
-            """
-            יוצרת טבלת מעקב (DataTable) עבור מסכת/ספר עם עמודים וטופס מעקב.
-            """
-            masechta_data = data[category].get(masechta_name)
-            if not masechta_data:
-                page.overlay.append(ft.SnackBar(ft.Text(f"Error: Masechta '{masechta_name}' not found.")))
-                page.update()
-                return None
+        """
+        יוצרת טבלת מעקב (DataTable) עבור מסכת/ספר עם עמודים וטופס מעקב.
+        """
+        masechta_data = data[category].get(masechta_name)
+        if not masechta_data:
+            page.overlay.append(ft.SnackBar(ft.Text(f"Error: Masechta '{masechta_name}' not found.")))
+            page.update()
+            return None
 
-            progress = ProgressManager.load_progress(page, masechta_name, category)
-            columns = masechta_data["columns"]
-            start_page = masechta_data.get("start_page", 1) # מקבלים את ה start_page
-            def on_change(e):
-                daf = int(e.control.data["daf"])
-                amud = e.control.data["amud"]
-                ProgressManager.save_progress(page, masechta_name, daf, amud, e.control.value, category)
-                update_masechta_completion_status(category, masechta_name)
-                update_check_all_status()
+        progress = ProgressManager.load_progress(page, masechta_name, category)
+        start_page = masechta_data.get("start_page", 1)
 
-            def check_all(e):
-                total_pages_ = masechta_data["pages"]
-                for row in table.rows:
-                    # אם יש שני עמודים, נסמן את שניהם
-                    if len(columns) > 1:
-                        row.cells[1].content.value = e.control.value
-                        row.cells[2].content.value = e.control.value
-                    else:
-                        row.cells[1].content.value = e.control.value
-
-                ProgressManager.save_all_masechta(page, masechta_name, get_total_pages(masechta_data), e.control.value, category)
-                update_masechta_completion_status(category, masechta_name)
-                page.update()
-
-            def update_check_all_status():
-                """
-                בודק אם כל התיבות מסומנות, ומעדכן את ה-check_all_checkbox.
-                """
-                all_checked = True
-                for row in table.rows:
-                    if len(columns) > 1:
-                        # אם יש עמוד א' וב', בודקים את שניהם
-                        if not (row.cells[1].content.value and row.cells[2].content.value):
-                            all_checked = False
-                            break
-                    else:
-                        if not row.cells[1].content.value:
-                            all_checked = False
-                            break
-                check_all_checkbox.value = all_checked
-                page.update()
-
-            # יצירת כותרות לטבלה
-            table_columns = [ft.DataColumn(ft.Text(masechta_data["content_type"]))]
-            for column in columns:
-                table_columns.append(ft.DataColumn(ft.Text(column)))
-
-            table = ft.DataTable(
-                columns=table_columns,
-                rows=[],
-                border=ft.border.all(1, "black"),
-                column_spacing=30,
+        def on_change(e):
+            data = e.control.data
+            ProgressManager.save_progress(
+                page,
+                masechta_name,
+                data["daf"],
+                data["amud"],
+                data["column"],
+                e.control.value,
+                category,
             )
+            update_masechta_completion_status(category, masechta_name)
+            update_check_all_status()
 
-            # מילוי שורות הטבלה
-            for i in range(start_page, masechta_data["pages"] + start_page): # שינוי בלולאה
-                daf_progress = progress.get(str(i), {})
-                row_cells = [ft.DataCell(ft.Text(int_to_gematria(i)))]
-                if len(columns) > 1:
-                    row_cells.append(
-                        ft.DataCell(ft.Checkbox(value=daf_progress.get("a", False),
-                                                on_change=on_change,
-                                                data={"daf": i, "amud": "a"}))
-                    )
-                    row_cells.append(
-                        ft.DataCell(ft.Checkbox(value=daf_progress.get("b", False),
-                                                on_change=on_change,
-                                                data={"daf": i, "amud": "b"}))
-                    )
-                else:
-                    row_cells.append(
-                        ft.DataCell(ft.Checkbox(value=daf_progress.get("a", False),
-                                                on_change=on_change,
-                                                data={"daf": i, "amud": "a"}))
-                    )
+        def check_all(e):
+            total_pages_ = masechta_data["pages"]
+            for row in table.rows:
+                for cell in row.cells[1:]:
+                    cell.content.value = e.control.value
 
+            ProgressManager.save_all_masechta(
+                page, masechta_name, get_total_pages(masechta_data), e.control.value, category
+            )
+            update_masechta_completion_status(category, masechta_name)
+            page.update()
+
+        def update_check_all_status():
+            """
+            בודק אם כל התיבות מסומנות, ומעדכן את ה-check_all_checkbox.
+            """
+            all_checked = True
+            for row in table.rows:
+                for cell in row.cells[1:]:
+                    if not cell.content.value:
+                        all_checked = False
+                        break
+                if not all_checked:
+                    break
+            check_all_checkbox.value = all_checked
+            page.update()
+
+        # יצירת כותרות לטבלה
+        table_columns = [
+            ft.DataColumn(ft.Text(masechta_data["content_type"])),
+            ft.DataColumn(ft.Text("לימוד")),
+            ft.DataColumn(ft.Text("חזרה 1")),
+            ft.DataColumn(ft.Text("חזרה 2")),
+            ft.DataColumn(ft.Text("חזרה 3")),
+        ]
+
+        table = ft.DataTable(
+            columns=table_columns,
+            rows=[],
+            border=ft.border.all(1, "black"),
+            column_spacing=30,
+        )
+
+        # מילוי שורות הטבלה
+        for i in range(start_page, masechta_data["pages"] + start_page):
+            daf_progress = progress.get(str(i), {})
+            if masechta_data["content_type"] == "דף":
+                # ש"ס - שתי שורות לכל דף
+                for amud in ["a", "b"]:
+                    amud_symbol = "." if amud == "a" else ":"
+                    amud_progress = daf_progress.get(amud, {})
+                    row_cells = [
+                        ft.DataCell(ft.Text(f"{int_to_gematria(i)}{amud_symbol}")),
+                        # גישה לערכים מתוך המילון המקונן
+                        ft.DataCell(
+                            ft.Checkbox(
+                                value=amud_progress.get("learn", False),
+                                on_change=on_change,
+                                data={
+                                    "daf": i,
+                                    "amud": amud,
+                                    "column": "learn",
+                                },
+                            )
+                        ),
+                        ft.DataCell(
+                            ft.Checkbox(
+                                value=amud_progress.get("review1", False),
+                                on_change=on_change,
+                                data={
+                                    "daf": i,
+                                    "amud": amud,
+                                    "column": "review1",
+                                },
+                            )
+                        ),
+                        ft.DataCell(
+                            ft.Checkbox(
+                                value=amud_progress.get("review2", False),
+                                on_change=on_change,
+                                data={
+                                    "daf": i,
+                                    "amud": amud,
+                                    "column": "review2",
+                                },
+                            )
+                        ),
+                        ft.DataCell(
+                            ft.Checkbox(
+                                value=amud_progress.get("review3", False),
+                                on_change=on_change,
+                                data={
+                                    "daf": i,
+                                    "amud": amud,
+                                    "column": "review3",
+                                },
+                            )
+                        ),
+                    ]
+                    table.rows.append(ft.DataRow(cells=row_cells))
+            else:
+                # ספרים אחרים - שורה אחת לכל עמוד/פרק
+                row_cells = [
+                    ft.DataCell(ft.Text(int_to_gematria(i))),
+                    # גישה לערכים מתוך המילון המקונן
+                    ft.DataCell(
+                        ft.Checkbox(
+                            value=daf_progress.get("a", {}).get("learn", False),
+                            on_change=on_change,
+                            data={"daf": i, "amud": "a", "column": "learn"},
+                        )
+                    ),
+                    ft.DataCell(
+                        ft.Checkbox(
+                            value=daf_progress.get("a", {}).get("review1", False),
+                            on_change=on_change,
+                            data={"daf": i, "amud": "a", "column": "review1"},
+                        )
+                    ),
+                    ft.DataCell(
+                        ft.Checkbox(
+                            value=daf_progress.get("a", {}).get("review2", False),
+                            on_change=on_change,
+                            data={"daf": i, "amud": "a", "column": "review2"},
+                        )
+                    ),
+                    ft.DataCell(
+                        ft.Checkbox(
+                            value=daf_progress.get("a", {}).get("review3", False),
+                            on_change=on_change,
+                            data={"daf": i, "amud": "a", "column": "review3"},
+                        )
+                    ),
+                ]
                 table.rows.append(ft.DataRow(cells=row_cells))
 
-            completion_icons[masechta_name] = ft.Icon(ft.icons.CIRCLE_OUTLINED)
-            is_completed = update_masechta_completion_status(category, masechta_name)
+        # ... שאר הקוד של הפונקציה ...
 
-            check_all_checkbox = ft.Checkbox(label="בחר הכל", on_change=check_all, value=is_completed)
+        completion_icons[masechta_name] = ft.Icon(ft.icons.CIRCLE_OUTLINED)
+        is_completed = update_masechta_completion_status(category, masechta_name)
 
-            header = ft.Row(
-                [
-                    ft.Text(masechta_name, size=20, weight=ft.FontWeight.BOLD),
-                    completion_icons[masechta_name],
-                    check_all_checkbox,
-                ],
-                alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-                vertical_alignment=ft.CrossAxisAlignment.CENTER,
-            )
+        check_all_checkbox = ft.Checkbox(label="בחר הכל", on_change=check_all, value=is_completed)
 
-            return ft.Card(
-                content=ft.Container(
-                    content=ft.Column(
-                        [
-                            header,
-                            table,
-                        ],
-                        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                    ),
-                    padding=20,
+        header = ft.Row(
+            [
+                ft.Text(masechta_name, size=20, weight=ft.FontWeight.BOLD),
+                completion_icons[masechta_name],
+                check_all_checkbox,
+            ],
+            alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+            vertical_alignment=ft.CrossAxisAlignment.CENTER,
+        )
+
+        return ft.Card(
+            content=ft.Container(
+                content=ft.Column(
+                    [
+                        header,
+                        table,
+                    ],
+                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                 ),
-            )
+                padding=20,
+            ),
+        )
 
     def is_masechta_completed(category: str, masechta_name: str) -> bool:
         """
@@ -248,15 +326,22 @@ def main(page: Page):
         """
         if not progress:
             return "עדיין לא התחלת 😇"
-        if masechta_data["columns"] == ["עמוד א", "עמוד ב"]:
+        
+        if masechta_data["content_type"] == "דף":
             # מוצאים את הדף האחרון שסימנו
-            last_daf = max(progress.keys(), key=int)
-            last_amud = "ב" if progress[last_daf].get("b", False) else "א"
-            return f"{masechta_data['content_type']} {int_to_gematria(int(last_daf))} עמוד {last_amud}"
+            last_daf = max((daf for daf in progress.keys() if progress[daf].get("a", {}).get("learn", False) or progress[daf].get("b", {}).get("learn", False)), default=None)
+            if last_daf:
+                last_amud = "ב" if progress[last_daf].get("b", {}).get("learn", False) else "א"
+                return f"{masechta_data['content_type']} {int_to_gematria(int(last_daf))} עמוד {last_amud}"
+            else:
+                return "עדיין לא התחלת 😇"
         else:
             # אם יש רק עמוד אחד לפרק
-            last_chapter = max(progress.keys(), key=int)
-            return f"{masechta_data['content_type']} {int_to_gematria(int(last_chapter))}"
+            last_chapter = max((daf for daf in progress.keys() if progress[daf].get("a", {}).get("learn", False)), default=None)
+            if last_chapter:
+                return f"{masechta_data['content_type']} {int_to_gematria(int(last_chapter))}"
+            else:
+                return "עדיין לא התחלת 😇"
 
     def create_tracking_page():
         """

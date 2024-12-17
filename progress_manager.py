@@ -19,18 +19,38 @@ class ProgressManager:
         return {}
 
     @staticmethod
-    def save_progress(page: Page, masechta_name: str, daf: int, amud: str, value: bool, category: str):
+    def save_progress(page: Page, masechta_name: str, daf: int, amud: str, column: str, value: bool, category: str):
         """
-        שומר את התקדמות המשתמש עבור מסכת/ספר מסוים (daf, amud).
+        שומר את התקדמות המשתמש עבור מסכת/ספר מסוים (daf, amud, column).
         משתמש ב-setdefault כדי לצמצם קוד כפול.
-        מוסיף לוגיקה למחיקת מסכת אם אין התקדמות.
         """
         progress_data = page.client_storage.get(ProgressManager._get_storage_key("progress_data")) or {}
+        daf_str = str(daf)
         masechta_progress = progress_data.setdefault(category, {}).setdefault(masechta_name, {})
-        masechta_progress.setdefault(str(daf), {})[amud] = value
+        
+        if column == "learn":
+            masechta_progress.setdefault(daf_str, {}).setdefault(amud, {}).setdefault("learn", False)
+            masechta_progress[daf_str][amud][column] = value
+        else:
+            masechta_progress.setdefault(daf_str, {}).setdefault(amud, {}).setdefault(column, False)
+            masechta_progress[daf_str][amud][column] = value
+
+        # בודק אם כל הערכים ל"לימוד" הם False, אם כן, מוחק את המידע עבור הדף
+        if "learn" in masechta_progress.get(daf_str, {}).get(amud, {}) and not masechta_progress[daf_str][amud]["learn"]:
+            reviews = ["review1", "review2", "review3"]
+            if all(not masechta_progress[daf_str][amud].get(review, False) for review in reviews):
+                if amud in masechta_progress.get(daf_str, {}):
+                    del masechta_progress[daf_str][amud]
+                if not masechta_progress.get(daf_str, {}):
+                    del masechta_progress[daf_str]
 
         # בדיקה אם יש התקדמות - אם לא, נמחק את המסכת
-        if not any(amud_val for daf_data in masechta_progress.values() for amud_val in daf_data.values()):
+        if not any(
+            amud_val
+            for daf_data in masechta_progress.values()
+            for amud_data in daf_data.values()
+            for amud_val in amud_data.values()
+        ):
             if masechta_name in progress_data.get(category, {}):
                 del progress_data[category][masechta_name]
             if not progress_data.get(category, {}):
@@ -42,22 +62,23 @@ class ProgressManager:
     def save_all_masechta(page: Page, masechta_name: str, total_pages: int, value: bool, category: str):
         """
         מסמן את כל הדפים והעמודים כגמורים/לא גמורים עבור מסכת/ספר מסוים.
-        מוסיף לוגיקה למחיקת מסכת אם מסמנים שהכל לא גמור
         """
         progress_data = page.client_storage.get(ProgressManager._get_storage_key("progress_data")) or {}
+
         if value == False:
+            # מחיקת המסכת אם הערך הוא False
             if masechta_name in progress_data.get(category, {}):
-                 del progress_data[category][masechta_name]
+                del progress_data[category][masechta_name]
             if not progress_data.get(category, {}):
                 del progress_data[category]
         else:
-            progress_data.setdefault(category, {}).setdefault(masechta_name, {})
+            # מילוי כל הדפים והעמודים בערך True אם הערך הוא True
+            masechta_progress = progress_data.setdefault(category, {}).setdefault(masechta_name, {})
             for daf in range(1, total_pages + 1):
-                progress_data[category][masechta_name][str(daf)] = {
-                    "a": value,
-                    "b": value
-                }
-
+                daf_str = str(daf)
+                for amud in ["a", "b"]:
+                    for column in ["learn", "review1", "review2", "review3"]:
+                        masechta_progress.setdefault(daf_str, {}).setdefault(amud, {})[column] = value
 
         page.client_storage.set(ProgressManager._get_storage_key("progress_data"), progress_data)
 
@@ -83,13 +104,14 @@ class ProgressManager:
         date_str = completion_dates.get(category, {}).get(masechta_name)
         return date_str  # מחזירים את התאריך בפורמט 'YYYY-MM-DD'. נעשה המרה בתצוגה עצמה.
 
-
 def get_completed_pages(progress: dict, columns: list) -> int:
     """
     מחזיר כמה עמודים הושלמו (משמש לפונקציות חיצוניות).
+    סופר רק את העמודים שסומנו כ"לימוד"
     """
-    if columns == ["עמוד א", "עמוד ב"]:
-        return sum(
-            1 for daf_data in progress.values() for amud_value in daf_data.values() if amud_value
-        )
-    return sum(1 for daf_data in progress.values() if daf_data.get("a", False))
+    completed_count = 0
+    for daf_data in progress.values():
+        for amud_data in daf_data.values():
+            if amud_data.get("learn", False):
+                completed_count += 1
+    return completed_count
