@@ -23,24 +23,41 @@ class ProgressManager:
         """
         שומר את התקדמות המשתמש עבור מסכת/ספר מסוים (daf, amud).
         משתמש ב-setdefault כדי לצמצם קוד כפול.
+        מוסיף לוגיקה למחיקת מסכת אם אין התקדמות.
         """
         progress_data = page.client_storage.get(ProgressManager._get_storage_key("progress_data")) or {}
-        progress_data.setdefault(category, {}).setdefault(masechta_name, {}).setdefault(str(daf), {})[amud] = value
+        masechta_progress = progress_data.setdefault(category, {}).setdefault(masechta_name, {})
+        masechta_progress.setdefault(str(daf), {})[amud] = value
+
+        # בדיקה אם יש התקדמות - אם לא, נמחק את המסכת
+        if not any(amud_val for daf_data in masechta_progress.values() for amud_val in daf_data.values()):
+            if masechta_name in progress_data.get(category, {}):
+                del progress_data[category][masechta_name]
+            if not progress_data.get(category, {}):
+                del progress_data[category]
+
         page.client_storage.set(ProgressManager._get_storage_key("progress_data"), progress_data)
 
     @staticmethod
     def save_all_masechta(page: Page, masechta_name: str, total_pages: int, value: bool, category: str):
         """
         מסמן את כל הדפים והעמודים כגמורים/לא גמורים עבור מסכת/ספר מסוים.
+        מוסיף לוגיקה למחיקת מסכת אם מסמנים שהכל לא גמור
         """
         progress_data = page.client_storage.get(ProgressManager._get_storage_key("progress_data")) or {}
-        progress_data.setdefault(category, {}).setdefault(masechta_name, {})
+        if value == False:
+            if masechta_name in progress_data.get(category, {}):
+                 del progress_data[category][masechta_name]
+            if not progress_data.get(category, {}):
+                del progress_data[category]
+        else:
+            progress_data.setdefault(category, {}).setdefault(masechta_name, {})
+            for daf in range(1, total_pages + 1):
+                progress_data[category][masechta_name][str(daf)] = {
+                    "a": value,
+                    "b": value
+                }
 
-        for daf in range(1, total_pages + 1):
-            progress_data[category][masechta_name][str(daf)] = {
-                "a": value,
-                "b": value
-            }
 
         page.client_storage.set(ProgressManager._get_storage_key("progress_data"), progress_data)
 
