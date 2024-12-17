@@ -3,7 +3,7 @@ name: Build Shamor Vezachor Android APK
 on:
   push:
     branches:
-      - android-build
+      - flet-build
 
 jobs:
   build-apk:
