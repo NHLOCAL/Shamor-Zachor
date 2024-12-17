@@ -33,7 +33,7 @@ jobs:
 
       - name: Build Flet Windows App
         run: |
-          flet build windows --output build/windows
+          flet build windows --output build/windows -v
         env:
           PYTHONIOENCODING: utf-8
           PYTHONUTF8: 1  # מכריח שימוש ב-UTF-8 כברירת מחדל
