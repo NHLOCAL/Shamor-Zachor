@@ -4,7 +4,9 @@ on:
   push:
     branches:
       - flet-build
-
+    paths:
+      - '.github/workflows/build-apk.yml'
+      
 jobs:
   build-apk:
     runs-on: ubuntu-latest

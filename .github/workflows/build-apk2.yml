@@ -3,8 +3,9 @@ name: Build "שמור וזכור" APK
 on:
   push:
     branches:
-      - flet-build # או כל שם אחר של branch רלוונטי
-
+      - flet-build
+    paths:
+      - '.github/workflows/build-apk2.yml'
 jobs:
   build-apk:
     runs-on: ubuntu-latest
@@ -39,7 +40,19 @@ jobs:
           echo "ANDROID_SDK_ROOT=$HOME/Android/Sdk" >> $GITHUB_ENV
           echo "NDK_VERSION=27.2.12479018" >> $GITHUB_ENV
           echo "SDK_VERSION=android-35" >> $GITHUB_ENV
-          echo "PATH=$ANDROID_SDK_ROOT/tools/bin:$PATH" >> $GITHUB_ENV
+          echo "PATH=$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_SDK_ROOT/platform-tools:$PATH" >> $GITHUB_ENV
+          
+      - name: Install Android SDK cmdline-tools
+        run: |
+          mkdir -p "$ANDROID_SDK_ROOT/cmdline-tools"
+          sdkmanager --install "cmdline-tools;latest" --sdk_root="$ANDROID_SDK_ROOT"
+          mv "$ANDROID_SDK_ROOT/cmdline-tools/latest" "$ANDROID_SDK_ROOT/cmdline-tools/temp"
+          mv "$ANDROID_SDK_ROOT/cmdline-tools/temp" "$ANDROID_SDK_ROOT/cmdline-tools/latest"
+          
+      - name: Check sdkmanager
+        run: |
+          ls -l $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/
+          which sdkmanager
 
       - name: Accept Android SDK licenses
         run: yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --licenses
@@ -59,15 +72,15 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install flet cython
-          pip install -r requirements.txt # התקנת תלויות ספציפיות לאפליקציה מקובץ requirements.txt
+          pip install -r requirements.txt
           pip install git+https://github.com/flet-dev/python-for-android.git@3.11.6
 
       - name: Build APK for "שמור וזכור"
         run: |
-          flet build apk # בניית ה-APK
+          flet build apk
 
       - name: Upload APK as artifact
         uses: actions/upload-artifact@v4
         with:
-          name: שמור-וזכור-apk # שם קובץ ה-APK
-          path: build/apk/*.apk # נתיב לקובץ ה-APK
+          name: שמור-וזכור-apk
+          path: build/apk/*.apk

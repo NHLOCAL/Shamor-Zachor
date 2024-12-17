@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - flet-build
+    paths:
+      - '.github/workflows/build-windows.yml'
 
 jobs:
   build-windows:
