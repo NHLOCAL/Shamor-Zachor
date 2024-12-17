@@ -1,24 +1,23 @@
-name: Build Shamor Vezachor Android APK
+name: Build "שמור וזכור" APK
 
 on:
   push:
     branches:
-      - flet-build
+      - flet-build # או כל שם אחר של branch רלוונטי
 
 jobs:
   build-apk:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Check out the repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
-      - name: Install system dependencies
+      - name: Install system dependencies (Linux)
+        if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential zlib1g-dev libncurses5-dev libffi-dev libssl-dev
@@ -38,30 +37,37 @@ jobs:
       - name: Set Android SDK environment variables
         run: |
           echo "ANDROID_SDK_ROOT=$HOME/Android/Sdk" >> $GITHUB_ENV
-          echo "PATH=$PATH:$HOME/Android/Sdk/cmdline-tools/latest/bin:$HOME/Android/Sdk/tools/bin" >> $GITHUB_ENV
+          echo "NDK_VERSION=27.2.12479018" >> $GITHUB_ENV
+          echo "SDK_VERSION=android-35" >> $GITHUB_ENV
+          echo "PATH=$ANDROID_SDK_ROOT/tools/bin:$PATH" >> $GITHUB_ENV
 
       - name: Accept Android SDK licenses
         run: yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --licenses
 
       - name: Install Android SDK components
         run: |
-          yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --install "platforms;android-35" "build-tools;34.0.0" "ndk;27.2.12479018"
+          $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --sdk_root=$ANDROID_SDK_ROOT --list | grep ndk
+          yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --sdk_root=$ANDROID_SDK_ROOT --install "ndk;$NDK_VERSION" --channel=3
+          yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --sdk_root=$ANDROID_SDK_ROOT --install "platforms;$SDK_VERSION"
 
-      - name: Install Python dependencies
+      - name: Create and activate virtual environment
+        run: |
+          python3 -m venv .venv
+          source .venv/bin/activate
+
+      - name: Install Flet, Cython and dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install cython
+          pip install flet cython
+          pip install -r requirements.txt # התקנת תלויות ספציפיות לאפליקציה מקובץ requirements.txt
+          pip install git+https://github.com/flet-dev/python-for-android.git@3.11.6
 
-      - name: Build APK
+      - name: Build APK for "שמור וזכור"
         run: |
-          flet build apk --output build/apk -v
-        env:
-          PYTHONIOENCODING: utf-8
-          PYTHONUTF8: 1
+          flet build apk # בניית ה-APK
 
       - name: Upload APK as artifact
         uses: actions/upload-artifact@v4
         with:
-          name: shamor_vezachor_apk
-          path: build/apk/*.apk
+          name: שמור-וזכור-apk # שם קובץ ה-APK
+          path: build/apk/*.apk # נתיב לקובץ ה-APK
