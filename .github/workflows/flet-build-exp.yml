@@ -3,7 +3,7 @@ name: Build Flet Windows
 on:
   push:
     branches:
-      - main # או כל ענף אחר שאתה רוצה להשתמש בו לבנייה
+      - flet-build # או כל ענף אחר שאתה רוצה להשתמש בו לבנייה
 
 jobs:
   build-windows:
