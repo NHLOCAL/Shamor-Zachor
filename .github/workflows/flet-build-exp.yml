@@ -20,11 +20,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
-
-      - name: Set up UTF-8 Encoding
-        shell: cmd
-        run: chcp 65001
+          pip install flet
 
       - name: Install Flutter SDK
         uses: subosito/flutter-action@v2
@@ -34,6 +30,10 @@ jobs:
 
       - name: Verify Flutter Installation
         run: flutter doctor
+
+      - name: Set up UTF-8 Encoding
+        shell: cmd
+        run: chcp 65001
 
       - name: Build Flet Windows App
         run: |
