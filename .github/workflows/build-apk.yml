@@ -1,4 +1,4 @@
-name: Build Shamor Vezachor Android APK
+name: Build Flet Android APK
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
       - flet-build
     paths:
       - '.github/workflows/build-apk.yml'
-      
+
 jobs:
   build-apk:
     runs-on: ubuntu-latest
