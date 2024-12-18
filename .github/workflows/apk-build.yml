@@ -5,7 +5,7 @@ on:
     branches:
       - flet-build
     paths:
-      - '.github/workflows/apk-build-official.yml'
+      - '.github/workflows/apk-build.yml'
 
 
   # Allows you to run this workflow manually from the Actions tab of the repository
