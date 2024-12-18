@@ -109,7 +109,7 @@ def main(page: Page):
         # יצירת כותרות לטבלה
         table_columns = [
             ft.DataColumn(ft.Text(masechta_data["content_type"])),
-            ft.DataColumn(ft.Text("לימוד וחזרות")),
+            ft.DataColumn(ft.Text("לימוד וחזרות"), heading_row_alignment=ft.MainAxisAlignment.CENTER,),
         ]
 
         table = ft.DataTable(
