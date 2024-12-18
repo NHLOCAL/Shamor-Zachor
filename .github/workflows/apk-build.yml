@@ -3,9 +3,9 @@ name: APK Build
 on:
   push:
     branches:
-      - flet-build
-    paths:
-      - '.github/workflows/apk-build.yml'
+      - dev
+    tags:
+      - '*'
 
 
   # Allows you to run this workflow manually from the Actions tab of the repository
