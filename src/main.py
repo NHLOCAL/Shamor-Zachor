@@ -48,7 +48,6 @@ def main(page: Page):
 
         return is_completed
 
-
     def create_table(category: str, masechta_name: str):
         """
         יוצרת טבלת מעקב (DataTable) עבור מסכת/ספר עם עמודים וטופס מעקב.
@@ -80,12 +79,11 @@ def main(page: Page):
             if is_masechta_completed(category, masechta_name):
                 ProgressManager.save_completion_date(page, masechta_name, category)
 
-
         def check_all(e):
             total_pages_ = masechta_data["pages"]
             for row in table.rows:
-                for cell in row.cells[1:]:
-                    cell.content.value = e.control.value
+                for checkbox in row.cells[1].content.controls: # גישה לכל תיבות הסימון
+                    checkbox.value = e.control.value
 
             ProgressManager.save_all_masechta(
                 page, masechta_name, get_total_pages(masechta_data), e.control.value, category
@@ -99,8 +97,8 @@ def main(page: Page):
             """
             all_checked = True
             for row in table.rows:
-                for cell in row.cells[1:]:
-                    if not cell.content.value:
+                for checkbox in row.cells[1].content.controls:  # גישה לכל תיבות הסימון
+                    if not checkbox.value:
                         all_checked = False
                         break
                 if not all_checked:
@@ -111,10 +109,7 @@ def main(page: Page):
         # יצירת כותרות לטבלה
         table_columns = [
             ft.DataColumn(ft.Text(masechta_data["content_type"])),
-            ft.DataColumn(ft.Text("לימוד")),
-            ft.DataColumn(ft.Text("חזרה 1")),
-            ft.DataColumn(ft.Text("חזרה 2")),
-            ft.DataColumn(ft.Text("חזרה 3")),
+            ft.DataColumn(ft.Text("לימוד וחזרות")),
         ]
 
         table = ft.DataTable(
@@ -122,6 +117,7 @@ def main(page: Page):
             rows=[],
             border=ft.border.all(1, "black"),
             column_spacing=30,
+            heading_row_height=72, # גובה שורת כותרת
         )
 
         # מילוי שורות הטבלה
@@ -136,48 +132,44 @@ def main(page: Page):
                         ft.DataCell(ft.Text(f"{int_to_gematria(i)}{amud_symbol}")),
                         # גישה לערכים מתוך המילון המקונן
                         ft.DataCell(
-                            ft.Checkbox(
-                                value=amud_progress.get("learn", False),
-                                on_change=on_change,
-                                data={
-                                    "daf": i,
-                                    "amud": amud,
-                                    "column": "learn",
-                                },
-                            )
-                        ),
-                        ft.DataCell(
-                            ft.Checkbox(
-                                value=amud_progress.get("review1", False),
-                                on_change=on_change,
-                                data={
-                                    "daf": i,
-                                    "amud": amud,
-                                    "column": "review1",
-                                },
-                            )
-                        ),
-                        ft.DataCell(
-                            ft.Checkbox(
-                                value=amud_progress.get("review2", False),
-                                on_change=on_change,
-                                data={
-                                    "daf": i,
-                                    "amud": amud,
-                                    "column": "review2",
-                                },
-                            )
-                        ),
-                        ft.DataCell(
-                            ft.Checkbox(
-                                value=amud_progress.get("review3", False),
-                                on_change=on_change,
-                                data={
-                                    "daf": i,
-                                    "amud": amud,
-                                    "column": "review3",
-                                },
-                            )
+                            ft.Row([
+                                ft.Checkbox(
+                                    value=amud_progress.get("learn", False),
+                                    on_change=on_change,
+                                    data={
+                                        "daf": i,
+                                        "amud": amud,
+                                        "column": "learn",
+                                    },
+                                ),
+                                ft.Checkbox(
+                                    value=amud_progress.get("review1", False),
+                                    on_change=on_change,
+                                    data={
+                                        "daf": i,
+                                        "amud": amud,
+                                        "column": "review1",
+                                    },
+                                ),
+                                ft.Checkbox(
+                                    value=amud_progress.get("review2", False),
+                                    on_change=on_change,
+                                    data={
+                                        "daf": i,
+                                        "amud": amud,
+                                        "column": "review2",
+                                    },
+                                ),
+                                ft.Checkbox(
+                                    value=amud_progress.get("review3", False),
+                                    on_change=on_change,
+                                    data={
+                                        "daf": i,
+                                        "amud": amud,
+                                        "column": "review3",
+                                    },
+                                )
+                            ])
                         ),
                     ]
                     table.rows.append(ft.DataRow(cells=row_cells))
@@ -187,32 +179,28 @@ def main(page: Page):
                     ft.DataCell(ft.Text(int_to_gematria(i))),
                     # גישה לערכים מתוך המילון המקונן
                     ft.DataCell(
-                        ft.Checkbox(
-                            value=daf_progress.get("a", {}).get("learn", False),
-                            on_change=on_change,
-                            data={"daf": i, "amud": "a", "column": "learn"},
-                        )
-                    ),
-                    ft.DataCell(
-                        ft.Checkbox(
-                            value=daf_progress.get("a", {}).get("review1", False),
-                            on_change=on_change,
-                            data={"daf": i, "amud": "a", "column": "review1"},
-                        )
-                    ),
-                    ft.DataCell(
-                        ft.Checkbox(
-                            value=daf_progress.get("a", {}).get("review2", False),
-                            on_change=on_change,
-                            data={"daf": i, "amud": "a", "column": "review2"},
-                        )
-                    ),
-                    ft.DataCell(
-                        ft.Checkbox(
-                            value=daf_progress.get("a", {}).get("review3", False),
-                            on_change=on_change,
-                            data={"daf": i, "amud": "a", "column": "review3"},
-                        )
+                        ft.Row([
+                            ft.Checkbox(
+                                value=daf_progress.get("a", {}).get("learn", False),
+                                on_change=on_change,
+                                data={"daf": i, "amud": "a", "column": "learn"},
+                            ),
+                            ft.Checkbox(
+                                value=daf_progress.get("a", {}).get("review1", False),
+                                on_change=on_change,
+                                data={"daf": i, "amud": "a", "column": "review1"},
+                            ),
+                            ft.Checkbox(
+                                value=daf_progress.get("a", {}).get("review2", False),
+                                on_change=on_change,
+                                data={"daf": i, "amud": "a", "column": "review2"},
+                            ),
+                            ft.Checkbox(
+                                value=daf_progress.get("a", {}).get("review3", False),
+                                on_change=on_change,
+                                data={"daf": i, "amud": "a", "column": "review3"},
+                            )
+                        ])
                     ),
                 ]
                 table.rows.append(ft.DataRow(cells=row_cells))
@@ -260,7 +248,6 @@ def main(page: Page):
         total = get_total_pages(masechta_data)
         completed = get_completed_pages(progress, masechta_data["columns"])
         return completed == total
-
 
     def show_masechta(e):
         """
