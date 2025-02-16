@@ -313,8 +313,13 @@ def main(page: Page):
             hint_text="חיפוש ספר...",
             prefix_icon=ft.Icons.SEARCH,
             on_change=search_changed,
-            width=300,
-            border_radius=20,
+            width=400,  # Increased width slightly
+            border_radius=30,  # More rounded corners
+            border_color=ft.colors.PRIMARY,  # Use the primary color for the border
+            bgcolor=ft.colors.SECONDARY_CONTAINER, # A subtle background
+            filled=True, # Fill the background
+            dense=True,   # Make it more compact
+            content_padding=12, # Adjust padding for visual balance
         )
 
         # Moved tab creation *OUTSIDE* the loop.  Create ONCE.
