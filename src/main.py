@@ -340,7 +340,7 @@ def main(page: Page):
                                             [
                                                 ft.Text(f"{masechta_name} ({category})", size=18, weight=ft.FontWeight.BOLD),
                                                 progress_bar_with_text,
-                                                ft.Text(f"אתה אוחז ב{last_page_display}"),
+                                                ft.Text(f"הגעת ל{last_page_display}"),
                                             ],
                                             spacing=5,
                                             alignment=ft.MainAxisAlignment.CENTER,
