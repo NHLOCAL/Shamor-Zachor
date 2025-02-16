@@ -26,7 +26,7 @@ def load_data():
 
                 if "name" not in data or not isinstance(data["name"], str):
                     raise ValueError(f"Missing or invalid 'name' field in {json_file}. Expected a string.")
-                
+
                 if "content_type" not in data or not isinstance(data["content_type"], str):
                     raise ValueError(f"Missing or invalid 'content_type' field in {json_file}. Expected a string.")
 

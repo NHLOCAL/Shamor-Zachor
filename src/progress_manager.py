@@ -27,7 +27,7 @@ class ProgressManager:
         progress_data = page.client_storage.get(ProgressManager._get_storage_key("progress_data")) or {}
         daf_str = str(daf)
         masechta_progress = progress_data.setdefault(category, {}).setdefault(masechta_name, {})
-        
+
         # אם יש ערך בוליאני קיים עבור daf/amud, נחליף אותו במילון
         daf_entry = masechta_progress.setdefault(daf_str, {})
         if amud not in daf_entry or not isinstance(daf_entry[amud], dict):
@@ -95,7 +95,7 @@ class ProgressManager:
         התאריך נשמר רק אם סימנו את כל הדפים כ"לימוד" בפעם הראשונה.
         """
         completion_dates = page.client_storage.get(ProgressManager._get_storage_key("completion_dates")) or {}
-        
+
         if masechta_name not in completion_dates.get(category, {}):
             completion_dates.setdefault(category, {})[masechta_name] = datetime.now().strftime("%Y-%m-%d")
             page.client_storage.set(ProgressManager._get_storage_key("completion_dates"), completion_dates)
