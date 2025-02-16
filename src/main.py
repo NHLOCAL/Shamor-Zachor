@@ -246,7 +246,7 @@ def main(page: Page):
                     horizontal_alignment=ft.CrossAxisAlignment.CENTER, # Center-align text
                 )
             else:
-                content = ft.Text(masechta) # Regular button content
+                content = ft.Text(masechta, size=16)  # Regular button content
 
             return ft.ElevatedButton(
                 content=content, # Use content instead of text
