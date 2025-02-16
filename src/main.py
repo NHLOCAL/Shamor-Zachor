@@ -234,25 +234,42 @@ def main(page: Page):
             "שולחן ערוך": list(data.get("שולחן ערוך", {}).keys())
         }
 
-        def create_masechta_button(masechta, category, visible=True):
+        def create_masechta_button(masechta, category, visible=True, include_category=False):
+            if include_category:
+                # Use a Column to display name and category on separate lines
+                content = ft.Column(
+                    [
+                        ft.Text(masechta, size=16),  # Regular size
+                        ft.Text(category, size=13),
+                    ],
+                    tight=True,  # Reduce spacing between lines
+                    horizontal_alignment=ft.CrossAxisAlignment.CENTER, # Center-align text
+                )
+            else:
+                content = ft.Text(masechta) # Regular button content
+
             return ft.ElevatedButton(
-                text=masechta,
+                content=content, # Use content instead of text
                 data={"masechta": masechta, "category": category},
                 on_click=show_masechta,
-                style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=10), padding=15),
+                style=ft.ButtonStyle(
+                    shape=ft.RoundedRectangleBorder(radius=10),
+                    padding=15,
+                ),
                 width=150,
-                height=50,
+                height=70, # Adjust as needed, allow more height.
                 icon=ft.Icon(ft.Icons.CHECK_CIRCLE) if is_masechta_completed(category, masechta) else None,
                 icon_color=ft.Colors.GREEN if is_masechta_completed(category, masechta) else None,
                 visible=visible,
             )
+
 
         def perform_search(search_term):
             results = []
             for category, masechtot in data.items():
                 for masechta_name in masechtot:
                     if search_term.lower() in masechta_name.lower():
-                        results.append(create_masechta_button(masechta_name, category))
+                        results.append(create_masechta_button(masechta_name, category, include_category=True)) # Pass include_category=True
             return results
 
         def search_changed(e):
@@ -291,6 +308,7 @@ def main(page: Page):
             page.update()
 
 
+
         search_tf = ft.TextField(
             hint_text="חיפוש ספר...",
             prefix_icon=ft.Icons.SEARCH,
@@ -299,6 +317,7 @@ def main(page: Page):
             border_radius=20,
         )
 
+        # Moved tab creation *OUTSIDE* the loop.  Create ONCE.
         tab_list = []
         for section_name, masechtot in sections.items():
             book_buttons = [create_masechta_button(masechta, section_name) for masechta in masechtot]
@@ -317,16 +336,19 @@ def main(page: Page):
             )
             tab_list.append(ft.Tab(text=section_name, content=tab_content))
 
-        # "Search Results" tab with only the search icon
-        search_results_tab = ft.Tab(
-            tab_content=ft.Icon(ft.Icons.SEARCH),  # Only the icon
-            content=ft.Container(), # Empty container, will be filled later
-        )
-        search_results_tab.tab_content.visible = False # Initially hidden
-        tab_list.append(search_results_tab)
+        # "Search Results" tab with only the search icon - created *ONCE*
+        if search_results_tab is None:  # Create only if it doesn't exist
+            search_results_tab = ft.Tab(
+                tab_content=ft.Icon(ft.Icons.SEARCH),  # Only the icon
+                content=ft.Container(), # Empty container, will be filled later
+            )
+            search_results_tab.tab_content.visible = False # Initially hidden
+
+        tab_list.append(search_results_tab)  # Append to the *END*
+
 
         tabs_control = ft.Tabs(
-            selected_index=current_tab_index,
+            selected_index=current_tab_index,  # Use stored index
             tabs=tab_list,
             expand=1,
         )
@@ -581,12 +603,24 @@ def main(page: Page):
         )
 
     def route_change(e):
-        nonlocal search_results_tab
+        nonlocal search_results_tab, search_results_grid, current_tab_index, tabs_control
         page.views.clear()
         route_parts = page.route.strip("/").split("/")
 
+
         if page.route in ["/", "/books"]:
             handle_books_route()
+            # Reset search and select first tab ONLY when going to /books (or /)
+            if search_results_tab:
+                search_results_tab.tab_content.visible = False  # Hide search results
+            if search_results_grid:
+                search_results_grid.controls = []  # Clear previous results
+            current_tab_index = 0          # Reset selected tab index
+            if tabs_control:
+              tabs_control.selected_index = current_tab_index
+
+
+
         elif page.route == "/tracking":
             handle_tracking_route()
         elif len(route_parts) == 3 and route_parts[0] == "masechta":
@@ -595,7 +629,6 @@ def main(page: Page):
         # Hide search results tab content on route change, *except* when returning to /books.
         if search_results_tab and page.route != "/books":
             search_results_tab.tab_content.visible = False
-
 
         page.update()
 
