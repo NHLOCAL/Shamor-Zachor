@@ -29,16 +29,17 @@ class ProgressManager:
         masechta_progress = progress_data.setdefault(category, {}).setdefault(masechta_name, {})
         
         if column == "learn":
-            masechta_progress.setdefault(daf_str, {}).setdefault(amud, {}).setdefault("learn", False)
-            masechta_progress[daf_str][amud][column] = value
+            masechta_progress.setdefault(daf_str, {}).setdefault(amud, {})
+            masechta_progress[daf_str][amud]["learn"] = value
         else:
-            masechta_progress.setdefault(daf_str, {}).setdefault(amud, {}).setdefault(column, False)
+            masechta_progress.setdefault(daf_str, {}).setdefault(amud, {})
             masechta_progress[daf_str][amud][column] = value
 
         # בודק אם כל הערכים ל"לימוד" הם False, אם כן, מוחק את המידע עבור הדף
-        if "learn" in masechta_progress.get(daf_str, {}).get(amud, {}) and not masechta_progress[daf_str][amud]["learn"]:
+        current_amud = masechta_progress.get(daf_str, {}).get(amud, {})
+        if isinstance(current_amud, dict) and "learn" in current_amud and not current_amud["learn"]:
             reviews = ["review1", "review2", "review3"]
-            if all(not masechta_progress[daf_str][amud].get(review, False) for review in reviews):
+            if all(not current_amud.get(review, False) for review in reviews):
                 if amud in masechta_progress.get(daf_str, {}):
                     del masechta_progress[daf_str][amud]
                 if not masechta_progress.get(daf_str, {}):
@@ -49,7 +50,7 @@ class ProgressManager:
             amud_val
             for daf_data in masechta_progress.values()
             for amud_data in daf_data.values()
-            for amud_val in amud_data.values()
+            for amud_val in (amud_data.values() if isinstance(amud_data, dict) else [amud_data])
         ):
             if masechta_name in progress_data.get(category, {}):
                 del progress_data[category][masechta_name]
@@ -110,12 +111,16 @@ class ProgressManager:
 
 def get_completed_pages(progress: dict, columns: list) -> int:
     """
-    מחזיר כמה עמודים הושלמו (משמש לפונקציות חיצוניות).
-    סופר רק את העמודים שסומנו כ"לימוד"
+    מחזיר כמה עמודים הושלמו (סופרים רק את העמודים שסומנו כ"לימוד").
+    תומך גם במבנה חדש (מילון) וגם במבנה ישן (בוליאני).
     """
     completed_count = 0
     for daf_data in progress.values():
         for amud_data in daf_data.values():
-            if amud_data.get("learn", False):
-                completed_count += 1
+            if isinstance(amud_data, dict):
+                if amud_data.get("learn", False):
+                    completed_count += 1
+            elif isinstance(amud_data, bool):
+                if amud_data:
+                    completed_count += 1
     return completed_count
