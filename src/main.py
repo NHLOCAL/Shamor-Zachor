@@ -37,6 +37,7 @@ def main(page: Page):
 
     completion_icons = {}
     current_masechta = None
+    sections_book_buttons = {} # Dictionary to store original book buttons and their visibility
 
     def update_masechta_completion_status(category: str, masechta_name: str):
         progress = ProgressManager.load_progress(page, masechta_name, category)
@@ -218,8 +219,9 @@ def main(page: Page):
         page.route = f"/masechta/{e.control.data['category']}/{e.control.data['masechta']}"
         page.update()
 
+
     def show_main_menu():
-        nonlocal current_masechta
+        nonlocal current_masechta, sections_book_buttons
         current_masechta = None
 
         sections = {
@@ -230,7 +232,7 @@ def main(page: Page):
             "שולחן ערוך": list(data.get("שולחן ערוך", {}).keys())
         }
 
-        def create_masechta_button(masechta, category):
+        def create_masechta_button(masechta, category, visible=True):
             return ft.ElevatedButton(
                 text=masechta,
                 data={"masechta": masechta, "category": category},
@@ -240,35 +242,57 @@ def main(page: Page):
                 height=50,
                 icon=ft.Icon(ft.Icons.CHECK_CIRCLE) if is_masechta_completed(category, masechta) else None,
                 icon_color=ft.Colors.GREEN if is_masechta_completed(category, masechta) else None,
+                visible=visible,
             )
+        
+        def update_book_buttons(search_term=""):
+            for section_name, buttons_data in sections_book_buttons.items():
+                for button_key, button_info in buttons_data.items():
+                    button = button_info["button"]
+                    is_visible = search_term.lower() in button.text.lower()
+                    sections_book_buttons[section_name][button_key]["visible"] = is_visible  # Update visibility
+                    button.visible = is_visible
+            page.update()
+        
+        def search_changed(e):
+            update_book_buttons(e.control.value)
+            
+
+        search_tf = ft.TextField(
+            hint_text="חיפוש ספר...",
+            prefix_icon=ft.Icons.SEARCH,
+            on_change=search_changed,
+            width=300,
+            border_radius=20,
+        )
+
+        tab_list = []
+        for section_name, masechtot in sections.items():
+            sections_book_buttons[section_name]={}
+            for masechta in masechtot:
+                button = create_masechta_button(masechta, section_name)
+                sections_book_buttons[section_name][masechta] = {"button": button, "visible": True}
+
+            tab_content = ft.Container(
+                content=ft.GridView(
+                    controls=[button_info["button"] for button_info in sections_book_buttons[section_name].values()],
+                    runs_count=3,
+                    max_extent=150,
+                    run_spacing=10,
+                    spacing=10,
+                    padding=10,
+                    # visible=bool(sections_book_buttons[section_name])  # No longer directly controlling visibility here
+                ),
+                expand=True,
+            )
+            tab_list.append(ft.Tab(text=section_name, content=tab_content))
 
         return ft.Column(
             [
-                ft.Text("בחר מקור:", size=24, weight=ft.FontWeight.BOLD,
-                        text_align=ft.TextAlign.CENTER, style=ft.TextStyle(color=ft.Colors.SECONDARY)),
+                ft.Container(search_tf, padding=ft.padding.only(bottom=10)),
                 ft.Tabs(
                     selected_index=current_tab_index,
-                    tabs=[
-                        ft.Tab(
-                            text=section_name,
-                            content=ft.Container(
-                                content=ft.GridView(
-                                    controls=[
-                                        create_masechta_button(masechta, section_name)
-                                        for masechta in masechtot
-                                    ] if masechtot else [],
-                                    runs_count=3,
-                                    max_extent=150,
-                                    run_spacing=10,
-                                    spacing=10,
-                                    padding=10,
-                                    visible=bool(masechtot),
-                                ),
-                                expand=True,
-                            ),
-                        )
-                        for section_name, masechtot in sections.items()
-                    ],
+                    tabs=tab_list,
                     expand=1,
                 ),
             ],
@@ -279,7 +303,7 @@ def main(page: Page):
     def get_last_page_display(progress, masechta_data):
         if not progress:
             return "עדיין לא התחלת"
-        
+
         if masechta_data["content_type"] == "דף":
             last_daf = max(
                 (daf for daf in progress.keys() if get_progress_value(progress[daf].get("a", {}), "learn") or get_progress_value(progress[daf].get("b", {}), "learn")),
