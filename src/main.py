@@ -37,7 +37,10 @@ def main(page: Page):
 
     completion_icons = {}
     current_masechta = None
-    sections_book_buttons = {} # Dictionary to store original book buttons and their visibility
+    sections_book_buttons = {}  # Dictionary to store original book buttons
+    search_results_tab = None # Store search results tab
+    search_results_grid = None # Store the GridView for search results
+    tabs_control = None # Store the Tabs control
 
     def update_masechta_completion_status(category: str, masechta_name: str):
         progress = ProgressManager.load_progress(page, masechta_name, category)
@@ -219,9 +222,8 @@ def main(page: Page):
         page.route = f"/masechta/{e.control.data['category']}/{e.control.data['masechta']}"
         page.update()
 
-
     def show_main_menu():
-        nonlocal current_masechta, sections_book_buttons
+        nonlocal current_masechta, sections_book_buttons, search_results_tab, search_results_grid, tabs_control
         current_masechta = None
 
         sections = {
@@ -244,19 +246,50 @@ def main(page: Page):
                 icon_color=ft.Colors.GREEN if is_masechta_completed(category, masechta) else None,
                 visible=visible,
             )
-        
-        def update_book_buttons(search_term=""):
-            for section_name, buttons_data in sections_book_buttons.items():
-                for button_key, button_info in buttons_data.items():
-                    button = button_info["button"]
-                    is_visible = search_term.lower() in button.text.lower()
-                    sections_book_buttons[section_name][button_key]["visible"] = is_visible  # Update visibility
-                    button.visible = is_visible
-            page.update()
-        
+
+        def perform_search(search_term):
+            results = []
+            for category, masechtot in data.items():
+                for masechta_name in masechtot:
+                    if search_term.lower() in masechta_name.lower():
+                        results.append(create_masechta_button(masechta_name, category))
+            return results
+
         def search_changed(e):
-            update_book_buttons(e.control.value)
-            
+            nonlocal search_results_grid, search_results_tab, tabs_control
+            search_term = e.control.value
+
+            if len(search_term) >= 2: # Only search if 2 or more characters
+                search_results = perform_search(search_term)
+
+                if search_results_grid is None: # First time creating it
+                  search_results_grid = ft.GridView(
+                        controls=search_results,
+                        runs_count=3,
+                        max_extent=150,
+                        run_spacing=10,
+                        spacing=10,
+                        padding=10,
+                    )
+                  search_results_tab.content = ft.Container(content=search_results_grid, expand=True)
+                else:
+                    search_results_grid.controls = search_results # Update existing grid
+
+                # Show/hide and select the search results tab
+                if search_term and page.route == "/books":  # Only if there's a search term AND we are on /books
+                    search_results_tab.tab_content.visible = True
+                    if search_results:
+                        tabs_control.selected_index = len(tabs_control.tabs) - 1 # Select search results tab
+                elif page.route == "/books":  # If no search term, and we are on /books, hide the tab
+                    search_results_tab.tab_content.visible = False
+            elif page.route == "/books": # Less than 2 characters, and on /books, so hide
+                search_results_tab.tab_content.visible = False
+                if search_results_grid: # Clear previous search results
+                    search_results_grid.controls = []
+
+
+            page.update()
+
 
         search_tf = ft.TextField(
             hint_text="חיפוש ספר...",
@@ -268,33 +301,40 @@ def main(page: Page):
 
         tab_list = []
         for section_name, masechtot in sections.items():
-            sections_book_buttons[section_name]={}
-            for masechta in masechtot:
-                button = create_masechta_button(masechta, section_name)
-                sections_book_buttons[section_name][masechta] = {"button": button, "visible": True}
+            book_buttons = [create_masechta_button(masechta, section_name) for masechta in masechtot]
+            sections_book_buttons[section_name] = book_buttons
 
             tab_content = ft.Container(
                 content=ft.GridView(
-                    controls=[button_info["button"] for button_info in sections_book_buttons[section_name].values()],
+                    controls=book_buttons,
                     runs_count=3,
                     max_extent=150,
                     run_spacing=10,
                     spacing=10,
                     padding=10,
-                    # visible=bool(sections_book_buttons[section_name])  # No longer directly controlling visibility here
                 ),
                 expand=True,
             )
             tab_list.append(ft.Tab(text=section_name, content=tab_content))
 
+        # "Search Results" tab with only the search icon
+        search_results_tab = ft.Tab(
+            tab_content=ft.Icon(ft.Icons.SEARCH),  # Only the icon
+            content=ft.Container(), # Empty container, will be filled later
+        )
+        search_results_tab.tab_content.visible = False # Initially hidden
+        tab_list.append(search_results_tab)
+
+        tabs_control = ft.Tabs(
+            selected_index=current_tab_index,
+            tabs=tab_list,
+            expand=1,
+        )
+
         return ft.Column(
             [
                 ft.Container(search_tf, padding=ft.padding.only(bottom=10)),
-                ft.Tabs(
-                    selected_index=current_tab_index,
-                    tabs=tab_list,
-                    expand=1,
-                ),
+                tabs_control,
             ],
             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
             expand=True,
@@ -541,6 +581,7 @@ def main(page: Page):
         )
 
     def route_change(e):
+        nonlocal search_results_tab
         page.views.clear()
         route_parts = page.route.strip("/").split("/")
 
@@ -551,6 +592,10 @@ def main(page: Page):
         elif len(route_parts) == 3 and route_parts[0] == "masechta":
             category, masechta_name = route_parts[1], route_parts[2]
             handle_masechta_route(category, masechta_name)
+        # Hide search results tab content on route change, *except* when returning to /books.
+        if search_results_tab and page.route != "/books":
+            search_results_tab.tab_content.visible = False
+
 
         page.update()
 
