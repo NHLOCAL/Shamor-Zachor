@@ -28,12 +28,12 @@ class ProgressManager:
         daf_str = str(daf)
         masechta_progress = progress_data.setdefault(category, {}).setdefault(masechta_name, {})
         
-        if column == "learn":
-            masechta_progress.setdefault(daf_str, {}).setdefault(amud, {})
-            masechta_progress[daf_str][amud]["learn"] = value
-        else:
-            masechta_progress.setdefault(daf_str, {}).setdefault(amud, {})
-            masechta_progress[daf_str][amud][column] = value
+        # אם יש ערך בוליאני קיים עבור daf/amud, נחליף אותו במילון
+        daf_entry = masechta_progress.setdefault(daf_str, {})
+        if amud not in daf_entry or not isinstance(daf_entry[amud], dict):
+            daf_entry[amud] = {}
+
+        daf_entry[amud][column] = value
 
         # בודק אם כל הערכים ל"לימוד" הם False, אם כן, מוחק את המידע עבור הדף
         current_amud = masechta_progress.get(daf_str, {}).get(amud, {})
@@ -67,23 +67,24 @@ class ProgressManager:
         progress_data = page.client_storage.get(ProgressManager._get_storage_key("progress_data")) or {}
 
         if value == False:
-            # מחיקת המסכת אם הערך הוא False
             if masechta_name in progress_data.get(category, {}):
                 del progress_data[category][masechta_name]
             if not progress_data.get(category, {}):
                 del progress_data[category]
         else:
-            # מילוי כל הדפים והעמודים בערך True אם הערך הוא True
             masechta_progress = progress_data.setdefault(category, {}).setdefault(masechta_name, {})
             for daf in range(1, total_pages + 1):
                 daf_str = str(daf)
+                daf_entry = masechta_progress.setdefault(daf_str, {})
                 for amud in ["a", "b"]:
+                    # אם הערך עבור amud אינו מילון, נחליף אותו במילון
+                    if amud not in daf_entry or not isinstance(daf_entry[amud], dict):
+                        daf_entry[amud] = {}
                     for column in ["learn", "review1", "review2", "review3"]:
-                        masechta_progress.setdefault(daf_str, {}).setdefault(amud, {})[column] = value
+                        daf_entry[amud][column] = value
 
         page.client_storage.set(ProgressManager._get_storage_key("progress_data"), progress_data)
 
-        # אם סימנו כגמור - שומרים תאריך סיום
         if value:
             ProgressManager.save_completion_date(page, masechta_name, category)
 
@@ -95,7 +96,6 @@ class ProgressManager:
         """
         completion_dates = page.client_storage.get(ProgressManager._get_storage_key("completion_dates")) or {}
         
-        # בדיקה האם המסכת כבר קיימת במילון התאריכים
         if masechta_name not in completion_dates.get(category, {}):
             completion_dates.setdefault(category, {})[masechta_name] = datetime.now().strftime("%Y-%m-%d")
             page.client_storage.set(ProgressManager._get_storage_key("completion_dates"), completion_dates)
