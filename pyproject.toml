@@ -1,10 +1,10 @@
 [project]
 name = "shamor_vezachor"
-version = "0.5.0"
+version = "0.5.1"
 # description = "שמור וזכור"
 #authors = [{ name = "NHLOCAL", email = "nh.local11@gmail.com" }]
 dependencies = [
-  "flet==0.26.0",
+  "flet==0.27.6",
   "python-hebrew-numbers",
   "pyluach"
 ]
@@ -13,8 +13,8 @@ dependencies = [
 org = "com.nhlocal" # מזהה ארגוני ייחודי
 product = "shamor vezachor" # שם המוצר המוצג
 company = "NHLOCAL" # שם החברה
-copyright = "Copyright (C) 2024 by NHLOCAL"
-build_number = 2 # מספר בנייה פנימי
+copyright = "Copyright (C) 2025 by NHLOCAL"
+build_number = 1 # מספר בנייה פנימי
 # permissions = ["camera", "microphone"] # הרשאות אפשריות
 
 [tool.flet.app]
@@ -23,10 +23,10 @@ path = "src" # שורש הפרויקט
 # exclude = ["requirements.txt", "pyproject.toml"] # קבצים שלא יתווספו לארכיון
 
 [tool.flet.splash]
-color = "#FFFFFF" # צבע רקע לספלש
-dark_color = "#333333" # צבע רקע לספלש במצב כהה
+color = "#FFDBCF" # צבע רקע לספלש
+dark_color = "#8F4C33" # צבע רקע לספלש במצב כהה
 web = false # השבתת ספלש עבור גרסת ווב
-# android = true # ספלש עבור אנדרואיד
+android = true # ספלש עבור אנדרואיד
 
 [tool.flet.compile]
 # app = true # קומפילציה של קבצי האפליקציה
