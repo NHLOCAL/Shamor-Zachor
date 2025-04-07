@@ -58,194 +58,193 @@ def main(page: Page):
     def create_table(category: str, masechta_name: str):
         masechta_data = data[category].get(masechta_name)
         if not masechta_data:
-            page.overlay.append(ft.SnackBar(ft.Text(f"Error: Masechta '{masechta_name}' not found.")))
-            page.update()
-            return None
+            # Consider showing an error message on the page itself
+            return ft.Text(f"Error: Masechta '{masechta_name}' not found in category '{category}'.")
 
         progress = ProgressManager.load_progress(page, masechta_name, category)
         start_page = masechta_data.get("start_page", 1)
-        is_daf_type = masechta_data["content_type"] == "דף" # בדוק אם זה ש"ס/ירושלמי
+        is_daf_type = masechta_data["content_type"] == "דף"
+
+        # --- Store references to checkboxes for easy updates ---
+        all_checkboxes_in_view = []
+        learn_checkboxes_in_view = [] # Specific list for 'learn' checkboxes
+        # ------------------------------------------------------
 
         def on_change(e):
             d = e.control.data
             ProgressManager.save_progress(
-                page,
-                masechta_name,
-                d["daf"],
-                d["amud"],
-                d["column"],
-                e.control.value,
-                category,
+                page, masechta_name, d["daf"], d["amud"], d["column"], e.control.value, category,
             )
-            update_masechta_completion_status(category, masechta_name)
-            update_check_all_status()
-            if is_masechta_completed(category, masechta_name):
-                ProgressManager.save_completion_date(page, masechta_name, category)
+            # Update progress dictionary locally for immediate feedback in update_check_all_status
+            daf_str = str(d["daf"])
+            progress.setdefault(daf_str, {}).setdefault(d["amud"], {})[d["column"]] = e.control.value
 
+            update_masechta_completion_status(category, masechta_name) # Updates the main check icon
+            update_check_all_status() # Updates the "check all" checkbox state
+            if is_masechta_completed(category, masechta_name):
+                 # Only save completion date if it wasn't already completed
+                 if not ProgressManager.get_completion_date(page, masechta_name, category):
+                    ProgressManager.save_completion_date(page, masechta_name, category)
+            page.update() # Update UI after state changes
+
+        def update_check_all_status():
+            # Check if ALL 'learn' checkboxes *currently loaded in the view* are checked
+            all_checked = all(cb.value for cb in learn_checkboxes_in_view)
+
+            # Update the main "check all" checkbox state without triggering its own on_change
+            if check_all_checkbox.value != all_checked:
+                 check_all_checkbox.value = all_checked
+                 # No page.update() here, assumed to be called by the caller (on_change or check_all)
 
         def check_all(e):
-            # קבלת הערך החדש מה-Checkbox הראשי (True או False)
             new_value = e.control.value
-
-            # חישוב הפרמטרים הנדרשים ל-save_all_masechta
             total_items_to_save = masechta_data["pages"]
             start_page_num = masechta_data.get("start_page", 1)
             is_daf = masechta_data["content_type"] == "דף"
 
-            # שמירת המצב החדש באחסון (רק עמודת 'learn')
+            # Save the state for all items (only affects 'learn' column)
             ProgressManager.save_all_masechta(
                 page, masechta_name, total_items_to_save, start_page_num, is_daf, new_value, category
             )
 
-            # --- !!! התחלת התיקון !!! ---
-            # רענון ידני של כל תיבות הסימון *בתצוגה* כדי לתת חיווי מיידי
-            for row in table.rows:
-                # תא 1 מכיל את ה-Container
-                cell_content = row.cells[1].content
-                # ודא שזה באמת Container
-                if isinstance(cell_content, ft.Container):
-                    # התוכן של ה-Container הוא ה-Row
-                    checkbox_row = cell_content.content
-                    # ודא שזה באמת Row ויש לו controls
-                    if isinstance(checkbox_row, ft.Row) and hasattr(checkbox_row, 'controls'):
-                        # עבור על כל הפקדים ב-Row
-                        for control in checkbox_row.controls:
-                            # אם הפקד הוא Checkbox, עדכן את הערך שלו
-                            if isinstance(control, ft.Checkbox):
-                                control.value = new_value
-            # --- !!! סוף התיקון !!! ---
+            # --- Update checkboxes in the current view ---
+            for cb in all_checkboxes_in_view:
+                 # Only visually check/uncheck if the state is different
+                 if cb.value != new_value:
+                     cb.value = new_value
+            # ---------------------------------------------
 
-            # עדכן את אייקון ה-V הכללי של המסכת
+            # Reload progress after mass update to reflect changes accurately
+            nonlocal progress
+            progress = ProgressManager.load_progress(page, masechta_name, category)
+
             update_masechta_completion_status(category, masechta_name)
-
-            # עדכן את התצוגה כולה
             page.update()
 
 
-
-        def update_check_all_status():
-            all_checked = True
-            # נבדוק רק את תיבת הסימון של "learn" עבור כל יחידה (עמוד או פרק)
-            for i in range(start_page, masechta_data["pages"] + start_page):
-                daf_progress = progress.get(str(i), {})
-                if is_daf_type:
-                    if not get_progress_value(daf_progress.get("a", {}), "learn") or \
-                       not get_progress_value(daf_progress.get("b", {}), "learn"):
-                        all_checked = False
-                        break
-                else:
-                    if not get_progress_value(daf_progress.get("a", {}), "learn"):
-                        all_checked = False
-                        break
-                if not all_checked: # יציאה מוקדמת אם מצאנו אחד לא מסומן
-                     break
-
-            # אם לא כל תיבות ה'לימוד' מסומנות, נוריד את הסימון מ'בחר הכל'
-            if not all_checked and check_all_checkbox.value:
-                 check_all_checkbox.value = False
-            # אם כל תיבות ה'לימוד' מסומנות, נסמן את 'בחר הכל'
-            elif all_checked and not check_all_checkbox.value:
-                 check_all_checkbox.value = True
-
-            # אין צורך ב-page.update() כאן כי הוא נקרא בפונקציות האחרות
-
-        table_columns = [
-            ft.DataColumn(ft.Text(masechta_data["content_type"], weight=ft.FontWeight.BOLD)),
-            ft.DataColumn(
-                ft.Container( # עוטפים ב-Container כדי לשלוט ביישור
+        # --- Build Header ---
+        header_row = ft.ResponsiveRow(
+            [
+                ft.Container(
+                    ft.Text(masechta_data["content_type"], weight=ft.FontWeight.BOLD),
+                    padding=ft.padding.symmetric(vertical=10, horizontal=8),
+                    alignment=ft.alignment.center_right,
+                    col={"xs": 3, "sm": 2, "md": 2, "lg": 1}, # Adjust col spans as needed
+                ),
+                ft.Container(
                     ft.Text("לימוד וחזרות", weight=ft.FontWeight.BOLD, text_align=ft.TextAlign.CENTER),
-                    alignment=ft.alignment.center, # ממקמים את הטקסט במרכז התא
-                    expand=True, # מרחיבים את ה-Container למלוא רוחב העמודה
-                )
-            ),
-        ]
-
-        table = ft.DataTable(
-            columns=table_columns,
-            rows=[],
-            column_spacing=20, # צמצום ריווח בין עמודות
-            heading_row_height=45, # גובה שורת כותרת
-            heading_row_color=ft.colors.with_opacity(0.1, ft.colors.PRIMARY), # צבע רקע עדין לכותרת
-            # border=ft.border.all(1, ft.colors.OUTLINE_VARIANT), # גבול עדין סביב הטבלה
-            border_radius=ft.border_radius.all(8), # פינות מעוגלות
-            horizontal_lines=ft.border.BorderSide(1, ft.colors.with_opacity(0.2, ft.colors.OUTLINE)), # קווים אופקיים עדינים
-            vertical_lines=ft.border.BorderSide(1, ft.colors.with_opacity(0.1, ft.colors.OUTLINE)), # קווים אנכיים עדינים
-            data_row_max_height=55, # גובה מקסימלי לשורה (עוזר בריווח)
+                    padding=ft.padding.symmetric(vertical=10, horizontal=8),
+                    alignment=ft.alignment.center,
+                    col={"xs": 9, "sm": 10, "md": 10, "lg": 11}, # Adjust col spans as needed
+                ),
+            ],
+            alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+            vertical_alignment=ft.CrossAxisAlignment.CENTER,
         )
 
-        row_index = 0 # מונה לצביעה מתחלפת
+        # --- Build Data Rows ---
+        list_items = []
+        row_index = 0
         for i in range(start_page, masechta_data["pages"] + start_page):
-            daf_progress = progress.get(str(i), {})
+            daf_str = str(i) # Use string for dictionary keys
+            daf_progress = progress.get(daf_str, {})
             amudim_to_process = ["a", "b"] if is_daf_type else ["a"]
 
             for amud_key in amudim_to_process:
                 amud_progress = daf_progress.get(amud_key, {})
                 is_amud_b = amud_key == "b"
-                amud_symbol = ":" if is_amud_b else ("." if is_daf_type else "") # נקודה לעמוד א', נקודותיים לב', כלום לפרק/סימן
-
+                amud_symbol = ":" if is_amud_b else ("." if is_daf_type else "")
                 row_label = f"{int_to_gematria(i)}{amud_symbol}"
-                learn_val = get_progress_value(amud_progress, "learn")
-                rev1_val = get_progress_value(amud_progress, "review1")
-                rev2_val = get_progress_value(amud_progress, "review2")
-                rev3_val = get_progress_value(amud_progress, "review3")
 
-                # הגדרת צבע רקע מתחלף
-                row_color = ft.colors.with_opacity(0.03, ft.colors.SECONDARY_CONTAINER) if row_index % 2 == 0 else None
+                # Create Checkboxes for this row
+                learn_cb = ft.Checkbox(
+                    value=get_progress_value(amud_progress, "learn"), on_change=on_change,
+                    data={"daf": i, "amud": amud_key, "column": "learn"}, tooltip="לימוד",
+                )
+                review1_cb = ft.Checkbox(
+                    value=get_progress_value(amud_progress, "review1"), on_change=on_change,
+                    data={"daf": i, "amud": amud_key, "column": "review1"}, tooltip="חזרה 1",
+                )
+                review2_cb = ft.Checkbox(
+                    value=get_progress_value(amud_progress, "review2"), on_change=on_change,
+                    data={"daf": i, "amud": amud_key, "column": "review2"}, tooltip="חזרה 2",
+                )
+                review3_cb = ft.Checkbox(
+                    value=get_progress_value(amud_progress, "review3"), on_change=on_change,
+                    data={"daf": i, "amud": amud_key, "column": "review3"}, tooltip="חזרה 3",
+                )
 
-                row_cells = [
-                    ft.DataCell(ft.Text(row_label, font_family="Heebo")), # פונט קריא יותר למספרים עבריים
-                    ft.DataCell(
-                        # שימוש ב-Container כדי לשלוט ביישור ובריווח של תיבות הסימון
+                # Store references
+                all_checkboxes_in_view.extend([learn_cb, review1_cb, review2_cb, review3_cb])
+                learn_checkboxes_in_view.append(learn_cb)
+
+                # Define background color for zebra striping
+                row_bgcolor = ft.colors.with_opacity(0.03, ft.colors.SECONDARY_CONTAINER) if row_index % 2 == 0 else None
+
+                # Create the responsive row for this data item
+                data_responsive_row = ft.ResponsiveRow(
+                    [
+                        # Column 1: Label
+                        ft.Container(
+                            content=ft.Text(row_label, font_family="Heebo"),
+                            padding=ft.padding.symmetric(vertical=12, horizontal=8), # Adjust padding
+                            alignment=ft.alignment.center_right,
+                            col={"xs": 3, "sm": 2, "md": 2, "lg": 1}, # Responsive column span
+                        ),
+                        # Column 2: Checkboxes
                         ft.Container(
                             content=ft.Row(
-                                [
-                                    ft.Checkbox(
-                                        value=learn_val,
-                                        on_change=on_change,
-                                        data={"daf": i, "amud": amud_key, "column": "learn"},
-                                        tooltip="לימוד",
-                                    ),
-                                    ft.Checkbox(
-                                        value=rev1_val,
-                                        on_change=on_change,
-                                        data={"daf": i, "amud": amud_key, "column": "review1"},
-                                        tooltip="חזרה 1",
-                                    ),
-                                    ft.Checkbox(
-                                        value=rev2_val,
-                                        on_change=on_change,
-                                        data={"daf": i, "amud": amud_key, "column": "review2"},
-                                        tooltip="חזרה 2",
-                                    ),
-                                    ft.Checkbox(
-                                        value=rev3_val,
-                                        on_change=on_change,
-                                        data={"daf": i, "amud": amud_key, "column": "review3"},
-                                        tooltip="חזרה 3",
-                                    )
-                                ],
-                                # יישור למרכז התא וריווח שווה בין התיבות
-                                alignment=ft.MainAxisAlignment.SPACE_EVENLY,
+                                [learn_cb, review1_cb, review2_cb, review3_cb],
+                                alignment=ft.MainAxisAlignment.SPACE_EVENLY, # Distribute checkboxes
                                 vertical_alignment=ft.CrossAxisAlignment.CENTER,
-                                spacing=5, # ריווח קטן בין התיבות
-                                tight=True, # מנסה לצופף את השורה
+                                spacing=2, # Minimal spacing between checkboxes
+                                wrap=False, # Prevent wrapping within the row if possible
+                                tight=True,
                             ),
-                            alignment=ft.alignment.center, # ממורכז בתוך התא
-                            padding=ft.padding.symmetric(vertical=0, horizontal=5), # ריווח פנימי קטן
-                        )
-                    ),
-                ]
-                table.rows.append(ft.DataRow(cells=row_cells, color=row_color))
-                row_index += 1 # קדם את המונה לצבע הבא
+                            padding=ft.padding.symmetric(vertical=0, horizontal=5), # Padding around checkboxes
+                            alignment=ft.alignment.center,
+                            col={"xs": 9, "sm": 10, "md": 10, "lg": 11}, # Responsive column span
+                        ),
+                    ],
+                    vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                    # spacing=5, # Optional spacing between the two containers
+                    run_spacing=0, # No spacing if it wraps (shouldn't happen here)
+                    # Apply background color to the entire row container
+                    # bgcolor=row_bgcolor, # Apply zebra stripe to row
+                )
 
-        completion_icons[masechta_name] = ft.Icon(ft.Icons.CIRCLE_OUTLINED) # אתחול אייקון
-        is_completed = update_masechta_completion_status(category, masechta_name) # עדכון ראשוני
-        check_all_checkbox = ft.Checkbox(label="סמן הכל כנלמד", on_change=check_all, value=is_completed)
-        update_check_all_status() # קריאה נוספת לעדכון ה-checkbox לפי המצב המדויק
+                # Add the row and a divider to the list
+                # Wrap row in a container for background color application
+                list_items.append(
+                     ft.Container(
+                         content=data_responsive_row,
+                         bgcolor=row_bgcolor,
+                         border_radius=ft.border_radius.all(4) # Slight rounding if using bgcolor
+                     )
+                )
+                # Add divider, except for the last item
+                # if not (i == masechta_data["pages"] + start_page - 1 and amud_key == amudim_to_process[-1]):
+                list_items.append(ft.Divider(height=1, thickness=0.5, color=ft.colors.with_opacity(0.15, ft.colors.OUTLINE)))
 
-        header = ft.Row(
+
+                row_index += 1 # Increment for next stripe color
+
+        # --- Final Assembly ---
+        completion_icons[masechta_name] = ft.Icon(ft.Icons.CIRCLE_OUTLINED) # Initialize icon
+        is_completed = update_masechta_completion_status(category, masechta_name) # Update icon based on loaded progress
+
+        check_all_checkbox = ft.Checkbox(
+            label="סמן הכל כנלמד",
+            on_change=check_all,
+            value=is_completed # Initial state based on completion
+        )
+        # Call update_check_all_status once after all checkboxes are created and stored
+        update_check_all_status()
+
+        # Main Header (Masechta Name, Icon, Check All)
+        main_header = ft.Row(
             [
-                ft.Text(masechta_name, size=24, weight=ft.FontWeight.BOLD), # הגדלת כותרת המסכת
+                ft.Text(masechta_name, size=24, weight=ft.FontWeight.BOLD),
                 completion_icons[masechta_name],
                 check_all_checkbox,
             ],
@@ -253,35 +252,36 @@ def main(page: Page):
             vertical_alignment=ft.CrossAxisAlignment.CENTER,
         )
 
-        # עטיפת הטבלה ב-Container וב-Column כדי לאפשר גלילה אנכית במידת הצורך
-        table_container = ft.Container(
-            content=ft.Column(
-                [table],
-                scroll=ft.ScrollMode.ADAPTIVE, # מאפשר גלילה אנכית לטבלה אם היא ארוכה מדי
-                expand=False, # לא מרחיבים את ה-Column, נותנים ל-Card לנהל גודל
-                # horizontal_alignment=ft.CrossAxisAlignment.STRETCH, # מותח את הטבלה לרוחב
-                ),
-            padding=ft.padding.only(top=10) # ריווח מעל הטבלה
+        # Scrollable Column containing the header and list items
+        content_column = ft.Column(
+            [
+                header_row, # The "פרק | לימוד וחזרות" header
+                ft.Divider(height=1, color=ft.colors.with_opacity(0.5, ft.colors.OUTLINE)),
+                *list_items # Unpack the list of rows and dividers
+            ],
+            scroll=ft.ScrollMode.ADAPTIVE, # Enable scrolling
+            expand=True, # Allow column to take available vertical space
+            spacing=0, # Control spacing manually with dividers
         )
 
-
+        # Return the Card containing the header and the responsive list
         return ft.Card(
-            elevation=2, # הצללה קלה לכרטיס
+            elevation=2,
             content=ft.Container(
                 content=ft.Column(
                     [
-                        header,
-                        ft.Divider(height=1, color=ft.colors.with_opacity(0.5, ft.colors.OUTLINE)), # קו מפריד
-                        table_container, # הטבלה העטופה
+                        main_header,
+                        ft.Divider(height=5, color=ft.colors.TRANSPARENT), # Spacer
+                        content_column, # The scrollable list
                     ],
-                    spacing=10, # ריווח בין הכותרת, הקו והטבלה
-                    # horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                    tight=True, # מנסה לצופף את התוכן ב-Column
+                    spacing=5,
+                    tight=True,
                 ),
-                padding=15, # ריווח פנימי לכרטיס
-                border_radius=ft.border_radius.all(10), # פינות מעוגלות לתוכן הכרטיס
+                padding=15,
+                border_radius=ft.border_radius.all(10),
             ),
         )
+
 
 
     def is_masechta_completed(category: str, masechta_name: str) -> bool:
