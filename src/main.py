@@ -371,25 +371,32 @@ def main(page: Page):
         if not progress:
             return "עדיין לא התחלת"
 
+        # סינון ראשוני של מפתחות שהם מספרים ושיש להם ערך 'learn' כלשהו
+        valid_keys = [
+            key for key in progress.keys()
+            if key.isdigit() and (
+                get_progress_value(progress[key].get("a", {}), "learn") or
+                (masechta_data["content_type"] == "דף" and get_progress_value(progress[key].get("b", {}), "learn"))
+            )
+        ]
+
+        if not valid_keys:
+            return "עדיין לא התחלת"
+
+        # --- תיקון: המרת המפתחות למספרים לפני מציאת המקסימום ---
+        last_page_num = max(int(key) for key in valid_keys)
+        # ---------------------------------------------------------
+
+        last_page_str = str(last_page_num) # נמיר חזרה למחרוזת לשימוש כמפתח במילון
+
         if masechta_data["content_type"] == "דף":
-            last_daf = max(
-                (daf for daf in progress.keys() if get_progress_value(progress[daf].get("a", {}), "learn") or get_progress_value(progress[daf].get("b", {}), "learn")),
-                default=None
-            )
-            if last_daf:
-                last_amud = "ב" if get_progress_value(progress[last_daf].get("b", {}), "learn") else "א"
-                return f"{masechta_data['content_type']} {int_to_gematria(int(last_daf))} עמוד {last_amud}"
-            else:
-                return "עדיין לא התחלת"
-        else:
-            last_chapter = max(
-                (daf for daf in progress.keys() if get_progress_value(progress[daf].get("a", {}), "learn")),
-                default=None
-            )
-            if last_chapter:
-                return f"{masechta_data['content_type']} {int_to_gematria(int(last_chapter))}"
-            else:
-                return "עדיין לא התחלת"
+            # הבדיקה אם עמוד ב' סומן צריכה להשתמש ב-last_page_str
+            last_amud = "ב" if get_progress_value(progress[last_page_str].get("b", {}), "learn") else "א"
+            # ההמרה לגימטריה צריכה להשתמש ב-last_page_num
+            return f"{masechta_data['content_type']} {int_to_gematria(last_page_num)} עמוד {last_amud}"
+        else: # פרק או סימן
+            # ההמרה לגימטריה צריכה להשתמש ב-last_page_num
+            return f"{masechta_data['content_type']} {int_to_gematria(last_page_num)}"
 
     def create_tracking_page():
         in_progress_items = []
