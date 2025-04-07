@@ -60,33 +60,46 @@ class ProgressManager:
         page.client_storage.set(ProgressManager._get_storage_key("progress_data"), progress_data)
 
     @staticmethod
-    def save_all_masechta(page: Page, masechta_name: str, total_pages: int, value: bool, category: str):
+    def save_all_masechta(page: Page, masechta_name: str, total_items: int, start_page: int, is_daf_type: bool, value: bool, category: str):
         """
-        מסמן את כל הדפים והעמודים כגמורים/לא גמורים עבור מסכת/ספר מסוים.
+        מסמן את כל הדפים/פרקים והעמודים כגמורים/לא גמורים עבור מסכת/ספר מסוים.
+        מתחשב ב-start_page ובסוג התוכן (דף או לא).
         """
         progress_data = page.client_storage.get(ProgressManager._get_storage_key("progress_data")) or {}
+        masechta_progress = progress_data.setdefault(category, {}).setdefault(masechta_name, {})
 
-        if value == False:
+        if not value: # אם מסירים סימון 'הכל'
             if masechta_name in progress_data.get(category, {}):
+                # הסר רק את ההתקדמות של המסכת הזו
                 del progress_data[category][masechta_name]
-            if not progress_data.get(category, {}):
-                del progress_data[category]
-        else:
-            masechta_progress = progress_data.setdefault(category, {}).setdefault(masechta_name, {})
-            for daf in range(1, total_pages + 1):
-                daf_str = str(daf)
+                # אם הקטגוריה ריקה, הסר אותה
+                if not progress_data.get(category, {}):
+                    del progress_data[category]
+            # אין צורך למחוק תאריך סיום במקרה זה
+        else: # אם מסמנים 'הכל'
+            for i in range(start_page, total_items + start_page):
+                daf_str = str(i)
                 daf_entry = masechta_progress.setdefault(daf_str, {})
-                for amud in ["a", "b"]:
+                amudim_to_set = ["a", "b"] if is_daf_type else ["a"] # הגדר עמוד א' או א' ו-ב'
+
+                for amud in amudim_to_set:
                     # אם הערך עבור amud אינו מילון, נחליף אותו במילון
                     if amud not in daf_entry or not isinstance(daf_entry[amud], dict):
-                        daf_entry[amud] = {}
-                    for column in ["learn", "review1", "review2", "review3"]:
-                        daf_entry[amud][column] = value
+                         daf_entry[amud] = {}
+                    # סמן רק 'learn' כ-True, השאר את החזרות ללא שינוי או False
+                    daf_entry[amud]["learn"] = True
+                    # אפשר להוסיף כאן גם סימון לשאר החזרות אם רוצים:
+                    # for review_col in ["review1", "review2", "review3"]:
+                    #     daf_entry[amud][review_col] = True
 
-        page.client_storage.set(ProgressManager._get_storage_key("progress_data"), progress_data)
-
-        if value:
+            # שמור תאריך סיום רק אם סימנו הכל כ-True
             ProgressManager.save_completion_date(page, masechta_name, category)
+
+        # שמור את השינויים באחסון
+        page.client_storage.set(ProgressManager._get_storage_key("progress_data"), progress_data)
+        # אין צורך בשמירת תאריך כאן, זה נעשה רק ב-value=True
+
+
 
     @staticmethod
     def save_completion_date(page: Page, masechta_name: str, category: str):
