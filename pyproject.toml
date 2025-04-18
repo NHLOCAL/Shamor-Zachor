@@ -1,6 +1,6 @@
 [project]
 name = "shamor_vezachor"
-version = "0.5.1"
+# version = "0.5.1"
 # description = "שמור וזכור"
 #authors = [{ name = "NHLOCAL", email = "nh.local11@gmail.com" }]
 dependencies = [

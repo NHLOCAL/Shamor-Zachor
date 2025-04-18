@@ -81,7 +81,7 @@ jobs:
       run: |
         echo "Building with Version: ${{ env.BUILD_VERSION }}, Build Number: ${{ env.BUILD_NUMBER }}"
         flutter config --no-analytics
-        flet build apk --build-name ${{ env.BUILD_VERSION }} --build-number ${{ env.BUILD_NUMBER }} -v
+        flet build apk --build-version ${{ env.BUILD_VERSION }} --build-number ${{ env.BUILD_NUMBER }} -v
 
     - name: Prepare APK Artifact for Release
       id: prepare_apk
