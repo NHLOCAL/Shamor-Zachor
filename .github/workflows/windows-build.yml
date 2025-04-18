@@ -1,13 +1,13 @@
 name: Windows Build
 
-on:
-  push:
-    branches:
-      - dev
-    paths:
-      - '.github/workflows/apk-build.yml'
-    tags:
-      - '*'
+# on:
+  # push:
+    # branches:
+      # - dev
+    # paths:
+      # - '.github/workflows/apk-build.yml'
+    # tags:
+      # - '*'
 
   # Allows you to run this workflow manually from the Actions tab of the repository
   workflow_dispatch:
