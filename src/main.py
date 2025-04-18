@@ -181,7 +181,7 @@ def main(page: Page):
         update_masechta_completion_status(category, masechta_name)
         check_all_checkbox = ft.Checkbox(label="סמן הכל כנלמד", on_change=check_all, value=is_completed_initially)
         update_check_all_status()
-        main_header = ft.Row([ft.IconButton(ft.icons.ARROW_FORWARD, tooltip="חזור", on_click=go_back), ft.Text(masechta_name, size=24, weight=ft.FontWeight.BOLD, expand=True, text_align=ft.TextAlign.CENTER), completion_icons[masechta_name], check_all_checkbox], alignment=ft.MainAxisAlignment.SPACE_BETWEEN, vertical_alignment=ft.CrossAxisAlignment.CENTER)
+        main_header = ft.Row([ft.IconButton(ft.icons.ARROW_BACK, tooltip="חזור", on_click=go_back), ft.Text(masechta_name, size=24, weight=ft.FontWeight.BOLD, expand=True, text_align=ft.TextAlign.CENTER), completion_icons[masechta_name], check_all_checkbox], alignment=ft.MainAxisAlignment.SPACE_BETWEEN, vertical_alignment=ft.CrossAxisAlignment.CENTER)
         content_column = ft.Column([header_row, ft.Divider(height=1, color=ft.colors.with_opacity(0.5, ft.colors.OUTLINE)), *list_items], scroll=ft.ScrollMode.ADAPTIVE, expand=True, spacing=0)
         return ft.Card(elevation=2, content=ft.Container(content=ft.Column([main_header, ft.Divider(height=5, color=ft.colors.TRANSPARENT), content_column], spacing=5, tight=True), padding=15, border_radius=ft.border_radius.all(10)))
 
