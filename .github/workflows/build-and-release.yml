@@ -2,10 +2,6 @@ name: Build APK & Windows and Release
 
 on:
   push:
-    branches:
-      - dev
-    paths:
-      - '.github/workflows/build-and-release.yml'
     tags:
       - '*' # Trigger on any tag push
 
@@ -87,33 +83,24 @@ jobs:
       id: prepare_apk
       if: startsWith(github.ref, 'refs/tags/') # Only run for tags
       run: |
-        # Add a listing step for debugging future path issues
-        echo "--- Listing contents of build/apk ---"
-        ls -lR build/apk
-        echo "--- End listing ---"
+        APK_ORIGINAL_PATH="build/apk/app-release.apk" # Direct path based on logs
 
-        # Use the potentially corrected path
-        APK_ORIGINAL_PATH=$(find build/apk/app/outputs/flutter-apk -name "app-release.apk" | head -n 1)
-        if [ -z "$APK_ORIGINAL_PATH" ]; then
-          echo "::error::Could not find app-release.apk in expected location (tried build/apk/app/outputs/flutter-apk/)"
-          # As a fallback, search wider, but this might pick up wrong files if build is complex
-          echo "::warning::Falling back to searching entire build/apk directory..."
-          APK_ORIGINAL_PATH=$(find build/apk -name "app-release.apk" | head -n 1)
-           if [ -z "$APK_ORIGINAL_PATH" ]; then
-              echo "::error::Still could not find app-release.apk anywhere under build/apk/"
-              exit 1
-           fi
-           echo "::warning::Found APK at fallback path: $APK_ORIGINAL_PATH"
+        if [ ! -f "$APK_ORIGINAL_PATH" ]; then
+          echo "::error::Could not find app-release.apk directly in build/apk/"
+          # Optional: Add ls again for final check if needed
+          ls -lR build/apk
+          exit 1
         fi
+
         APK_NEW_NAME="${{ env.APP_BASE_NAME }}-${{ steps.set_version.outputs.final_version }}.apk"
-        # Create target directory if it doesn't exist (for the mv command)
-        mkdir -p build/apk_release_dir # Use a distinct dir for the renamed artifact
+        # Create target directory if it doesn't exist
+        mkdir -p build/apk_release_dir
         APK_NEW_PATH="build/apk_release_dir/$APK_NEW_NAME"
         mv "$APK_ORIGINAL_PATH" "$APK_NEW_PATH"
-        echo "Renamed APK to $APK_NEW_NAME and moved to $APK_NEW_PATH"
+        echo "Moved APK to $APK_NEW_PATH"
         echo "apk_name=$APK_NEW_NAME" >> $GITHUB_OUTPUT
         echo "apk_path=$APK_NEW_PATH" >> $GITHUB_OUTPUT # Update path output
-
+        
 
     - name: Set Outputs for Artifact Upload/Release
       id: set_outputs
@@ -134,8 +121,8 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: apk-build-artifact-dev
-        # Find the default apk path for non-release builds as well
-        path: $(find build/apk/app/outputs/flutter-apk -name "app-release.apk" -o -name "app-debug.apk" | head -n 1)
+        # Assuming non-release (debug?) builds also land here
+        path: build/apk/app-*.apk # Use wildcard to catch debug or release
         if-no-files-found: error
         retention-days: 7
 
@@ -248,36 +235,27 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/') # Only run on tag push
 
     steps:
-    - name: Download APK artifact
-      uses: actions/download-artifact@v4
-      with:
-        # Use the artifact name defined by the output of the build job
-        # We need to retrieve the name/path from the build job outputs
-        # This requires using needs context
-        # Let's simplify: upload named artifacts directly in build jobs for release
-        name: release-assets # A common name for artifacts intended for release
-        path: release-assets/ # Download to a specific directory
+    # Remove any step trying to download 'release-assets'
 
-    # Alternative/Correction: Upload named artifacts in build jobs, download here
-    - name: Download APK Artifact (Revised)
+    - name: Download APK Release Asset
       uses: actions/download-artifact@v4
       with:
-        name: apk-release-asset # Specific name for release APK artifact
-        path: release-assets/
+        name: apk-release-asset # Correct name uploaded by build_apk
+        path: release-assets/ # Download into this directory
 
-    - name: Download Windows ZIP Artifact (Revised)
+    - name: Download Windows Release Asset
       uses: actions/download-artifact@v4
       with:
-        name: windows-release-asset # Specific name for release Windows artifact
-        path: release-assets/
+        name: windows-release-asset # Correct name uploaded by build_windows
+        path: release-assets/ # Download into the same directory
 
     - name: List downloaded files # Debugging step
-      run: ls -l release-assets/
+      run: ls -lR release-assets/
 
     - name: Create Draft Release
-      uses: softprops/action-gh-release@v2.0.8 # Use a specific version
+      uses: softprops/action-gh-release@v2.0.8
       with:
-        tag_name: ${{ github.ref_name }} # Use the tag that triggered the workflow
+        tag_name: ${{ github.ref_name }}
         name: Release ${{ github.ref_name }}
         body: |
           Draft release for version ${{ github.ref_name }}.
@@ -286,13 +264,13 @@ jobs:
           - Windows Build (zip)
           - Android Build (apk)
         draft: true
-        prerelease: false # Set to true if it's a pre-release
-        files: | # List the files to upload from the download path
+        prerelease: false
+        files: | # Use the outputs from needs context to get the correct filenames
           release-assets/${{ needs.build_apk.outputs.apk_name }}
           release-assets/${{ needs.build_windows.outputs.zip_name }}
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Provided by Actions automatically
-
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        
 # --- Need adjustments in build jobs to upload specific artifacts for release ---
 
 # Revised Upload steps in build_apk and build_windows:
