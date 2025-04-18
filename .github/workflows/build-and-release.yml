@@ -87,16 +87,32 @@ jobs:
       id: prepare_apk
       if: startsWith(github.ref, 'refs/tags/') # Only run for tags
       run: |
-        APK_ORIGINAL_PATH=$(find build/apk/outputs/flutter-apk -name "app-release.apk" | head -n 1)
+        # Add a listing step for debugging future path issues
+        echo "--- Listing contents of build/apk ---"
+        ls -lR build/apk
+        echo "--- End listing ---"
+
+        # Use the potentially corrected path
+        APK_ORIGINAL_PATH=$(find build/apk/app/outputs/flutter-apk -name "app-release.apk" | head -n 1)
         if [ -z "$APK_ORIGINAL_PATH" ]; then
-          echo "::error::Could not find app-release.apk in build/apk/outputs/flutter-apk/"
-          exit 1
+          echo "::error::Could not find app-release.apk in expected location (tried build/apk/app/outputs/flutter-apk/)"
+          # As a fallback, search wider, but this might pick up wrong files if build is complex
+          echo "::warning::Falling back to searching entire build/apk directory..."
+          APK_ORIGINAL_PATH=$(find build/apk -name "app-release.apk" | head -n 1)
+           if [ -z "$APK_ORIGINAL_PATH" ]; then
+              echo "::error::Still could not find app-release.apk anywhere under build/apk/"
+              exit 1
+           fi
+           echo "::warning::Found APK at fallback path: $APK_ORIGINAL_PATH"
         fi
         APK_NEW_NAME="${{ env.APP_BASE_NAME }}-${{ steps.set_version.outputs.final_version }}.apk"
-        mv "$APK_ORIGINAL_PATH" "build/apk/$APK_NEW_NAME"
-        echo "Renamed APK to $APK_NEW_NAME"
+        # Create target directory if it doesn't exist (for the mv command)
+        mkdir -p build/apk_release_dir # Use a distinct dir for the renamed artifact
+        APK_NEW_PATH="build/apk_release_dir/$APK_NEW_NAME"
+        mv "$APK_ORIGINAL_PATH" "$APK_NEW_PATH"
+        echo "Renamed APK to $APK_NEW_NAME and moved to $APK_NEW_PATH"
         echo "apk_name=$APK_NEW_NAME" >> $GITHUB_OUTPUT
-        echo "apk_path=build/apk/$APK_NEW_NAME" >> $GITHUB_OUTPUT
+        echo "apk_path=$APK_NEW_PATH" >> $GITHUB_OUTPUT # Update path output
 
 
     - name: Set Outputs for Artifact Upload/Release
@@ -114,14 +130,14 @@ jobs:
 
 
     - name: Upload APK Artifact (for non-release builds)
-      if: "!startsWith(github.ref, 'refs/tags/')" # Only run for non-tags
-      uses: actions/upload-artifact@v4.3.4
+      if: "!startsWith(github.ref, 'refs/tags/')"
+      uses: actions/upload-artifact@v4
       with:
         name: apk-build-artifact-dev
-        path: ${{ steps.set_outputs.outputs.apk_path }} # Use the found or default path
+        # Find the default apk path for non-release builds as well
+        path: $(find build/apk/app/outputs/flutter-apk -name "app-release.apk" -o -name "app-debug.apk" | head -n 1)
         if-no-files-found: error
-        retention-days: 7 # Optional: Keep dev artifacts for a shorter time
-
+        retention-days: 7
 
   build_windows:
     name: Build Windows
@@ -287,9 +303,9 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: apk-release-asset # Specific name for release job to download
-        path: ${{ steps.set_outputs.outputs.apk_path }} # Path to the renamed APK
+        path: ${{ steps.prepare_apk.outputs.apk_path }} # Use the updated path output
         if-no-files-found: error
-        retention-days: 1 # Keep release artifact only briefly, release action handles long term
+        retention-days: 1
 
 # --- In build_windows job ---
     - name: Upload Windows Release Asset
