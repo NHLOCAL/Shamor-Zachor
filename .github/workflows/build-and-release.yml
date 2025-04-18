@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - dev
+    paths:
+      - '.github/workflows/build-and-release.yml'
     tags:
       - '*' # Trigger on any tag push
 
