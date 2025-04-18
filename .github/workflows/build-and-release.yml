@@ -1,0 +1,300 @@
+name: Build APK & Windows and Release
+
+on:
+  push:
+    branches:
+      - dev
+    tags:
+      - '*' # Trigger on any tag push
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+env:
+  # Static env vars
+  PYTHON_VERSION: 3.12.2
+  FLUTTER_VERSION: 3.27.0
+  APP_BASE_NAME: shamor-vezachor # Base name for artifacts
+  # BUILD_NUMBER and BUILD_VERSION will be set dynamically for tag builds
+
+permissions:
+  contents: write # Needed to create releases and upload assets
+
+jobs:
+  build_apk:
+    name: Build APK
+    runs-on: ubuntu-latest
+    outputs:
+      apk_name: ${{ steps.set_outputs.outputs.apk_name }}
+      apk_path: ${{ steps.set_outputs.outputs.apk_path }}
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set Version and Build Number
+      id: set_version
+      run: |
+        if [[ $GITHUB_REF == refs/tags/* ]]; then
+          # Extract version from tag (strip 'v' prefix if exists)
+          TAG_VERSION=${GITHUB_REF#refs/tags/}
+          VERSION=${TAG_VERSION#v}
+          # Use GitHub run number as build number for tags, or keep static 1
+          BUILD_NUM=${GITHUB_RUN_NUMBER}
+          echo "Using version $VERSION and build number $BUILD_NUM from tag $TAG_VERSION"
+        else
+          # Use default env vars for non-tag builds (dev branch)
+          VERSION=${{ env.BUILD_VERSION || '1.0.0' }} # Fallback if not set
+          BUILD_NUM=${{ env.BUILD_NUMBER || '1' }}    # Fallback if not set
+          echo "Using default version $VERSION and build number $BUILD_NUM for dev branch"
+        fi
+        echo "BUILD_VERSION=$VERSION" >> $GITHUB_ENV
+        echo "BUILD_NUMBER=$BUILD_NUM" >> $GITHUB_ENV
+        # Set output for artifact naming
+        echo "final_version=$VERSION" >> $GITHUB_OUTPUT
+
+
+    - name: Setup Python ${{ env.PYTHON_VERSION }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Install Python Dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Setup Flutter ${{ env.FLUTTER_VERSION }}
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: ${{ env.FLUTTER_VERSION }}
+
+    - name: Setup Java JDK
+      uses: actions/setup-java@v4.2.1
+      with:
+        distribution: 'temurin'
+        java-version: '21'
+
+    - name: Flet Build APK
+      run: |
+        echo "Building with Version: ${{ env.BUILD_VERSION }}, Build Number: ${{ env.BUILD_NUMBER }}"
+        flutter config --no-analytics
+        flet build apk --build-name ${{ env.BUILD_VERSION }} --build-number ${{ env.BUILD_NUMBER }} -v
+
+    - name: Prepare APK Artifact for Release
+      id: prepare_apk
+      if: startsWith(github.ref, 'refs/tags/') # Only run for tags
+      run: |
+        APK_ORIGINAL_PATH=$(find build/apk/outputs/flutter-apk -name "app-release.apk" | head -n 1)
+        if [ -z "$APK_ORIGINAL_PATH" ]; then
+          echo "::error::Could not find app-release.apk in build/apk/outputs/flutter-apk/"
+          exit 1
+        fi
+        APK_NEW_NAME="${{ env.APP_BASE_NAME }}-${{ steps.set_version.outputs.final_version }}.apk"
+        mv "$APK_ORIGINAL_PATH" "build/apk/$APK_NEW_NAME"
+        echo "Renamed APK to $APK_NEW_NAME"
+        echo "apk_name=$APK_NEW_NAME" >> $GITHUB_OUTPUT
+        echo "apk_path=build/apk/$APK_NEW_NAME" >> $GITHUB_OUTPUT
+
+
+    - name: Set Outputs for Artifact Upload/Release
+      id: set_outputs
+      run: |
+        if [[ $GITHUB_REF == refs/tags/* ]]; then
+           echo "apk_name=${{ steps.prepare_apk.outputs.apk_name }}" >> $GITHUB_OUTPUT
+           echo "apk_path=${{ steps.prepare_apk.outputs.apk_path }}" >> $GITHUB_OUTPUT
+        else
+           # For non-tag builds, set default paths/names if needed for standard artifact upload
+           APK_DEFAULT_PATH=$(find build/apk/outputs/flutter-apk -name "app-release.apk" | head -n 1)
+           echo "apk_name=app-release-dev.apk" >> $GITHUB_OUTPUT # Or derive from commit hash etc.
+           echo "apk_path=${APK_DEFAULT_PATH:-build/apk/app-release.apk}" >> $GITHUB_OUTPUT # Provide a fallback default path
+        fi
+
+
+    - name: Upload APK Artifact (for non-release builds)
+      if: "!startsWith(github.ref, 'refs/tags/')" # Only run for non-tags
+      uses: actions/upload-artifact@v4.3.4
+      with:
+        name: apk-build-artifact-dev
+        path: ${{ steps.set_outputs.outputs.apk_path }} # Use the found or default path
+        if-no-files-found: error
+        retention-days: 7 # Optional: Keep dev artifacts for a shorter time
+
+
+  build_windows:
+    name: Build Windows
+    runs-on: windows-latest
+    outputs:
+      zip_name: ${{ steps.set_outputs.outputs.zip_name }}
+      zip_path: ${{ steps.set_outputs.outputs.zip_path }}
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set Version and Build Number
+      id: set_version
+      shell: bash # Use bash for consistency with the APK job's logic
+      run: |
+        if [[ $GITHUB_REF == refs/tags/* ]]; then
+          TAG_VERSION=${GITHUB_REF#refs/tags/}
+          VERSION=${TAG_VERSION#v}
+          BUILD_NUM=${GITHUB_RUN_NUMBER}
+          echo "Using version $VERSION and build number $BUILD_NUM from tag $TAG_VERSION"
+        else
+          VERSION=${{ env.BUILD_VERSION || '1.0.0' }}
+          BUILD_NUM=${{ env.BUILD_NUMBER || '1' }}
+          echo "Using default version $VERSION and build number $BUILD_NUM for dev branch"
+        fi
+        # Set environment variables for subsequent steps in this job
+        echo "BUILD_VERSION=$VERSION" >> $GITHUB_ENV
+        echo "BUILD_NUMBER=$BUILD_NUM" >> $GITHUB_ENV
+        # Set output for artifact naming
+        echo "final_version=$VERSION" >> $GITHUB_OUTPUT
+
+    - name: Setup Python ${{ env.PYTHON_VERSION }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Install Python Dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Setup Flutter ${{ env.FLUTTER_VERSION }}
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: ${{ env.FLUTTER_VERSION }}
+
+    - name: Flet Build Windows
+      run: |
+        echo "Building with Version: ${{ env.BUILD_VERSION }}, Build Number: ${{ env.BUILD_NUMBER }}"
+        flutter config --no-analytics
+        # Note: Flet build windows doesn't directly support --build-name/--build-number args like apk.
+        # Version info is usually pulled from pubspec.yaml or potentially env vars by flet internally.
+        # Ensure your pubspec.yaml reflects versioning, or adjust flet command if options are added later.
+        # We set the ENV VARS above, flet *might* pick them up depending on its implementation.
+        flet build windows -v --no-rich-output
+      env:
+        PYTHONIOENCODING: utf-8
+        PYTHONUTF8: 1
+        # Pass version info via standard Flutter env vars, Flet might respect these
+        FLUTTER_BUILD_NAME: ${{ env.BUILD_VERSION }}
+        FLUTTER_BUILD_NUMBER: ${{ env.BUILD_NUMBER }}
+
+    - name: Prepare Windows ZIP Artifact for Release
+      id: prepare_zip
+      if: startsWith(github.ref, 'refs/tags/') # Only run for tags
+      shell: pwsh # Use PowerShell for Compress-Archive
+      run: |
+        $BUILD_DIR = "build/windows"
+        if (-not (Test-Path $BUILD_DIR)) {
+            echo "::error::Build directory $BUILD_DIR not found!"
+            exit 1
+        }
+        $ZIP_NAME = "${{ env.APP_BASE_NAME }}-${{ steps.set_version.outputs.final_version }}.zip"
+        $ZIP_PATH = "build/$ZIP_NAME"
+        Compress-Archive -Path "$BUILD_DIR/*" -DestinationPath $ZIP_PATH -Force
+        echo "Created ZIP: $ZIP_PATH"
+        # Output variables for the release job
+        echo "zip_name=$ZIP_NAME" >> $env:GITHUB_OUTPUT
+        echo "zip_path=$ZIP_PATH" >> $env:GITHUB_OUTPUT
+
+    - name: Set Outputs for Artifact Upload/Release
+      id: set_outputs
+      shell: bash # Use bash for consistency
+      run: |
+        if [[ $GITHUB_REF == refs/tags/* ]]; then
+           echo "zip_name=${{ steps.prepare_zip.outputs.zip_name }}" >> $GITHUB_OUTPUT
+           echo "zip_path=${{ steps.prepare_zip.outputs.zip_path }}" >> $GITHUB_OUTPUT
+        else
+           # For non-tag builds, set default paths/names if needed for standard artifact upload
+           echo "zip_name=windows-build-dev.zip" >> $GITHUB_OUTPUT # Or derive from commit hash etc.
+           echo "zip_path=build/windows" >> $GITHUB_OUTPUT # Path to the directory for upload-artifact
+        fi
+
+    - name: Upload Windows Artifact (for non-release builds)
+      if: "!startsWith(github.ref, 'refs/tags/')" # Only run for non-tags
+      uses: actions/upload-artifact@v4.3.4
+      with:
+        name: windows-build-artifact-dev
+        path: ${{ steps.set_outputs.outputs.zip_path }} # Upload the whole dir for dev builds
+        if-no-files-found: error
+        retention-days: 7 # Optional
+
+  create_release:
+    name: Create Draft Release
+    runs-on: ubuntu-latest
+    needs: [build_apk, build_windows] # Run after both builds succeed
+    if: startsWith(github.ref, 'refs/tags/') # Only run on tag push
+
+    steps:
+    - name: Download APK artifact
+      uses: actions/download-artifact@v4
+      with:
+        # Use the artifact name defined by the output of the build job
+        # We need to retrieve the name/path from the build job outputs
+        # This requires using needs context
+        # Let's simplify: upload named artifacts directly in build jobs for release
+        name: release-assets # A common name for artifacts intended for release
+        path: release-assets/ # Download to a specific directory
+
+    # Alternative/Correction: Upload named artifacts in build jobs, download here
+    - name: Download APK Artifact (Revised)
+      uses: actions/download-artifact@v4
+      with:
+        name: apk-release-asset # Specific name for release APK artifact
+        path: release-assets/
+
+    - name: Download Windows ZIP Artifact (Revised)
+      uses: actions/download-artifact@v4
+      with:
+        name: windows-release-asset # Specific name for release Windows artifact
+        path: release-assets/
+
+    - name: List downloaded files # Debugging step
+      run: ls -l release-assets/
+
+    - name: Create Draft Release
+      uses: softprops/action-gh-release@v2.0.8 # Use a specific version
+      with:
+        tag_name: ${{ github.ref_name }} # Use the tag that triggered the workflow
+        name: Release ${{ github.ref_name }}
+        body: |
+          Draft release for version ${{ github.ref_name }}.
+
+          **Assets:**
+          - Windows Build (zip)
+          - Android Build (apk)
+        draft: true
+        prerelease: false # Set to true if it's a pre-release
+        files: | # List the files to upload from the download path
+          release-assets/${{ needs.build_apk.outputs.apk_name }}
+          release-assets/${{ needs.build_windows.outputs.zip_name }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Provided by Actions automatically
+
+# --- Need adjustments in build jobs to upload specific artifacts for release ---
+
+# Revised Upload steps in build_apk and build_windows:
+
+# --- In build_apk job ---
+    - name: Upload APK Release Asset
+      if: startsWith(github.ref, 'refs/tags/')
+      uses: actions/upload-artifact@v4
+      with:
+        name: apk-release-asset # Specific name for release job to download
+        path: ${{ steps.set_outputs.outputs.apk_path }} # Path to the renamed APK
+        if-no-files-found: error
+        retention-days: 1 # Keep release artifact only briefly, release action handles long term
+
+# --- In build_windows job ---
+    - name: Upload Windows Release Asset
+      if: startsWith(github.ref, 'refs/tags/')
+      uses: actions/upload-artifact@v4
+      with:
+        name: windows-release-asset # Specific name for release job to download
+        path: ${{ steps.set_outputs.outputs.zip_path }} # Path to the created ZIP file
+        if-no-files-found: error
+        retention-days: 1 # Keep release artifact only briefly
