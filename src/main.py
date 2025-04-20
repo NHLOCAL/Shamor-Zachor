@@ -483,7 +483,7 @@ def main(page: Page):
             if get_progress_value(page_prog.get("b", {}), "learn"): last_amud = "ב"
             elif get_progress_value(page_prog.get("a", {}), "learn"): last_amud = "א"
             else: return "עדיין לא התחלת"
-            return f"{content_type} {int_to_gematria(last_page_num)} עמ' {last_amud}"
+            return f"{content_type} {int_to_gematria(last_page_num)} עמוד {last_amud}"
         else: return f"{content_type} {int_to_gematria(last_page_num)}"
     # --- End View Creation Functions ---
 
