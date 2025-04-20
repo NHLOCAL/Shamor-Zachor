@@ -1,0 +1,158 @@
+name: Release Build and Draft Release
+
+permissions:
+  contents: write
+
+on:
+  push:
+    tags:
+      - '*'                  # כל תג חדש
+  workflow_dispatch:        # להרצה ידנית
+
+env:
+  APP_NAME: shamor-vezachor
+  BUILD_VERSION: ${{ github.ref_name }}  # משתמש בשם התג כגרסה
+
+jobs:
+  build-windows:
+    name: Build Windows ZIP
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python ${{ env.PYTHON_VERSION || '3.12.2' }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION || '3.12.2' }}
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Setup Flutter ${{ env.FLUTTER_VERSION || '3.27.0' }}
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION || '3.27.0' }}
+
+      - name: Flet Build Windows
+        env:
+          PYTHONIOENCODING: utf-8
+          PYTHONUTF8: 1
+        run: |
+          flutter config --no-analytics
+          flet build windows --v --no-rich-output
+
+      - name: Create ZIP artifact
+        id: zip
+        run: |
+          powershell -Command "Compress-Archive -Path build/windows/* -DestinationPath '${{ env.APP_NAME }}-${{ env.BUILD_VERSION }}.zip'"
+          echo "::set-output name=zip-file::${{ env.APP_NAME }}-${{ env.BUILD_VERSION }}.zip"
+
+      - name: Upload Windows ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows_zip
+          path: ${{ steps.zip.outputs.zip-file }}
+
+  build-apk:
+    name: Build APK
+    runs-on: ubuntu-latest
+    env:
+      # הגדרת שם האפליקציה והגרסה מבוססי תג Git
+      APP_NAME: shamor-vezachor
+      BUILD_VERSION: ${{ github.ref_name }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python ${{ env.PYTHON_VERSION || '3.12.2' }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION || '3.12.2' }}
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Setup Flutter ${{ env.FLUTTER_VERSION || '3.27.0' }}
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION || '3.27.0' }}
+
+      - name: Setup Java JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Flet Build APK
+        run: |
+          flutter config --no-analytics
+          flet build apk -v
+
+      - name: Rename APK
+        id: apk
+        run: |
+          mv build/apk/app-release.apk "${{ env.APP_NAME }}-${{ env.BUILD_VERSION }}.apk"
+          echo "::set-output name=apk-file::${{ env.APP_NAME }}-${{ env.BUILD_VERSION }}.apk"
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: apk_file
+          path: ${{ steps.apk.outputs.apk-file }}
+
+
+  create-release:
+    name: Create Draft GitHub Release
+    runs-on: ubuntu-latest
+    needs:
+      - build-windows
+      - build-apk
+
+    steps:
+      - name: Download Windows ZIP
+        uses: actions/download-artifact@v4
+        with:
+          name: windows_zip
+
+      - name: Download APK file
+        uses: actions/download-artifact@v4
+        with:
+          name: apk_file
+
+      - name: Create draft release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}   # העברת ה-token כ-env, לא ב-with :contentReference[oaicite:5]{index=5}
+        with:
+          tag_name: ${{ github.ref_name }}
+          release_name: Release ${{ github.ref_name }}
+          draft: true
+          prerelease: false
+
+      - name: Upload Windows asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}   # שוב, כ-env ולא ב-with :contentReference[oaicite:6]{index=6}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: "${{ env.APP_NAME }}-${{ github.ref_name }}.zip"
+          asset_name: "${{ env.APP_NAME }}-${{ github.ref_name }}.zip"
+          asset_content_type: application/zip
+
+      - name: Upload APK asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: "${{ env.APP_NAME }}-${{ github.ref_name }}.apk"
+          asset_name: "${{ env.APP_NAME }}-${{ github.ref_name }}.apk"
+          asset_content_type: application/vnd.android.package-archive

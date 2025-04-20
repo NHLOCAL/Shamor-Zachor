@@ -1,0 +1,28 @@
+C:.
+│   .gitattributes
+│   .gitignore
+│   data_loader.py
+│   directory structure.txt
+│   LICENSE
+│   main.py
+│   progress_manager.py
+│   README.md
+│   requirements.txt
+│
+├───.github
+│   └───workflows
+│           publish-installer.yml
+│
+├───assets
+│       screen.png
+│
+├───data
+│       rambam.json
+│       shas.json
+│       shulchan_aruch.json
+│       tanach.json
+│       yerushalmi.json
+│
+├───scripts
+│       convert_hebdate.py
+│       shas_icons.py

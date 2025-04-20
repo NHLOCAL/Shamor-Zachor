@@ -1,0 +1,34 @@
+[project]
+name = "shamor_vezachor"
+version = "0.6.0"
+# description = "שמור וזכור"
+#authors = [{ name = "NHLOCAL", email = "nh.local11@gmail.com" }]
+dependencies = [
+  "flet==0.27.6",
+  "python-hebrew-numbers",
+  "pyluach"
+]
+
+[tool.flet]
+org = "com.nhlocal" # מזהה ארגוני ייחודי
+product = "shamor vezachor" # שם המוצר המוצג
+company = "NHLOCAL" # שם החברה
+copyright = "Copyright (C) 2025 by NHLOCAL"
+build_number = 1 # מספר בנייה פנימי
+# permissions = ["camera", "microphone"] # הרשאות אפשריות
+
+[tool.flet.app]
+module = "main" # קובץ הכניסה הראשי
+path = "src" # שורש הפרויקט
+# exclude = ["requirements.txt", "pyproject.toml"] # קבצים שלא יתווספו לארכיון
+
+[tool.flet.splash]
+color = "#FFDBCF" # צבע רקע לספלש
+dark_color = "#8F4C33" # צבע רקע לספלש במצב כהה
+web = false # השבתת ספלש עבור גרסת ווב
+android = true # ספלש עבור אנדרואיד
+
+[tool.flet.compile]
+# app = true # קומפילציה של קבצי האפליקציה
+# packages = false # השבתת קומפילציה עבור ספריות
+# cleanup = true # ניקוי קבצים מיותרים לאחר הקומפילציה
