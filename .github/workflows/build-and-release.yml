@@ -94,8 +94,7 @@ jobs:
         run: |
           flutter config --no-analytics
           flet build apk -v \
-            --build-version ${{ env.BUILD_VERSION }} \
-            --project "שמור וזכור"
+            --build-version ${{ env.BUILD_VERSION }}
 
       - name: Rename APK
         id: apk
