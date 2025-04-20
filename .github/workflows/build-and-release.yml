@@ -57,6 +57,9 @@ jobs:
   build-apk:
     name: Build APK
     runs-on: ubuntu-latest
+    env:
+      # משתמש בגרסת התג כגרסה לבניה
+      BUILD_VERSION: ${{ github.ref_name }}
 
     steps:
       - name: Checkout code
@@ -86,7 +89,7 @@ jobs:
       - name: Flet Build APK
         run: |
           flutter config --no-analytics
-          flet build apk -v
+          flet build apk -v --build-version ${{ env.BUILD_VERSION }}
 
       - name: Rename APK
         id: apk
