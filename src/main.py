@@ -461,6 +461,7 @@ def main(page: Page):
             ],
             expand=True,
             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+            scroll="adaptive"
         )
         
         def on_segmented_button_change(e):
