@@ -58,7 +58,8 @@ jobs:
     name: Build APK
     runs-on: ubuntu-latest
     env:
-      # משתמש בגרסת התג כגרסה לבניה
+      # הגדרת שם האפליקציה והגרסה מבוססי תג Git
+      APP_NAME: shamor-vezachor
       BUILD_VERSION: ${{ github.ref_name }}
 
     steps:
@@ -89,7 +90,10 @@ jobs:
       - name: Flet Build APK
         run: |
           flutter config --no-analytics
-          flet build apk -v --build-version ${{ env.BUILD_VERSION }}
+          flet build apk -v \
+            --build-version ${{ env.BUILD_VERSION }} \
+            --project "שמור וזכור" \
+            --description "שמור וזכור"
 
       - name: Rename APK
         id: apk
@@ -102,6 +106,7 @@ jobs:
         with:
           name: apk_file
           path: ${{ steps.apk.outputs.apk-file }}
+
 
   create-release:
     name: Create Draft GitHub Release
