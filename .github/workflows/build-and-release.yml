@@ -1,5 +1,8 @@
 name: Release Build and Draft Release
 
+permissions:
+  contents: write
+
 on:
   push:
     tags:
@@ -9,9 +12,6 @@ on:
 env:
   APP_NAME: shamor-vezachor
   BUILD_VERSION: ${{ github.ref_name }}  # משתמש בשם התג כגרסה
-
-permissions:
-  contents: write
 
 jobs:
   build-windows:
@@ -93,8 +93,7 @@ jobs:
       - name: Flet Build APK
         run: |
           flutter config --no-analytics
-          flet build apk -v \
-            --build-version ${{ env.BUILD_VERSION }}
+          flet build apk -v
 
       - name: Rename APK
         id: apk
@@ -130,8 +129,9 @@ jobs:
       - name: Create draft release
         id: create_release
         uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}   # העברת ה-token כ-env, לא ב-with :contentReference[oaicite:5]{index=5}
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
           tag_name: ${{ github.ref_name }}
           release_name: Release ${{ github.ref_name }}
           draft: true
@@ -139,18 +139,20 @@ jobs:
 
       - name: Upload Windows asset
         uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}   # שוב, כ-env ולא ב-with :contentReference[oaicite:6]{index=6}
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: "${{ env.APP_NAME }}-${{ env.BUILD_VERSION }}.zip"
-          asset_name: "${{ env.APP_NAME }}-${{ env.BUILD_VERSION }}.zip"
+          asset_path: "${{ env.APP_NAME }}-${{ github.ref_name }}.zip"
+          asset_name: "${{ env.APP_NAME }}-${{ github.ref_name }}.zip"
           asset_content_type: application/zip
 
       - name: Upload APK asset
         uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: "${{ env.APP_NAME }}-${{ env.BUILD_VERSION }}.apk"
-          asset_name: "${{ env.APP_NAME }}-${{ env.BUILD_VERSION }}.apk"
+          asset_path: "${{ env.APP_NAME }}-${{ github.ref_name }}.apk"
+          asset_name: "${{ env.APP_NAME }}-${{ github.ref_name }}.apk"
           asset_content_type: application/vnd.android.package-archive
