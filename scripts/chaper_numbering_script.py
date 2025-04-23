@@ -10,11 +10,11 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 
 # Keywords indicating a main countable unit
 DIVISION_KEYWORDS = ["פרק", "דף", "סימן", "רמז", "מזמור", "הלכה", "שער", "מאמר", "פסקה", "אות"]
-# Heading levels to check for potential PART divisions (highest level)
+# Heading levels to check for potential PART divisions
 POTENTIAL_PART_LEVELS = [1, 2]
-# Heading level to check for potential SUB-PART divisions (only if main division is H4)
+# Heading level to check for potential SUB-PART divisions
 POTENTIAL_SUBPART_LEVEL = 3
-# Heading levels typically used for countable divisions (lowest level)
+# Heading levels typically used for countable divisions
 DIVISION_HEADING_LEVELS = [2, 3, 4]
 # Minimum occurrences for a pattern to be considered dominant division
 MIN_OCCURRENCES = 3
@@ -76,8 +76,8 @@ def analyze_hierarchical_structure(filepath, division_keywords):
     book_name_from_h1 = extract_book_name(lines)
     book_name = book_name_from_h1 if book_name_from_h1 else os.path.splitext(os.path.basename(filepath))[0]
 
-    # --- Pass 1: Identify the *overall* dominant division pattern ---
-    # ... (logic remains the same as before) ...
+    # --- Pass 1: Identify dominant division pattern ---
+    # ... (logic remains the same) ...
     potential_division_patterns = defaultdict(int)
     div_levels_str = "".join(map(str, DIVISION_HEADING_LEVELS))
     div_keywords_pattern = "|".join(re.escape(k) for k in division_keywords)
@@ -101,170 +101,145 @@ def analyze_hierarchical_structure(filepath, division_keywords):
 
     # --- Pass 2: Scan line-by-line, tracking hierarchy ---
     # Structure: {part_name: {subpart_name: {details}}}
+    # ... (logic remains the same - populates hierarchy_data) ...
     hierarchy_data = defaultdict(lambda: defaultdict(lambda: {"count": 0, "last_identifier": None}))
     current_part_name = "_default_part_"
-    current_subpart_name = "_default_subpart_" # Only relevant if dominant_div_level == 4
+    current_subpart_name = "_default_subpart_"
     found_explicit_part = False
-    found_explicit_subpart = False # Tracks if H3 dividers were found when H4 is dominant
+    found_explicit_subpart_in_current_part = False # Track subparts per part
     unnamed_part_counter = 1
     unnamed_subpart_counter = 1
 
-    # Regexes
     part_levels_str = "".join(map(str, POTENTIAL_PART_LEVELS))
     any_potential_part_heading_str = rf'<h([{part_levels_str}])(?: [^>]*)?>\s*(.*?)\s*</h\1>'
     any_potential_part_heading_regex = re.compile(any_potential_part_heading_str, re.IGNORECASE)
-
-    # Regex for H3 sub-parts (only used if dominant is H4)
     h3_subpart_str = rf'<h{POTENTIAL_SUBPART_LEVEL}(?: [^>]*)?>\s*(.*?)\s*</h{POTENTIAL_SUBPART_LEVEL}>'
     h3_subpart_regex = re.compile(h3_subpart_str, re.IGNORECASE)
-
-    # Regex for the specific dominant division type
     specific_div_pattern_str = rf'<h{dominant_div_level}(?: [^>]*)?>\s*?(?:כותרת\s+)?{re.escape(dominant_div_keyword)}\s+(.*?)\s*</h{dominant_div_level}>'
     specific_div_regex = re.compile(specific_div_pattern_str, re.IGNORECASE)
 
-    # --- Line-by-Line Scan ---
     for line_num, line in enumerate(lines):
         line_content = line.strip()
-        processed_level = 0 # Track which level was processed to avoid double processing
-
-        # 1. Check for Part Divider (H1/H2)
+        processed_level = 0
         part_match = any_potential_part_heading_regex.search(line_content)
         if part_match:
             part_level_matched = int(part_match.group(1))
-            if part_level_matched != dominant_div_level: # Is it a potential part divider?
+            if part_level_matched != dominant_div_level:
                 processed_level = part_level_matched
                 found_explicit_part = True
                 part_name_raw = part_match.group(2).strip()
                 part_name_clean = re.sub(r'<.*?>', '', part_name_raw).strip()
-                if part_name_clean:
-                    current_part_name = part_name_clean
-                    logging.debug(f"'{book_name}': Part Divider (H{part_level_matched}): '{current_part_name}' @ L{line_num+1}")
-                else:
-                    current_part_name = f"חלק לא מוגדר {unnamed_part_counter}"
-                    unnamed_part_counter += 1
-                    logging.debug(f"'{book_name}': Unnamed Part Divider (H{part_level_matched}) -> '{current_part_name}' @ L{line_num+1}")
-                # Reset sub-part context when a new part starts
+                if part_name_clean: current_part_name = part_name_clean
+                else: current_part_name = f"חלק לא מוגדר {unnamed_part_counter}"; unnamed_part_counter += 1
+                logging.debug(f"'{book_name}': Part Divider (H{part_level_matched}): '{current_part_name}' @ L{line_num+1}")
                 current_subpart_name = "_default_subpart_"
-                found_explicit_subpart = False # Reset for the new part
-                unnamed_subpart_counter = 1 # Reset for the new part
+                found_explicit_subpart_in_current_part = False # Reset for new part
+                unnamed_subpart_counter = 1 # Reset for new part
+                if current_part_name not in hierarchy_data: hierarchy_data[current_part_name]
 
-        # 2. Check for Sub-Part Divider (H3), *only if* dominant division is H4 and we didn't just process an H1/H2
         if dominant_div_level == 4 and processed_level == 0:
             subpart_match = h3_subpart_regex.search(line_content)
             if subpart_match:
-                # Check if H3 itself is the dominant division (edge case)
                 if POTENTIAL_SUBPART_LEVEL != dominant_div_level:
                     processed_level = POTENTIAL_SUBPART_LEVEL
-                    found_explicit_subpart = True # Mark that H3 dividers exist
+                    found_explicit_subpart_in_current_part = True # Mark subparts found in this part
                     subpart_name_raw = subpart_match.group(1).strip()
                     subpart_name_clean = re.sub(r'<.*?>', '', subpart_name_raw).strip()
-                    if subpart_name_clean:
-                        current_subpart_name = subpart_name_clean
-                        logging.debug(f"'{book_name}': Sub-Part Divider (H3): '{current_subpart_name}' in Part '{current_part_name}' @ L{line_num+1}")
-                    else:
-                        current_subpart_name = f"תת-חלק לא מוגדר {unnamed_subpart_counter}"
-                        unnamed_subpart_counter += 1
-                        logging.debug(f"'{book_name}': Unnamed Sub-Part Divider (H3) -> '{current_subpart_name}' in Part '{current_part_name}' @ L{line_num+1}")
+                    if subpart_name_clean: current_subpart_name = subpart_name_clean
+                    else: current_subpart_name = f"תת-חלק לא מוגדר {unnamed_subpart_counter}"; unnamed_subpart_counter += 1
+                    logging.debug(f"'{book_name}': Sub-Part Divider (H3): '{current_subpart_name}' in Part '{current_part_name}' @ L{line_num+1}")
+                    if current_subpart_name not in hierarchy_data[current_part_name]: hierarchy_data[current_part_name][current_subpart_name]
 
-        # 3. Check for Dominant Division (e.g., H3 or H4), if not processed as part/sub-part
         if processed_level == 0:
             division_match = specific_div_regex.search(line_content)
             if division_match:
-                processed_level = dominant_div_level # Mark as processed
                 identifier_raw = division_match.group(1).strip()
                 identifier_clean = re.sub(r'<.*?>', '', identifier_raw).strip()
-
-                # Add data to the correct level in the hierarchy
-                part_dict = hierarchy_data[current_part_name]
-                # If dominant level is H4, use subpart name; otherwise, use a default key for the subpart level
                 target_subpart_key = current_subpart_name if dominant_div_level == 4 else "_level3_default_"
-                division_data = part_dict.setdefault(target_subpart_key, {"count": 0, "last_identifier": None})
-
+                division_data = hierarchy_data[current_part_name].setdefault(target_subpart_key, {"count": 0, "last_identifier": None})
                 division_data["count"] += 1
                 division_data["last_identifier"] = identifier_clean
 
 
-    # --- Final Assembly & Simplification ---
-    final_result = {}
-    total_parts_with_data = 0
-    total_subparts_overall = 0
+    # --- Final Assembly & Simplification (Revised Logic) ---
+    final_result_assembly = {} # Build the potentially nested structure here first
 
     for part_name, subparts in hierarchy_data.items():
-        part_output = {}
-        part_has_data = False
-        # Handle default subpart (content before first H3 in H4 scenario, or all content if H3 dominant)
+        # Collect valid subparts for this part
+        valid_subparts_for_this_part = {}
         default_subpart_key = "_level3_default_" if dominant_div_level != 4 else "_default_subpart_"
-        default_subpart_label = book_name if (part_name == "_default_part_" and not found_explicit_part) \
-                                     else (f"{part_name} (ראשי)" if (found_explicit_subpart and dominant_div_level == 4) else part_name)
 
-
+        # Determine the label for the default subpart if it exists and has data
+        default_subpart_label = None
         if default_subpart_key in subparts and subparts[default_subpart_key]["count"] > 0:
-            subpart_data = subparts[default_subpart_key]
-            part_output[default_subpart_label] = { # Use the calculated label
+            # Decide label based on context
+            if part_name == "_default_part_" and not found_explicit_part:
+                 default_subpart_label = book_name # No parts found at all
+            elif dominant_div_level != 4: # Dominant is H2/H3, subpart level is just a placeholder
+                 default_subpart_label = part_name if part_name != "_default_part_" else f"{book_name} (ראשי)"
+            else: # Dominant is H4, default subpart is content before first H3
+                 default_subpart_label = f"{part_name} (מבוא/הקדמה?)" if found_explicit_subpart_in_current_part else part_name # If only default, use part name
+            valid_subparts_for_this_part[default_subpart_label] = subparts[default_subpart_key]
+
+
+        # Collect named/unnamed subparts (only relevant if dominant is H4)
+        if dominant_div_level == 4:
+            for subpart_name, subpart_data in subparts.items():
+                if subpart_name == default_subpart_key: continue
+                if subpart_data["count"] > 0:
+                    valid_subparts_for_this_part[subpart_name] = subpart_data
+                else:
+                     logging.warning(f"'{book_name}': Sub-Part '{subpart_name}' in Part '{part_name}' identified but contained no divisions.")
+
+        # Now decide how to structure this part based on the number of valid subparts
+        num_valid_subparts = len(valid_subparts_for_this_part)
+        part_label = part_name if part_name != "_default_part_" else book_name # Use book name if it's the only part
+
+        if num_valid_subparts == 1:
+            # Simplify: Part -> Details (take details from the single valid subpart)
+            single_subpart_details = list(valid_subparts_for_this_part.values())[0]
+            final_result_assembly[part_label] = {
                 "division_type": dominant_div_keyword,
-                "count": subpart_data["count"],
+                "count": single_subpart_details["count"],
                 "heading_level": f"h{dominant_div_level}",
-                "last_identifier_found": subpart_data["last_identifier"]
+                "last_identifier_found": single_subpart_details["last_identifier"]
             }
-            part_has_data = True
-            total_subparts_overall += 1
-
-
-        # Handle named/unnamed subparts
-        for subpart_name, subpart_data in subparts.items():
-            if subpart_name == default_subpart_key: continue # Already handled
-            if subpart_data["count"] > 0:
-                part_output[subpart_name] = {
+            logging.debug(f"'{book_name}': Simplified Part '{part_label}' (only 1 sub-part found).")
+        elif num_valid_subparts > 1:
+            # Keep subpart structure: Part -> SubPart -> Details
+            part_data_nested = {}
+            for subpart_label, subpart_details in valid_subparts_for_this_part.items():
+                 part_data_nested[subpart_label] = {
                     "division_type": dominant_div_keyword,
-                    "count": subpart_data["count"],
+                    "count": subpart_details["count"],
                     "heading_level": f"h{dominant_div_level}",
-                    "last_identifier_found": subpart_data["last_identifier"]
+                    "last_identifier_found": subpart_details["last_identifier"]
                 }
-                part_has_data = True
-                total_subparts_overall += 1
-            else:
-                logging.warning(f"'{book_name}': Sub-Part '{subpart_name}' in Part '{part_name}' identified but contained no divisions.")
-
-        if part_has_data:
-            # If the part itself was default and had only one subpart entry (which got relabeled), use the subpart label directly
-            if part_name == "_default_part_" and len(part_output) == 1:
-                 final_result.update(part_output) # Add the single entry directly to final_result
-            else:
-                 final_result[part_name] = part_output # Add the part with its subparts
-            total_parts_with_data += 1
-        elif part_name != "_default_part_":
-             logging.warning(f"'{book_name}': Part '{part_name}' identified but contained no countable divisions in any sub-part.")
+            final_result_assembly[part_label] = part_data_nested
+            logging.debug(f"'{book_name}': Kept Sub-Part structure for Part '{part_label}' ({num_valid_subparts} sub-parts found).")
+        # If num_valid_subparts == 0, do nothing (part is empty)
 
 
-    # --- Apply Simplification Rules ---
-    simplified_result = {}
-    if total_parts_with_data == 1 and total_subparts_overall == 1:
-        # Only one effective entry overall - flatten completely
-        single_part_name = list(final_result.keys())[0]
-        # Check if the value itself is nested (it shouldn't be if total_subparts is 1)
-        if isinstance(final_result[single_part_name], dict) and "count" in final_result[single_part_name]:
-             simplified_result = final_result[single_part_name]
-             logging.info(f"'{book_name}': Simplified structure (1 Part, 1 Sub-Part).")
-        else: # It was nested, take the inner value
-             single_subpart_name = list(final_result[single_part_name].keys())[0]
-             simplified_result = final_result[single_part_name][single_subpart_name]
-             logging.info(f"'{book_name}': Simplified structure (1 Part, 1 Sub-Part - nested).")
-
-    elif total_parts_with_data == 1 and total_subparts_overall > 1 and dominant_div_level == 4:
-        # One main part, but multiple H3 subparts - flatten one level (Book -> SubPart -> Details)
-        single_part_name = list(final_result.keys())[0]
-        simplified_result = final_result[single_part_name] # Use the inner dict containing subparts
-        logging.info(f"'{book_name}': Simplified structure (1 Part, >1 Sub-Parts).")
+    # --- Apply Final Overall Simplification ---
+    final_output_structure = {}
+    if len(final_result_assembly) == 1:
+        # If only one top-level key exists after processing all parts, flatten completely
+        single_toplevel_key = list(final_result_assembly.keys())[0]
+        # The value associated with this key IS the final data for the book
+        final_output_structure = final_result_assembly[single_toplevel_key]
+        logging.info(f"'{book_name}': Simplified structure: Only one effective top-level part found ('{single_toplevel_key}'). Final structure is flat.")
+    elif not final_result_assembly:
+        logging.warning(f"'{book_name}': No countable divisions found in any structure.")
+        final_output_structure = {}
     else:
-        # Multiple parts, or other cases - keep the structure as built
-        simplified_result = final_result
-        if not simplified_result:
-             logging.warning(f"'{book_name}': No countable divisions found in any structure.")
+        # Multiple top-level parts exist, keep the structure as assembled
+        final_output_structure = final_result_assembly
+        logging.info(f"'{book_name}': Multiple effective top-level parts found ({len(final_result_assembly)}). Keeping hierarchical structure.")
 
-    return book_name, simplified_result
+    return book_name, final_output_structure
 
 
-# --- Main Execution (Needs Adjustment for Gematria Check) ---
+# --- Main Execution (Gematria check needs slight adjustment) ---
 if __name__ == "__main__":
     input_dir_raw = input("הכנס את נתיב תיקיית הקבצים המקוריים (ניתן להדביק עם גרשיים): ")
     input_dir = input_dir_raw.strip().strip('"').strip("'")
@@ -293,9 +268,9 @@ if __name__ == "__main__":
                         if structured_data:
                             overall_results[book_name] = structured_data
 
-                            # --- Gematria Check (Revised) ---
-                            # Function to perform the check on a single data node
+                            # --- Gematria Check (Revised Logic for Final Structure) ---
                             def perform_gematria_check(data_node, context_name):
+                                # ... (Gematria check function remains the same internal logic) ...
                                 if not isinstance(data_node, dict) or "count" not in data_node:
                                     logging.error(f"Gematria Check Error: Invalid data node for context '{context_name}'")
                                     return
@@ -315,23 +290,20 @@ if __name__ == "__main__":
                                         logging.warning(f"     -> אימות גימטריה ('{context_name}'): המזהה האחרון ('{last_id}') אינו מספר גימטריה תקני.")
                                         data_node["gematria_check"] = "Non-numeric ID"
                                 else:
-                                    if count is not None and count > 0: # Only warn if units were counted but no ID found
+                                    if count is not None and count > 0:
                                         logging.warning(f"     -> אימות גימטריה ('{context_name}'): לא נמצא מזהה אחרון (נספרו {count} יחידות).")
                                         data_node["gematria_check"] = "Last ID Missing"
-                                    else: # No units counted or ID missing - no check needed
+                                    else:
                                          data_node["gematria_check"] = "N/A (No Count/ID)"
 
-
-                            # Determine the structure and apply the check
-                            if "division_type" in structured_data: # Case 1: Fully flattened
+                            # Apply check based on the final structure of structured_data
+                            if "division_type" in structured_data: # Case 1: Fully flattened (Book -> Details)
                                 perform_gematria_check(structured_data, book_name)
-                            else: # Cases 2 & 3: Potentially nested
+                            elif isinstance(structured_data, dict): # Case 2 or 3: Nested (Book -> Part/SubPart -> ...)
                                 for level1_key, level1_value in structured_data.items():
-                                    # Check if level1_value holds the data directly (Case 2 simplified)
-                                    if isinstance(level1_value, dict) and "division_type" in level1_value:
+                                    if isinstance(level1_value, dict) and "division_type" in level1_value: # Case 2 Simplified (Book -> SubPart -> Details)
                                         perform_gematria_check(level1_value, f"{book_name} / {level1_key}")
-                                    # Check if level1_value is a dict of subparts (Case 3 or Case 2 hierarchical)
-                                    elif isinstance(level1_value, dict):
+                                    elif isinstance(level1_value, dict): # Case 3 (Book -> Part -> SubPart -> Details)
                                         for level2_key, level2_value in level1_value.items():
                                              if isinstance(level2_value, dict) and "division_type" in level2_value:
                                                   perform_gematria_check(level2_value, f"{book_name} / {level1_key} / {level2_key}")
@@ -346,7 +318,7 @@ if __name__ == "__main__":
         final_output_json = {
             "collection_name": input_folder_name if input_folder_name else "ספרים סרוקים",
             "processed_folder": input_dir,
-            "books_data": overall_results, # Holds potentially varied structures per book
+            "books_data": overall_results,
             "last_updated": datetime.now().isoformat()
         }
 
