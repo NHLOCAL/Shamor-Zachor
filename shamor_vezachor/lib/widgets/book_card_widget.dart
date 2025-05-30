@@ -121,19 +121,6 @@ class BookCardWidget extends StatelessWidget {
           ? Colors.white
           : theme.colorScheme.onPrimaryContainer;
 
-      // גובה מינימלי רצוי לכל אחד מהחלקים כדי למנוע קריסה
-      const double titleMinHeight = 36; // שתי שורות של טקסט 16
-      const double progressBarMinHeight = 24;
-      const double statusTextMinHeight = 18; // שורה אחת של טקסט 12-13
-      const double verticalPadding =
-          8 * 2; // top and bottom padding for the card
-      const double spacingBetweenElements = 6 * 2; // two SizedBoxes
-      const double minCardHeight = titleMinHeight +
-          progressBarMinHeight +
-          statusTextMinHeight +
-          verticalPadding +
-          spacingBetweenElements;
-
       return Card(
         margin: const EdgeInsets.symmetric(
             vertical: 5, horizontal: 4), // הקטנת מרווח אנכי
