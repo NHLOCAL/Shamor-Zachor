@@ -19,8 +19,8 @@ class MyApp extends StatelessWidget {
     const Color primaryBrown = Color(0xFF8F4C33);
     const Color lightPinkBeige = Color(0xFFF1DFD9);
     const Color lightPeachPink = Color(0xFFFFDBCF);
-    const Color surfaceColor =
-        Color(0xFFFAF6F4); // רקע כללי בהיר מאוד, כמעט לבן עם נגיעה של בז'
+    const Color surfaceColor = Color(0xFFFAF6F4);
+    const Color onSurfaceTextColor = Color(0xFF3D2C26); // חום כהה מאוד לטקסט
 
     return MultiProvider(
       providers: [
@@ -48,31 +48,58 @@ class MyApp extends StatelessWidget {
             colorScheme: ColorScheme.fromSeed(
               seedColor: primaryBrown,
               primary: primaryBrown,
-              background: surfaceColor, // רקע כללי של האפליקציה
-              surface: lightPinkBeige, // רקע לכרטיסים, קונטיינרים
-              onSurface: primaryBrown, // טקסט על רקע surface
-              primaryContainer: lightPeachPink, // צבע לקונטיינרים מודגשים קלות
-              onPrimaryContainer: primaryBrown, // טקסט על primaryContainer
-              secondaryContainer: lightPinkBeige, // לשימוש בטאבים, רקעים משניים
-              onSecondaryContainer: primaryBrown,
+              background: surfaceColor,
+              surface: lightPinkBeige,
+              onSurface: onSurfaceTextColor, // שינוי צבע טקסט על משטחים
+              primaryContainer: lightPeachPink,
+              onPrimaryContainer:
+                  onSurfaceTextColor, // שינוי צבע טקסט על קונטיינר ראשי
+              secondaryContainer: lightPinkBeige,
+              onSecondaryContainer:
+                  onSurfaceTextColor, // שינוי צבע טקסט על קונטיינר משני
             ),
+            textTheme: ThemeData.light()
+                .textTheme
+                .apply(
+                  fontFamily: 'Heebo',
+                  bodyColor: onSurfaceTextColor,
+                  displayColor: onSurfaceTextColor,
+                )
+                .copyWith(
+                  titleLarge: TextStyle(
+                      color: onSurfaceTextColor,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 20),
+                  titleMedium: TextStyle(
+                      color: onSurfaceTextColor,
+                      fontWeight: FontWeight.w500,
+                      fontSize: 18),
+                  bodyLarge: TextStyle(color: onSurfaceTextColor, fontSize: 16),
+                  bodyMedium:
+                      TextStyle(color: onSurfaceTextColor, fontSize: 14),
+                  labelLarge: TextStyle(
+                      color: onSurfaceTextColor,
+                      fontWeight: FontWeight.bold), // For buttons
+                ),
             appBarTheme: AppBarTheme(
               backgroundColor: lightPeachPink,
-              foregroundColor: primaryBrown,
+              foregroundColor:
+                  onSurfaceTextColor, // צבע טקסט ואייקונים ב-AppBar
               elevation: 1,
               titleTextStyle: TextStyle(
                 fontFamily: 'Heebo',
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
-                color: primaryBrown,
+                color: onSurfaceTextColor, // צבע טקסט כותרת ב-AppBar
               ),
-              iconTheme: IconThemeData(color: primaryBrown),
+              iconTheme: IconThemeData(
+                  color: onSurfaceTextColor), // צבע אייקונים ב-AppBar
             ),
             cardTheme: CardTheme(
               elevation: 1,
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12)),
-              color: lightPinkBeige, // רקע לכרטיסים במסך המעקב
+              color: lightPinkBeige,
               margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
             ),
             segmentedButtonTheme: SegmentedButtonThemeData(
@@ -90,7 +117,8 @@ class MyApp extends StatelessWidget {
                   if (states.contains(WidgetState.selected)) {
                     return primaryBrown;
                   }
-                  return primaryBrown.withOpacity(0.7);
+                  return onSurfaceTextColor
+                      .withOpacity(0.9); // צבע טקסט לא נבחר
                 },
               ),
               side: WidgetStateProperty.all(
@@ -114,7 +142,8 @@ class MyApp extends StatelessWidget {
             elevatedButtonTheme: ElevatedButtonThemeData(
               style: ElevatedButton.styleFrom(
                 backgroundColor: lightPinkBeige,
-                foregroundColor: primaryBrown,
+                foregroundColor:
+                    onSurfaceTextColor, // צבע טקסט על כפתורים מוגבהים
                 elevation: 1,
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10)),
@@ -123,11 +152,16 @@ class MyApp extends StatelessWidget {
               ),
             ),
             bottomNavigationBarTheme: BottomNavigationBarThemeData(
-              backgroundColor: lightPeachPink, // רקע הסרגל התחתון
-              selectedItemColor: primaryBrown,
-              unselectedItemColor: primaryBrown.withOpacity(0.6),
-              selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold),
-            ),
+                backgroundColor: lightPeachPink,
+                selectedItemColor: primaryBrown,
+                unselectedItemColor:
+                    onSurfaceTextColor.withOpacity(0.7), // צבע פריט לא נבחר
+                selectedLabelStyle:
+                    TextStyle(fontWeight: FontWeight.bold, color: primaryBrown),
+                unselectedLabelStyle: TextStyle(
+                    color: onSurfaceTextColor
+                        .withOpacity(0.7)) // צבע תווית לא נבחרת
+                ),
             navigationBarTheme: NavigationBarThemeData(
               backgroundColor: lightPeachPink,
               indicatorColor: primaryBrown.withOpacity(0.2),
@@ -139,18 +173,23 @@ class MyApp extends StatelessWidget {
                       color: primaryBrown);
                 }
                 return TextStyle(
-                    fontSize: 12, color: primaryBrown.withOpacity(0.7));
+                    fontSize: 12,
+                    color: onSurfaceTextColor
+                        .withOpacity(0.7)); // צבע תווית לא נבחרת
               }),
               iconTheme: WidgetStateProperty.resolveWith((states) {
                 if (states.contains(WidgetState.selected)) {
                   return IconThemeData(color: primaryBrown);
                 }
-                return IconThemeData(color: primaryBrown.withOpacity(0.7));
+                return IconThemeData(
+                    color: onSurfaceTextColor
+                        .withOpacity(0.7)); // צבע אייקון לא נבחר
               }),
             ),
             tabBarTheme: TabBarTheme(
-                labelColor: primaryBrown,
-                unselectedLabelColor: primaryBrown.withOpacity(0.7),
+                labelColor: primaryBrown, // צבע תווית נבחרת
+                unselectedLabelColor:
+                    onSurfaceTextColor.withOpacity(0.7), // צבע תווית לא נבחרת
                 indicatorColor: primaryBrown,
                 indicatorSize: TabBarIndicatorSize.tab,
                 dividerColor: primaryBrown.withOpacity(0.2))),
