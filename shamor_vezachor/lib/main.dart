@@ -65,21 +65,22 @@ class MyApp extends StatelessWidget {
                   displayColor: onSurfaceTextColor,
                 )
                 .copyWith(
-                  titleLarge: TextStyle(
+                  titleLarge: const TextStyle(
                       color: onSurfaceTextColor,
                       fontWeight: FontWeight.bold,
                       fontSize: 20),
-                  titleMedium: TextStyle(
+                  titleMedium: const TextStyle(
                       color: onSurfaceTextColor,
                       fontWeight: FontWeight.w500,
                       fontSize: 18),
-                  bodyLarge: TextStyle(color: onSurfaceTextColor, fontSize: 16),
+                  bodyLarge:
+                      const TextStyle(color: onSurfaceTextColor, fontSize: 16),
                   bodyMedium:
-                      TextStyle(color: onSurfaceTextColor, fontSize: 14),
-                  labelLarge: TextStyle(
+                      const TextStyle(color: onSurfaceTextColor, fontSize: 14),
+                  labelLarge: const TextStyle(
                       color: onSurfaceTextColor, fontWeight: FontWeight.bold),
                 ),
-            appBarTheme: AppBarTheme(
+            appBarTheme: const AppBarTheme(
               backgroundColor: lightPeachPink,
               foregroundColor: onSurfaceTextColor,
               elevation: 1,
@@ -91,7 +92,7 @@ class MyApp extends StatelessWidget {
               ),
               iconTheme: IconThemeData(color: onSurfaceTextColor),
             ),
-            cardTheme: CardTheme(
+            cardTheme: CardThemeData(
               elevation: 1,
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12)),
@@ -149,8 +150,8 @@ class MyApp extends StatelessWidget {
                 backgroundColor: lightPeachPink,
                 selectedItemColor: primaryBrown,
                 unselectedItemColor: onSurfaceTextColor.withOpacity(0.7),
-                selectedLabelStyle:
-                    TextStyle(fontWeight: FontWeight.bold, color: primaryBrown),
+                selectedLabelStyle: const TextStyle(
+                    fontWeight: FontWeight.bold, color: primaryBrown),
                 unselectedLabelStyle:
                     TextStyle(color: onSurfaceTextColor.withOpacity(0.7))),
             navigationBarTheme: NavigationBarThemeData(
@@ -158,7 +159,7 @@ class MyApp extends StatelessWidget {
               indicatorColor: primaryBrown.withOpacity(0.2),
               labelTextStyle: WidgetStateProperty.resolveWith((states) {
                 if (states.contains(WidgetState.selected)) {
-                  return TextStyle(
+                  return const TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
                       color: primaryBrown);
@@ -168,13 +169,13 @@ class MyApp extends StatelessWidget {
               }),
               iconTheme: WidgetStateProperty.resolveWith((states) {
                 if (states.contains(WidgetState.selected)) {
-                  return IconThemeData(color: primaryBrown);
+                  return const IconThemeData(color: primaryBrown);
                 }
                 return IconThemeData(
                     color: onSurfaceTextColor.withOpacity(0.7));
               }),
             ),
-            tabBarTheme: TabBarTheme(
+            tabBarTheme: TabBarThemeData(
               labelColor: onSurfaceTextColor, // צבע טקסט לטאב נבחר (כמעט שחור)
               unselectedLabelColor:
                   onSurfaceTextColor.withOpacity(0.65), // צבע טקסט לטאב לא נבחר
