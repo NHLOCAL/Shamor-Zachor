@@ -30,13 +30,13 @@ class DataLoaderService {
 
         // Basic validation (can be expanded)
         if (jsonData['name'] == null ||
-            !(jsonData['name'] is String) ||
+            jsonData['name'] is! String ||
             jsonData['content_type'] == null ||
-            !(jsonData['content_type'] is String) ||
+            jsonData['content_type'] is! String ||
             jsonData['columns'] == null ||
-            !(jsonData['columns'] is List) ||
+            jsonData['columns'] is! List ||
             jsonData['data'] == null ||
-            !(jsonData['data'] is Map)) {
+            jsonData['data'] is! Map) {
           print("Skipping invalid JSON file: $path");
           continue;
         }

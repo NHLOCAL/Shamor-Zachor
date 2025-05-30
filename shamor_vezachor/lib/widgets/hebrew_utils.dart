@@ -14,8 +14,9 @@ class HebrewUtils {
 
   static String intToGematria(int number) {
     if (number <= 0) return number.toString();
-    if (number > 499)
+    if (number > 499) {
       return number.toString(); // Simplified, handle larger numbers if needed
+    }
 
     // Special cases for 15 (ט"ו) and 16 (ט"ז)
     if (number == 15) return 'טו';
@@ -36,9 +37,8 @@ class HebrewUtils {
       // Check if the last two characters are י and ה (15) or י and ו (16)
       if (!((result.endsWith('יה') || result.endsWith('יו')) &&
           result.length == 2)) {
-        result = result.substring(0, result.length - 1) +
-            '"' +
-            result.substring(result.length - 1);
+        result =
+            '${result.substring(0, result.length - 1)}"${result.substring(result.length - 1)}';
       }
     } else if (result.length == 1 &&
         _gematriaMap.entries.firstWhere((e) => e.value == result).key < 10) {

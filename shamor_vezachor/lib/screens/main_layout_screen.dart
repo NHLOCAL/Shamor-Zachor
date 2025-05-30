@@ -10,7 +10,7 @@ class MainLayoutScreen extends StatefulWidget {
 }
 
 class _MainLayoutScreenState extends State<MainLayoutScreen> {
-  int _selectedIndex = 0; // 0 for Tracking, 1 for Books
+  int _selectedIndex = 0;
 
   static const List<Widget> _widgetOptions = <Widget>[
     TrackingScreen(),
@@ -25,7 +25,6 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Get theme colors
     final Color appBarBgColor =
         Theme.of(context).appBarTheme.backgroundColor ?? Colors.brown.shade100;
     final Color appBarFgColor =
@@ -40,20 +39,24 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
           title: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.book_outlined, color: appBarFgColor),
+              // שינוי: החלפת האייקון הקיים בתמונה
+              ImageIcon(
+                const AssetImage(
+                    'assets/images/app_icon_for_bar.png'), // ודא שהנתיב תואם לקובץ שיצרת
+                color: appBarFgColor,
+                size: 24, // ניתן להתאים את הגודל לפי הצורך
+              ),
               const SizedBox(width: 8),
               Text('שמור וזכור', style: appBarTitleTextStyle),
             ],
           ),
           centerTitle: true,
           backgroundColor: appBarBgColor,
-          automaticallyImplyLeading: false, // No back button
+          automaticallyImplyLeading: false,
         ),
         body: Padding(
-          // Add padding around the body content of Tracking/Books screens
           padding: const EdgeInsets.symmetric(horizontal: 15.0, vertical: 10.0),
           child: IndexedStack(
-            // Use IndexedStack to keep state of screens
             index: _selectedIndex,
             children: _widgetOptions,
           ),
@@ -73,8 +76,7 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
           selectedItemColor: Theme.of(context).primaryColor,
           unselectedItemColor: Colors.grey.shade600,
           onTap: _onItemTapped,
-          type: BottomNavigationBarType
-              .fixed, // Ensures labels are always visible
+          type: BottomNavigationBarType.fixed,
         ),
       ),
     );
