@@ -20,7 +20,8 @@ class MyApp extends StatelessWidget {
     const Color lightPinkBeige = Color(0xFFF1DFD9);
     const Color lightPeachPink = Color(0xFFFFDBCF);
     const Color surfaceColor = Color(0xFFFAF6F4);
-    const Color onSurfaceTextColor = Color(0xFF3D2C26); // חום כהה מאוד לטקסט
+    const Color onSurfaceTextColor =
+        Color(0xFF3D2C26); // חום כהה מאוד לטקסט (כמעט שחור)
 
     return MultiProvider(
       providers: [
@@ -50,13 +51,11 @@ class MyApp extends StatelessWidget {
               primary: primaryBrown,
               background: surfaceColor,
               surface: lightPinkBeige,
-              onSurface: onSurfaceTextColor, // שינוי צבע טקסט על משטחים
+              onSurface: onSurfaceTextColor,
               primaryContainer: lightPeachPink,
-              onPrimaryContainer:
-                  onSurfaceTextColor, // שינוי צבע טקסט על קונטיינר ראשי
+              onPrimaryContainer: onSurfaceTextColor,
               secondaryContainer: lightPinkBeige,
-              onSecondaryContainer:
-                  onSurfaceTextColor, // שינוי צבע טקסט על קונטיינר משני
+              onSecondaryContainer: onSurfaceTextColor,
             ),
             textTheme: ThemeData.light()
                 .textTheme
@@ -78,22 +77,19 @@ class MyApp extends StatelessWidget {
                   bodyMedium:
                       TextStyle(color: onSurfaceTextColor, fontSize: 14),
                   labelLarge: TextStyle(
-                      color: onSurfaceTextColor,
-                      fontWeight: FontWeight.bold), // For buttons
+                      color: onSurfaceTextColor, fontWeight: FontWeight.bold),
                 ),
             appBarTheme: AppBarTheme(
               backgroundColor: lightPeachPink,
-              foregroundColor:
-                  onSurfaceTextColor, // צבע טקסט ואייקונים ב-AppBar
+              foregroundColor: onSurfaceTextColor,
               elevation: 1,
               titleTextStyle: TextStyle(
                 fontFamily: 'Heebo',
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
-                color: onSurfaceTextColor, // צבע טקסט כותרת ב-AppBar
+                color: onSurfaceTextColor,
               ),
-              iconTheme: IconThemeData(
-                  color: onSurfaceTextColor), // צבע אייקונים ב-AppBar
+              iconTheme: IconThemeData(color: onSurfaceTextColor),
             ),
             cardTheme: CardTheme(
               elevation: 1,
@@ -117,8 +113,7 @@ class MyApp extends StatelessWidget {
                   if (states.contains(WidgetState.selected)) {
                     return primaryBrown;
                   }
-                  return onSurfaceTextColor
-                      .withOpacity(0.9); // צבע טקסט לא נבחר
+                  return onSurfaceTextColor.withOpacity(0.9);
                 },
               ),
               side: WidgetStateProperty.all(
@@ -142,8 +137,7 @@ class MyApp extends StatelessWidget {
             elevatedButtonTheme: ElevatedButtonThemeData(
               style: ElevatedButton.styleFrom(
                 backgroundColor: lightPinkBeige,
-                foregroundColor:
-                    onSurfaceTextColor, // צבע טקסט על כפתורים מוגבהים
+                foregroundColor: onSurfaceTextColor,
                 elevation: 1,
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10)),
@@ -154,14 +148,11 @@ class MyApp extends StatelessWidget {
             bottomNavigationBarTheme: BottomNavigationBarThemeData(
                 backgroundColor: lightPeachPink,
                 selectedItemColor: primaryBrown,
-                unselectedItemColor:
-                    onSurfaceTextColor.withOpacity(0.7), // צבע פריט לא נבחר
+                unselectedItemColor: onSurfaceTextColor.withOpacity(0.7),
                 selectedLabelStyle:
                     TextStyle(fontWeight: FontWeight.bold, color: primaryBrown),
-                unselectedLabelStyle: TextStyle(
-                    color: onSurfaceTextColor
-                        .withOpacity(0.7)) // צבע תווית לא נבחרת
-                ),
+                unselectedLabelStyle:
+                    TextStyle(color: onSurfaceTextColor.withOpacity(0.7))),
             navigationBarTheme: NavigationBarThemeData(
               backgroundColor: lightPeachPink,
               indicatorColor: primaryBrown.withOpacity(0.2),
@@ -173,26 +164,33 @@ class MyApp extends StatelessWidget {
                       color: primaryBrown);
                 }
                 return TextStyle(
-                    fontSize: 12,
-                    color: onSurfaceTextColor
-                        .withOpacity(0.7)); // צבע תווית לא נבחרת
+                    fontSize: 12, color: onSurfaceTextColor.withOpacity(0.7));
               }),
               iconTheme: WidgetStateProperty.resolveWith((states) {
                 if (states.contains(WidgetState.selected)) {
                   return IconThemeData(color: primaryBrown);
                 }
                 return IconThemeData(
-                    color: onSurfaceTextColor
-                        .withOpacity(0.7)); // צבע אייקון לא נבחר
+                    color: onSurfaceTextColor.withOpacity(0.7));
               }),
             ),
             tabBarTheme: TabBarTheme(
-                labelColor: primaryBrown, // צבע תווית נבחרת
-                unselectedLabelColor:
-                    onSurfaceTextColor.withOpacity(0.7), // צבע תווית לא נבחרת
-                indicatorColor: primaryBrown,
-                indicatorSize: TabBarIndicatorSize.tab,
-                dividerColor: primaryBrown.withOpacity(0.2))),
+              labelColor: onSurfaceTextColor, // צבע טקסט לטאב נבחר (כמעט שחור)
+              unselectedLabelColor:
+                  onSurfaceTextColor.withOpacity(0.65), // צבע טקסט לטאב לא נבחר
+              indicatorColor: primaryBrown, // צבע הקו התחתון של הטאב הנבחר
+              indicatorSize:
+                  TabBarIndicatorSize.label, // אורך הקו התחתון כרוחב הטקסט
+              dividerColor: Colors.transparent, // הסרת קו הפרדה מתחת לכל הטאבים
+              labelStyle: const TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 15.5), // הגדלת פונט והדגשה לטאב נבחר
+              unselectedLabelStyle: const TextStyle(
+                  fontWeight: FontWeight.normal,
+                  fontSize: 15), // פונט רגיל לטאב לא נבחר
+              overlayColor: WidgetStateProperty.all(
+                  primaryBrown.withOpacity(0.1)), // צבע עדין בעת לחיצה/ריחוף
+            )),
         initialRoute: '/',
         routes: {
           '/': (ctx) => const MainLayoutScreen(),

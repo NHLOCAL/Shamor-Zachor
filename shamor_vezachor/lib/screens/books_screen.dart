@@ -198,40 +198,44 @@ class _BooksScreenState extends State<BooksScreen>
   Widget _buildSearchField(DataProvider dataProvider) {
     final theme = Theme.of(context);
     return Padding(
-      // הקטנת הרוחב של שדה החיפוש ע"י הגדלת ה-padding האופקי
-      padding: const EdgeInsets.symmetric(horizontal: 50.0, vertical: 15.0),
-      child: TextField(
-        controller: _searchController,
-        textDirection: TextDirection.rtl,
-        decoration: InputDecoration(
-          hintText: 'חיפוש ספר...',
-          // שינוי צבע אייקון החיפוש בתוך השדה
-          prefixIcon: Icon(Icons.search,
-              color: theme.colorScheme.onSurface.withOpacity(0.6)),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(30),
-            borderSide:
-                BorderSide(color: theme.colorScheme.primary.withOpacity(0.5)),
+      padding: const EdgeInsets.symmetric(vertical: 15.0),
+      child: Center(
+        child: Container(
+          constraints: const BoxConstraints(
+              maxWidth: 400), // הקטנת הרוחב המקסימלי של שדה החיפוש
+          child: TextField(
+            controller: _searchController,
+            textDirection: TextDirection.rtl,
+            decoration: InputDecoration(
+              hintText: 'חיפוש ספר...',
+              prefixIcon: Icon(Icons.search,
+                  color: theme.colorScheme.onSurface.withOpacity(0.6)),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(30),
+                borderSide: BorderSide(
+                    color: theme.colorScheme.primary.withOpacity(0.5)),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(30),
+                borderSide: BorderSide(
+                    color: theme.colorScheme.primary.withOpacity(0.3)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(30),
+                borderSide:
+                    BorderSide(color: theme.colorScheme.primary, width: 1.5),
+              ),
+              filled: true,
+              fillColor: theme.colorScheme.surface,
+              contentPadding:
+                  const EdgeInsets.symmetric(vertical: 0, horizontal: 20),
+              isDense: true,
+            ),
+            onChanged: (value) {
+              _performSearch(value, dataProvider);
+            },
           ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(30),
-            borderSide:
-                BorderSide(color: theme.colorScheme.primary.withOpacity(0.3)),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(30),
-            borderSide:
-                BorderSide(color: theme.colorScheme.primary, width: 1.5),
-          ),
-          filled: true,
-          fillColor: theme.colorScheme.surface,
-          contentPadding:
-              const EdgeInsets.symmetric(vertical: 0, horizontal: 20),
-          isDense: true,
         ),
-        onChanged: (value) {
-          _performSearch(value, dataProvider);
-        },
       ),
     );
   }
@@ -313,7 +317,7 @@ class _BooksScreenState extends State<BooksScreen>
         padding: const EdgeInsets.all(15),
         gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
           maxCrossAxisExtent: 170,
-          childAspectRatio: 150 / 75, // גובה הכרטיס יהיה קטן יותר
+          childAspectRatio: 150 / 75,
           crossAxisSpacing: 12,
           mainAxisSpacing: 12,
         ),
@@ -338,12 +342,9 @@ class _BooksScreenState extends State<BooksScreen>
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.search,
-                size: 20,
-                color: theme
-                    .tabBarTheme.labelColor), // צבע האייקון לפי צבע הטאב הפעיל
+            Icon(Icons.search, size: 20, color: theme.tabBarTheme.labelColor),
             const SizedBox(width: 6),
-            const Text("חיפוש")
+            const Text("חיפוש") // הטקסט כאן יקבל את הסגנון מה-Theme
           ],
         ),
       ));
@@ -353,7 +354,7 @@ class _BooksScreenState extends State<BooksScreen>
           padding: const EdgeInsets.all(15),
           gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
             maxCrossAxisExtent: 170,
-            childAspectRatio: 150 / 90, // גובה הכרטיס לתוצאות חיפוש
+            childAspectRatio: 150 / 90,
             crossAxisSpacing: 12,
             mainAxisSpacing: 12,
           ),
@@ -366,13 +367,12 @@ class _BooksScreenState extends State<BooksScreen>
     return Column(
       children: [
         _buildSearchField(dataProvider),
-        Container(
-          color: theme.colorScheme.secondaryContainer.withOpacity(0.3),
-          child: TabBar(
-            controller: _tabController!,
-            isScrollable: true,
-            tabs: tabs,
-          ),
+        // ה-Container שהיה צובע את הרקע הוסר מכאן,
+        // הרקע של ה-TabBar ייקבע על ידי ה-Theme או יהיה שקוף
+        TabBar(
+          controller: _tabController!,
+          isScrollable: true,
+          tabs: tabs,
         ),
         Expanded(
           child: TabBarView(
