@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import '../providers/data_provider.dart';
 import '../providers/progress_provider.dart';
 import '../models/book_model.dart';
-// import '../models/progress_model.dart'; // Unused import removed
 import '../widgets/hebrew_utils.dart';
 
 class BookDetailScreen extends StatefulWidget {
@@ -29,7 +28,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return; // Check if mounted before accessing context
+      if (!mounted) return;
       final progressProvider =
           Provider.of<ProgressProvider>(context, listen: false);
       final dataProvider = Provider.of<DataProvider>(context, listen: false);
@@ -37,7 +36,6 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
           dataProvider.getBookDetails(widget.categoryName, widget.bookName);
       if (bookDetails != null) {
         if (mounted) {
-          // Check again before setState
           setState(() {
             _isSelectAllChecked = progressProvider.isBookCompleted(
                 widget.categoryName, widget.bookName, bookDetails);
@@ -63,6 +61,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
   Widget build(BuildContext context) {
     final dataProvider = Provider.of<DataProvider>(context);
     final progressProvider = Provider.of<ProgressProvider>(context);
+    final theme = Theme.of(context);
 
     final bookDetails =
         dataProvider.getBookDetails(widget.categoryName, widget.bookName);
@@ -87,8 +86,9 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
     }
 
     final isBookCompleteIcon = currentCompletionStatus
-        ? Icon(Icons.check_circle, color: Colors.green.shade600)
-        : Icon(Icons.circle_outlined, color: Colors.grey.shade400);
+        ? Icon(Icons.check_circle, color: Colors.green.shade700)
+        : Icon(Icons.circle_outlined,
+            color: theme.colorScheme.onSurface.withOpacity(0.5));
 
     return Directionality(
       textDirection: TextDirection.rtl,
@@ -97,14 +97,17 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
           title: Text(widget.bookName),
           actions: [
             Padding(
-              padding: const EdgeInsets.all(8.0),
+              padding: const EdgeInsets.all(12.0), // הגדלתי Padding
               child: isBookCompleteIcon,
             ),
           ],
         ),
         body: Card(
-          margin: const EdgeInsets.all(10),
-          elevation: 2,
+          margin: const EdgeInsets.all(12), // מרווח סביב הכרטיס
+          elevation: 2, // הצללה קלה
+          color: theme.colorScheme.surface, // צבע רקע לכרטיס
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           child: Padding(
             padding: const EdgeInsets.all(15.0),
             child: Column(
@@ -114,38 +117,46 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
-                      const Text('סמן הכל כנלמד',
-                          style: TextStyle(fontSize: 16)), // Made const
+                      Text('סמן הכל כנלמד',
+                          style: TextStyle(
+                              fontSize: 16,
+                              color: theme.colorScheme.onSurface)),
+                      const SizedBox(width: 8),
                       Checkbox(
                         value: _isSelectAllChecked,
                         onChanged: (val) => _toggleSelectAll(
                             val, progressProvider, bookDetails),
+                        activeColor: theme.primaryColor,
                       ),
                     ],
                   ),
                 ),
                 Container(
                   padding:
-                      const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+                      const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
                   decoration: BoxDecoration(
                       border: Border(
-                          bottom: BorderSide(color: Colors.grey.shade300))),
+                          bottom: BorderSide(
+                              color: theme.dividerColor.withOpacity(0.5)))),
                   child: Row(
                     children: [
                       Expanded(
                         flex: 2,
                         child: Text(
                           bookDetails.contentType,
-                          style: const TextStyle(fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: theme.colorScheme.onSurface),
                           textAlign: TextAlign.right,
                         ),
                       ),
-                      const Expanded(
-                        // Made const
+                      Expanded(
                         flex: 10,
                         child: Text(
                           'לימוד וחזרות',
-                          style: TextStyle(fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: theme.colorScheme.onSurface),
                           textAlign: TextAlign.center,
                         ),
                       ),
@@ -159,7 +170,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                     separatorBuilder: (context, index) => Divider(
                         height: 1,
                         thickness: 0.5,
-                        color: Colors.grey.withOpacity(0.15)),
+                        color: theme.dividerColor.withOpacity(0.2)),
                     itemBuilder: (ctx, index) {
                       int pageNumber;
                       String amudKey;
@@ -184,20 +195,27 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                               pageNumber.toString(),
                               amudKey);
 
+                      // רקע מתחלף לשורות
+                      final rowBackgroundColor =
+                          index % (bookDetails.isDafType ? 4 : 2) <
+                                  (bookDetails.isDafType ? 2 : 1)
+                              ? Colors.transparent
+                              : theme.colorScheme.primaryContainer
+                                  .withOpacity(0.15);
+
                       return Container(
-                        color: index % (bookDetails.isDafType ? 4 : 2) <
-                                (bookDetails.isDafType ? 2 : 1)
-                            ? Colors.transparent
-                            : Theme.of(context).primaryColor.withOpacity(0.03),
+                        color: rowBackgroundColor,
                         padding: const EdgeInsets.symmetric(
-                            vertical: 0, horizontal: 8),
+                            vertical: 2, horizontal: 8), // הקטנתי Padding אנכי
                         child: Row(
                           children: [
                             Expanded(
                               flex: 2,
                               child: Text(rowLabel,
                                   textAlign: TextAlign.right,
-                                  style: const TextStyle(fontFamily: 'Heebo')),
+                                  style: TextStyle(
+                                      fontFamily: 'Heebo',
+                                      color: theme.colorScheme.onSurface)),
                             ),
                             Expanded(
                               flex: 10,
@@ -208,6 +226,8 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                                   Tooltip(
                                       message: "לימוד",
                                       child: Checkbox(
+                                          visualDensity: VisualDensity
+                                              .compact, // צפוף יותר
                                           value: pageProgress.learn,
                                           onChanged: (val) =>
                                               progressProvider.updateProgress(
@@ -221,6 +241,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                                   Tooltip(
                                       message: "חזרה 1",
                                       child: Checkbox(
+                                          visualDensity: VisualDensity.compact,
                                           value: pageProgress.review1,
                                           onChanged: (val) =>
                                               progressProvider.updateProgress(
@@ -234,6 +255,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                                   Tooltip(
                                       message: "חזרה 2",
                                       child: Checkbox(
+                                          visualDensity: VisualDensity.compact,
                                           value: pageProgress.review2,
                                           onChanged: (val) =>
                                               progressProvider.updateProgress(
@@ -247,6 +269,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                                   Tooltip(
                                       message: "חזרה 3",
                                       child: Checkbox(
+                                          visualDensity: VisualDensity.compact,
                                           value: pageProgress.review3,
                                           onChanged: (val) =>
                                               progressProvider.updateProgress(

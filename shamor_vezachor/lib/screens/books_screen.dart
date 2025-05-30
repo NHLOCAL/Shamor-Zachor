@@ -71,39 +71,30 @@ class _BooksScreenState extends State<BooksScreen>
 
   void _handleTabChange() {
     if (!mounted || _tabController == null || _tabController!.indexIsChanging) {
-      // אם האינדקס באמצע שינוי (אנימציה), נחכה שהוא יתייצב.
-      // notifyListeners ייקרא שוב כשהשינוי יסתיים וה-indexIsChanging יהיה false.
       return;
     }
 
     final newIndex = _tabController!.index;
 
     if (_currentTabIndex == newIndex) {
-      // האינדקס לא השתנה מאז הפעם האחרונה שטיפלנו בו (כאשר indexIsChanging היה false).
       return;
     }
 
-    final previousStableIndex = _currentTabIndex; // שמור את האינדקס היציב הקודם
-    _currentTabIndex = newIndex; // עדכן את האינדקס היציב הנוכחי
+    final previousStableIndex = _currentTabIndex;
+    _currentTabIndex = newIndex;
 
     final dataProvider = Provider.of<DataProvider>(context, listen: false);
     final categories = dataProvider.allBookData.keys.toList();
     final int searchTabIndexWhenVisible = categories.length;
 
-    // אם עברנו מטאב החיפוש (כאשר היו תוצאות) לטאב אחר
     if (_searchResults.isNotEmpty &&
-        previousStableIndex == searchTabIndexWhenVisible && // היינו בטאב חיפוש
+        previousStableIndex == searchTabIndexWhenVisible &&
         _currentTabIndex != searchTabIndexWhenVisible) {
-      // עברנו לטאב אחר (שאינו חיפוש)
-
-      // דחיית הפעולה לסוף הפרריים כדי למנוע את השגיאה
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
-          // בדיקה חוזרת של mounted כי זה async
           setState(() {
             _searchController.clear();
             _searchResults = [];
-            // _currentTabIndex כבר מכיל את האינדקס החדש (הלא-חיפוש) שאליו עברנו
             _setupTabController(categories, switchToIndex: _currentTabIndex);
           });
         }
@@ -140,7 +131,8 @@ class _BooksScreenState extends State<BooksScreen>
     List<Widget> results = [];
     dataProvider.allBookData.forEach((categoryName, categoryData) {
       categoryData.books.forEach((bookName, bookDetails) {
-        if (bookName.toLowerCase().contains(term.toLowerCase())) {
+        if (bookName.toLowerCase().contains(term.toLowerCase()) ||
+            categoryName.toLowerCase().contains(term.toLowerCase())) {
           results.add(
             SearchBookCardWidget(
               categoryName: categoryName,
@@ -150,6 +142,18 @@ class _BooksScreenState extends State<BooksScreen>
           );
         }
       });
+    });
+    results.sort((a, b) {
+      // מיון תוצאות חיפוש
+      if (a is SearchBookCardWidget && b is SearchBookCardWidget) {
+        // עדיפות להתאמה בשם הספר
+        bool aNameMatch = a.bookName.toLowerCase().contains(term.toLowerCase());
+        bool bNameMatch = b.bookName.toLowerCase().contains(term.toLowerCase());
+        if (aNameMatch && !bNameMatch) return -1;
+        if (!aNameMatch && bNameMatch) return 1;
+        return a.bookName.compareTo(b.bookName); // מיון אלפביתי משני
+      }
+      return 0;
     });
 
     if (mounted) {
@@ -163,10 +167,11 @@ class _BooksScreenState extends State<BooksScreen>
           _setupTabController(categories, switchToIndex: newSearchTabIndex);
         } else if (results.isEmpty && hadSearchResults) {
           int switchToIndexAfterClear = _currentTabIndex;
-          if (switchToIndexAfterClear == newSearchTabIndex + 1) {
-            switchToIndexAfterClear = 0;
-          }
-          if (switchToIndexAfterClear >= categories.length &&
+          if (switchToIndexAfterClear == newSearchTabIndex &&
+              categories.isNotEmpty) {
+            // אם היינו בטאב החיפוש והוא נעלם
+            switchToIndexAfterClear = 0; // עבור לטאב הראשון
+          } else if (switchToIndexAfterClear >= categories.length &&
               categories.isNotEmpty) {
             switchToIndexAfterClear = categories.length - 1;
           } else if (categories.isEmpty) {
@@ -194,20 +199,33 @@ class _BooksScreenState extends State<BooksScreen>
   }
 
   Widget _buildSearchField(DataProvider dataProvider) {
+    final theme = Theme.of(context);
     return Padding(
-      padding: const EdgeInsets.only(bottom: 10.0, left: 20, right: 20, top: 5),
+      padding:
+          const EdgeInsets.only(bottom: 15.0, left: 20, right: 20, top: 15),
       child: TextField(
         controller: _searchController,
         textDirection: TextDirection.rtl,
         decoration: InputDecoration(
           hintText: 'חיפוש ספר...',
-          prefixIcon: const Icon(Icons.search),
+          prefixIcon: Icon(Icons.search, color: theme.colorScheme.primary),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(30),
-            borderSide: BorderSide(color: Theme.of(context).primaryColor),
+            borderSide:
+                BorderSide(color: theme.colorScheme.primary.withOpacity(0.5)),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(30),
+            borderSide:
+                BorderSide(color: theme.colorScheme.primary.withOpacity(0.3)),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(30),
+            borderSide:
+                BorderSide(color: theme.colorScheme.primary, width: 1.5),
           ),
           filled: true,
-          fillColor: Theme.of(context).colorScheme.surface.withOpacity(0.1),
+          fillColor: theme.colorScheme.surface,
           contentPadding:
               const EdgeInsets.symmetric(vertical: 0, horizontal: 20),
           isDense: true,
@@ -222,6 +240,7 @@ class _BooksScreenState extends State<BooksScreen>
   @override
   Widget build(BuildContext context) {
     final dataProvider = Provider.of<DataProvider>(context);
+    final theme = Theme.of(context);
 
     if (dataProvider.isLoading) {
       return const Center(child: CircularProgressIndicator());
@@ -244,19 +263,42 @@ class _BooksScreenState extends State<BooksScreen>
         }
       });
       return Column(
+        // הוספת Padding כאן אם רוצים שהחיפוש לא יהיה צמוד לקצוות
         children: [
           _buildSearchField(dataProvider),
-          const Expanded(child: Center(child: Text("מכין טאבים..."))),
+          const Expanded(
+              child: Center(
+                  child: Text("מכין טאבים...",
+                      style: TextStyle(fontStyle: FontStyle.italic)))),
         ],
       );
     }
 
-    if (_tabController == null || _tabController!.length == 0) {
+    if (_tabController == null ||
+        _tabController!.length == 0 && _searchController.text.isEmpty) {
       return Column(
+        // הוספת Padding כאן
         children: [
           _buildSearchField(dataProvider),
           const Expanded(
-              child: Center(child: Text('אין נתונים להצגה או תוצאות חיפוש.'))),
+              child: Center(
+                  child: Text('אין נתונים להצגה.',
+                      style: TextStyle(fontStyle: FontStyle.italic)))),
+        ],
+      );
+    }
+    if (_tabController == null ||
+        _tabController!.length == 0 &&
+            _searchController.text.isNotEmpty &&
+            _searchResults.isEmpty) {
+      return Column(
+        // הוספת Padding כאן
+        children: [
+          _buildSearchField(dataProvider),
+          const Expanded(
+              child: Center(
+                  child: Text('לא נמצאו תוצאות חיפוש.',
+                      style: TextStyle(fontStyle: FontStyle.italic)))),
         ],
       );
     }
@@ -266,12 +308,12 @@ class _BooksScreenState extends State<BooksScreen>
       final category = dataProvider.allBookData[categoryName]!;
       return GridView.builder(
         key: PageStorageKey<String>(categoryName),
-        padding: const EdgeInsets.all(10),
+        padding: const EdgeInsets.all(15),
         gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-          maxCrossAxisExtent: 170,
-          childAspectRatio: 150 / 75,
-          crossAxisSpacing: 10,
-          mainAxisSpacing: 10,
+          maxCrossAxisExtent: 170, // רוחב מקסימלי לכרטיס
+          childAspectRatio: 150 / 75, // יחס גובה-רוחב
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 12,
         ),
         itemCount: category.books.length,
         itemBuilder: (ctx, i) {
@@ -281,30 +323,34 @@ class _BooksScreenState extends State<BooksScreen>
             categoryName: categoryName,
             bookName: bookName,
             bookDetails: bookDetails,
-            bookProgressData:
-                Provider.of<ProgressProvider>(context, listen: false)
-                    .getProgressForBook(categoryName, bookName),
+            bookProgressData: Provider.of<ProgressProvider>(context,
+                    listen: true) // listen: true for completion status updates
+                .getProgressForBook(categoryName, bookName),
           );
         },
       );
     }).toList();
 
     if (_searchResults.isNotEmpty) {
-      tabs.add(const Tab(
+      tabs.add(Tab(
         child: Row(
           mainAxisSize: MainAxisSize.min,
-          children: [Icon(Icons.search), SizedBox(width: 5), Text("חיפוש")],
+          children: [
+            Icon(Icons.search, size: 20, color: theme.tabBarTheme.labelColor),
+            const SizedBox(width: 6),
+            const Text("חיפוש")
+          ],
         ),
       ));
       tabViews.add(
         GridView.builder(
           key: const PageStorageKey<String>('searchResults'),
-          padding: const EdgeInsets.all(10),
+          padding: const EdgeInsets.all(15),
           gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
             maxCrossAxisExtent: 170,
-            childAspectRatio: 150 / 85,
-            crossAxisSpacing: 10,
-            mainAxisSpacing: 10,
+            childAspectRatio: 150 / 90, // הגדלתי מעט את היחס עבור כרטיסי חיפוש
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 12,
           ),
           itemCount: _searchResults.length,
           itemBuilder: (context, index) => _searchResults[index],
@@ -315,13 +361,15 @@ class _BooksScreenState extends State<BooksScreen>
     return Column(
       children: [
         _buildSearchField(dataProvider),
-        TabBar(
-          controller: _tabController!,
-          isScrollable: true,
-          tabs: tabs,
-          labelColor: Theme.of(context).primaryColor,
-          unselectedLabelColor: Colors.grey.shade600,
-          indicatorColor: Theme.of(context).primaryColor,
+        Container(
+          color: theme.colorScheme.secondaryContainer
+              .withOpacity(0.3), // רקע לטאבים
+          child: TabBar(
+            controller: _tabController!,
+            isScrollable: true,
+            tabs: tabs,
+            // TabBarTheme מוגדר ב-main.dart
+          ),
         ),
         Expanded(
           child: TabBarView(

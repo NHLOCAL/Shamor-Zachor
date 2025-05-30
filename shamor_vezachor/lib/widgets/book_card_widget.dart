@@ -5,17 +5,15 @@ import '../models/progress_model.dart';
 import '../providers/progress_provider.dart';
 import '../screens/book_detail_screen.dart';
 import './hebrew_utils.dart';
-import '../services/progress_service.dart'; // For getCompletedPagesCount
+import '../services/progress_service.dart';
 
 class BookCardWidget extends StatelessWidget {
   final String categoryName;
   final String bookName;
   final BookDetails bookDetails;
-  final Map<String, Map<String, PageProgress>>
-      bookProgressData; // Progress for this specific book
+  final Map<String, Map<String, PageProgress>> bookProgressData;
   final bool isFromTrackingScreen;
-  final String?
-      completionDateOverride; // Used if book is completed but no active progress
+  final String? completionDateOverride;
 
   const BookCardWidget({
     super.key,
@@ -86,7 +84,8 @@ class BookCardWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     final progressProvider =
         Provider.of<ProgressProvider>(context, listen: false);
-    // isBookCompleted is synchronous and relies on provider's current state
+    final theme = Theme.of(context);
+
     final bool isCompleted = completionDateOverride != null ||
         progressProvider.isBookCompleted(categoryName, bookName, bookDetails);
 
@@ -100,13 +99,11 @@ class BookCardWidget extends StatelessWidget {
         percentage = (completedPages / totalTargetPages);
       }
       if (isCompleted) {
-        // Ensure 100% if marked complete
         percentage = 1.0;
       }
 
       final String statusText;
       if (isCompleted) {
-        // Use the synchronous getCompletionDateSync from the provider
         final String? dateFromProvider =
             progressProvider.getCompletionDateSync(categoryName, bookName);
         final hebrewDate = HebrewUtils.getCompletionDateString(
@@ -118,16 +115,28 @@ class BookCardWidget extends StatelessWidget {
       }
 
       final progressColor =
-          isCompleted ? Colors.green.shade700 : Theme.of(context).primaryColor;
-      final textColorOnProgress = percentage >= 0.4
+          isCompleted ? Colors.green.shade600 : theme.primaryColor;
+
+      final textColorOnProgress = percentage >= 0.45
           ? Colors.white
-          : Theme.of(context).colorScheme.onPrimaryContainer;
+          : theme.colorScheme.onPrimaryContainer;
+
+      // גובה מינימלי רצוי לכל אחד מהחלקים כדי למנוע קריסה
+      const double titleMinHeight = 36; // שתי שורות של טקסט 16
+      const double progressBarMinHeight = 24;
+      const double statusTextMinHeight = 18; // שורה אחת של טקסט 12-13
+      const double verticalPadding =
+          8 * 2; // top and bottom padding for the card
+      const double spacingBetweenElements = 6 * 2; // two SizedBoxes
+      const double minCardHeight = titleMinHeight +
+          progressBarMinHeight +
+          statusTextMinHeight +
+          verticalPadding +
+          spacingBetweenElements;
 
       return Card(
-        elevation: 2,
-        margin: const EdgeInsets.symmetric(vertical: 6),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        color: Theme.of(context).cardTheme.color,
+        margin: const EdgeInsets.symmetric(
+            vertical: 5, horizontal: 4), // הקטנת מרווח אנכי
         child: InkWell(
           onTap: () {
             Navigator.of(context).pushNamed(
@@ -135,46 +144,58 @@ class BookCardWidget extends StatelessWidget {
               arguments: {'categoryName': categoryName, 'bookName': bookName},
             );
           },
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(10), // רדיוס קטן יותר
           child: Padding(
-            padding: const EdgeInsets.all(15.0),
+            padding: const EdgeInsets.symmetric(
+                horizontal: 10.0, vertical: 8.0), // הקטנת Padding
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.center, // נשאר מרכוז
               crossAxisAlignment: CrossAxisAlignment.center,
+              mainAxisSize: MainAxisSize
+                  .min, // ננסה לגרום ל-Column לתפוס רק את הגובה שהוא צריך
               children: [
                 Text(
                   '$bookName ($categoryName)',
-                  style: const TextStyle(
-                      fontSize: 18, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                      fontSize: 16, // הקטנת פונט
+                      fontWeight: FontWeight.bold,
+                      color: theme.colorScheme.onSurface),
                   textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 6), // הקטנת מרווח
                 Stack(
                   alignment: Alignment.center,
                   children: [
                     LinearProgressIndicator(
                       value: percentage,
-                      minHeight: 25,
-                      backgroundColor: Colors.grey.shade300,
+                      minHeight: 24, // הקטנת גובה סרגל
+                      backgroundColor:
+                          theme.colorScheme.primaryContainer.withOpacity(0.3),
                       valueColor: AlwaysStoppedAnimation<Color>(progressColor),
-                      borderRadius: BorderRadius.circular(
-                          5), // For newer Flutter versions, use `borderRadius`
+                      borderRadius: BorderRadius.circular(4), // רדיוס קטן יותר
                     ),
                     Text(
                       '${(percentage * 100).round()}%',
                       style: TextStyle(
                         color: textColorOnProgress,
                         fontWeight: FontWeight.bold,
-                        fontSize: 13,
+                        fontSize: 11, // הקטנת פונט אחוזים
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 6), // הקטנת מרווח
                 Text(
                   statusText,
-                  style: const TextStyle(fontSize: 14),
+                  style: TextStyle(
+                      fontSize: 12,
+                      color: theme.colorScheme.onSurface
+                          .withOpacity(0.8)), // הקטנת פונט סטטוס
                   textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),
@@ -183,22 +204,17 @@ class BookCardWidget extends StatelessWidget {
       );
     }
 
-    // For books screen cards (simpler)
+    // Card for BooksScreen
     return SizedBox(
-      height: 75,
-      width: 150,
+      height: 70,
       child: ElevatedButton(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Theme.of(context)
-              .colorScheme
-              .surface, // Changed from surfaceVariant
-          foregroundColor: Theme.of(context)
-              .colorScheme
-              .onSurface, // Corresponding onSurface
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-          elevation: 1,
+        style: theme.elevatedButtonTheme.style?.copyWith(
+          backgroundColor: WidgetStateProperty.all(theme.colorScheme.surface),
+          foregroundColor: WidgetStateProperty.all(theme.colorScheme.onSurface),
+          padding: WidgetStateProperty.all(
+              const EdgeInsets.symmetric(horizontal: 8, vertical: 5)),
+          minimumSize: WidgetStateProperty.all(const Size(140, 70)),
+          maximumSize: WidgetStateProperty.all(const Size(180, 70)),
         ),
         onPressed: () {
           Navigator.of(context).pushNamed(
@@ -216,15 +232,19 @@ class BookCardWidget extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 if (isCompleted)
-                  Icon(Icons.check_circle,
-                      color: Colors.green.shade600, size: 18),
-                if (isCompleted) const SizedBox(width: 4),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 4.0),
+                    child: Icon(Icons.check_circle,
+                        color: Colors.green.shade600, size: 18),
+                  ),
                 Flexible(
                   child: Text(
                     bookName,
-                    style: const TextStyle(fontSize: 16),
+                    style: const TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.w600),
                     textAlign: TextAlign.center,
                     overflow: TextOverflow.ellipsis,
+                    maxLines: 2,
                   ),
                 ),
               ],
@@ -252,24 +272,20 @@ class SearchBookCardWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     final progressProvider =
         Provider.of<ProgressProvider>(context, listen: false);
+    final theme = Theme.of(context);
     final bool isCompleted =
         progressProvider.isBookCompleted(categoryName, bookName, bookDetails);
 
     return SizedBox(
-      height: 75,
-      width: 150,
+      height: 85,
       child: ElevatedButton(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Theme.of(context)
-              .colorScheme
-              .surface, // Changed from surfaceVariant
-          foregroundColor: Theme.of(context)
-              .colorScheme
-              .onSurface, // Corresponding onSurface
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-          elevation: 1,
+        style: theme.elevatedButtonTheme.style?.copyWith(
+          backgroundColor: WidgetStateProperty.all(theme.colorScheme.surface),
+          foregroundColor: WidgetStateProperty.all(theme.colorScheme.onSurface),
+          padding: WidgetStateProperty.all(
+              const EdgeInsets.symmetric(horizontal: 8, vertical: 8)),
+          minimumSize: WidgetStateProperty.all(const Size(140, 85)),
+          maximumSize: WidgetStateProperty.all(const Size(180, 85)),
         ),
         onPressed: () {
           Navigator.of(context).pushNamed(
@@ -287,24 +303,32 @@ class SearchBookCardWidget extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 if (isCompleted)
-                  Icon(Icons.check_circle,
-                      color: Colors.green.shade600, size: 18),
-                if (isCompleted) const SizedBox(width: 4),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 4.0),
+                    child: Icon(Icons.check_circle,
+                        color: Colors.green.shade600, size: 18),
+                  ),
                 Flexible(
                   child: Text(
                     bookName,
-                    style: const TextStyle(fontSize: 16),
+                    style: const TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.w600),
                     textAlign: TextAlign.center,
                     overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
                   ),
                 ),
               ],
             ),
+            const SizedBox(height: 2),
             Text(
               categoryName,
-              style: TextStyle(fontSize: 13, color: Colors.grey.shade700),
+              style: TextStyle(
+                  fontSize: 13,
+                  color: theme.colorScheme.onSurface.withOpacity(0.7)),
               textAlign: TextAlign.center,
               overflow: TextOverflow.ellipsis,
+              maxLines: 1,
             ),
           ],
         ),

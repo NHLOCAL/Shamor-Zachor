@@ -16,6 +16,12 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    const Color primaryBrown = Color(0xFF8F4C33);
+    const Color lightPinkBeige = Color(0xFFF1DFD9);
+    const Color lightPeachPink = Color(0xFFFFDBCF);
+    const Color surfaceColor =
+        Color(0xFFFAF6F4); // רקע כללי בהיר מאוד, כמעט לבן עם נגיעה של בז'
+
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => DataProvider()),
@@ -24,88 +30,130 @@ class MyApp extends StatelessWidget {
       child: MaterialApp(
         title: 'שמור וזכור',
         debugShowCheckedModeBanner: false,
-        // RTL Support
         localizationsDelegates: const [
           GlobalMaterialLocalizations.delegate,
           GlobalWidgetsLocalizations.delegate,
           GlobalCupertinoLocalizations.delegate,
         ],
         supportedLocales: const [
-          Locale('he', 'IL'), // Hebrew
+          Locale('he', 'IL'),
           Locale('en', ''), // English (fallback)
         ],
-        locale: const Locale('he', 'IL'), // Set Hebrew as default
-
+        locale: const Locale('he', 'IL'),
         theme: ThemeData(
-            primarySwatch: Colors.brown,
-            colorScheme: ColorScheme.fromSeed(
-              seedColor: Colors.brown,
-              primaryContainer: Colors.brown.shade100,
-              onPrimaryContainer: Colors.brown.shade900,
-              // For Material 3, surfaceVariant is less common.
-              // Using surfaceContainerHighest or similar as a replacement, or just surface.
-              // Let's use surface for general card backgrounds if surfaceVariant was for that.
-              // If it was for specific variant cards, surfaceContainer might be better.
-              // Flet used surface_variant for tracking cards, which were light.
-              surface: Colors.brown.shade50, // General background for cards
-              surfaceContainerHighest: Colors.brown
-                  .shade50, // Alternative if surfaceVariant was meant for elevation
-            ),
+            primaryColor: primaryBrown,
+            scaffoldBackgroundColor: surfaceColor,
             fontFamily: 'Heebo',
             useMaterial3: true,
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: primaryBrown,
+              primary: primaryBrown,
+              background: surfaceColor, // רקע כללי של האפליקציה
+              surface: lightPinkBeige, // רקע לכרטיסים, קונטיינרים
+              onSurface: primaryBrown, // טקסט על רקע surface
+              primaryContainer: lightPeachPink, // צבע לקונטיינרים מודגשים קלות
+              onPrimaryContainer: primaryBrown, // טקסט על primaryContainer
+              secondaryContainer: lightPinkBeige, // לשימוש בטאבים, רקעים משניים
+              onSecondaryContainer: primaryBrown,
+            ),
             appBarTheme: AppBarTheme(
-              backgroundColor: Colors.brown.shade100,
-              foregroundColor: Colors.brown.shade900,
+              backgroundColor: lightPeachPink,
+              foregroundColor: primaryBrown,
               elevation: 1,
               titleTextStyle: TextStyle(
-                // Making it const requires all inner parts to be const
                 fontFamily: 'Heebo',
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
-                color: Colors.brown.shade900,
+                color: primaryBrown,
               ),
+              iconTheme: IconThemeData(color: primaryBrown),
             ),
-            scaffoldBackgroundColor: Colors.grey[50],
             cardTheme: CardTheme(
-              elevation: 2,
+              elevation: 1,
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10)),
-              color: Colors.brown.shade50, // Used surface (was surfaceVariant)
+                  borderRadius: BorderRadius.circular(12)),
+              color: lightPinkBeige, // רקע לכרטיסים במסך המעקב
+              margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
             ),
             segmentedButtonTheme: SegmentedButtonThemeData(
                 style: ButtonStyle(
               backgroundColor: WidgetStateProperty.resolveWith<Color?>(
                 (Set<WidgetState> states) {
                   if (states.contains(WidgetState.selected)) {
-                    return Colors.brown.shade200;
+                    return primaryBrown.withOpacity(0.2);
                   }
-                  return Colors.brown.shade50;
+                  return lightPinkBeige;
                 },
               ),
               foregroundColor: WidgetStateProperty.resolveWith<Color?>(
                 (Set<WidgetState> states) {
                   if (states.contains(WidgetState.selected)) {
-                    return Colors.brown.shade900;
+                    return primaryBrown;
                   }
-                  return Colors.brown.shade700;
+                  return primaryBrown.withOpacity(0.7);
                 },
               ),
               side: WidgetStateProperty.all(
-                  BorderSide(color: Colors.brown.shade300)),
+                  BorderSide(color: primaryBrown.withOpacity(0.3))),
+              shape: WidgetStateProperty.all(RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8))),
             )),
             checkboxTheme: CheckboxThemeData(
               fillColor: WidgetStateProperty.resolveWith((states) {
                 if (states.contains(WidgetState.selected)) {
-                  return Colors.brown;
+                  return primaryBrown;
                 }
                 return null;
               }),
               checkColor: WidgetStateProperty.all(Colors.white),
             ),
             progressIndicatorTheme: ProgressIndicatorThemeData(
-              color: Colors.brown,
-              linearTrackColor: Colors.brown.shade100,
-            )),
+              color: primaryBrown,
+              linearTrackColor: primaryBrown.withOpacity(0.2),
+            ),
+            elevatedButtonTheme: ElevatedButtonThemeData(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: lightPinkBeige,
+                foregroundColor: primaryBrown,
+                elevation: 1,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10)),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              ),
+            ),
+            bottomNavigationBarTheme: BottomNavigationBarThemeData(
+              backgroundColor: lightPeachPink, // רקע הסרגל התחתון
+              selectedItemColor: primaryBrown,
+              unselectedItemColor: primaryBrown.withOpacity(0.6),
+              selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            navigationBarTheme: NavigationBarThemeData(
+              backgroundColor: lightPeachPink,
+              indicatorColor: primaryBrown.withOpacity(0.2),
+              labelTextStyle: WidgetStateProperty.resolveWith((states) {
+                if (states.contains(WidgetState.selected)) {
+                  return TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: primaryBrown);
+                }
+                return TextStyle(
+                    fontSize: 12, color: primaryBrown.withOpacity(0.7));
+              }),
+              iconTheme: WidgetStateProperty.resolveWith((states) {
+                if (states.contains(WidgetState.selected)) {
+                  return IconThemeData(color: primaryBrown);
+                }
+                return IconThemeData(color: primaryBrown.withOpacity(0.7));
+              }),
+            ),
+            tabBarTheme: TabBarTheme(
+                labelColor: primaryBrown,
+                unselectedLabelColor: primaryBrown.withOpacity(0.7),
+                indicatorColor: primaryBrown,
+                indicatorSize: TabBarIndicatorSize.tab,
+                dividerColor: primaryBrown.withOpacity(0.2))),
         initialRoute: '/',
         routes: {
           '/': (ctx) => const MainLayoutScreen(),
