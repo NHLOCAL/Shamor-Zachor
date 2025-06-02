@@ -1,9 +1,11 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/data_provider.dart';
 import '../providers/progress_provider.dart';
 import '../models/book_model.dart';
 import '../widgets/hebrew_utils.dart';
+import '../widgets/completion_animation_overlay.dart';
 
 class BookDetailScreen extends StatefulWidget {
   static const routeName = '/book-detail';
@@ -23,26 +25,56 @@ class BookDetailScreen extends StatefulWidget {
 
 class _BookDetailScreenState extends State<BookDetailScreen> {
   bool _isSelectAllChecked = false;
+  StreamSubscription<CompletionEvent>? _completionSubscription;
 
   @override
   void initState() {
     super.initState();
+
+    final progressProvider = Provider.of<ProgressProvider>(context, listen: false);
+    _completionSubscription = progressProvider.completionEvents.listen((event) {
+      if (!mounted) return; // Ensure widget is still in the tree
+
+      if (event.type == CompletionEventType.bookCompleted) {
+        CompletionAnimationOverlay.show(
+          context,
+          "אשריך! תזכה ללמוד ספרים אחרים ולסיימם!",
+        );
+      } else if (event.type == CompletionEventType.reviewCycleCompleted) {
+        // String reviewCycleMessage = "מזל טוב! הלומד וחוזר כזורע וקוצר!";
+        // Optionally, could customize message further based on event.reviewCycleNumber
+        // if (event.reviewCycleNumber != null) {
+        //   reviewCycleMessage = "מזל טוב על סיום חזרה ${event.reviewCycleNumber}! הלומד וחוזר כזורע וקוצר!";
+        // }
+        CompletionAnimationOverlay.show(
+          context,
+          "מזל טוב! הלומד וחוזר כזורע וקוצר!",
+        );
+      }
+    });
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      final progressProvider =
-          Provider.of<ProgressProvider>(context, listen: false);
+      // final progressProvider = // Already defined above
+      //     Provider.of<ProgressProvider>(context, listen: false);
       final dataProvider = Provider.of<DataProvider>(context, listen: false);
       final bookDetails =
           dataProvider.getBookDetails(widget.categoryName, widget.bookName);
       if (bookDetails != null) {
         if (mounted) {
           setState(() {
-            _isSelectAllChecked = progressProvider.isBookCompleted(
+            _isSelectAllChecked = progressProvider.isBookCompleted( // progressProvider is available from initState
                 widget.categoryName, widget.bookName, bookDetails);
           });
         }
       }
     });
+  }
+
+  @override
+  void dispose() {
+    _completionSubscription?.cancel();
+    super.dispose();
   }
 
   void _toggleSelectAll(

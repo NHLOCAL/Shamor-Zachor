@@ -19,6 +19,7 @@ dependencies:
   path_provider: ^2.1.1 # ודא שהגרסה תואמת את שלך, אם שונה
   cupertino_icons: ^1.0.8
   kosher_dart: ^2.0.17
+  confetti: ^0.7.0
 
 dependency_overrides:
   intl: ^0.19.0
