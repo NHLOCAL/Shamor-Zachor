@@ -161,10 +161,10 @@ packages:
     dependency: "direct main"
     description:
       name: intl
-      sha256: "3df61194eb431efc39c4ceba583b95633a403f46c9fd341e550ce0bfa50e9aa5"
+      sha256: d6f56758b7d3014a48af9701c085700aac781a92a87a62b1333b46d8879661cf
       url: "https://pub.dev"
     source: hosted
-    version: "0.20.2"
+    version: "0.19.0"
   json_annotation:
     dependency: transitive
     description:
@@ -173,6 +173,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "4.9.0"
+  kosher_dart:
+    dependency: "direct main"
+    description:
+      name: kosher_dart
+      sha256: f37c00da3109fedefc933296cdb01694d097474603f9f4d8a025b17fb9a2c5fe
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.0.17"
   leak_tracker:
     dependency: transitive
     description:
@@ -293,6 +301,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.3.0"
+  pedantic:
+    dependency: transitive
+    description:
+      name: pedantic
+      sha256: "67fc27ed9639506c856c840ccce7594d0bdcd91bc8d53d6e52359449a1d50602"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.11.1"
   petitparser:
     dependency: transitive
     description:
