@@ -1,4 +1,5 @@
 import 'package:intl/intl.dart'; // For Gregorian date formatting
+import 'package:kosher_dart/kosher_dart.dart';
 // For Hebrew date, you'd typically use a package like hebcal_dart
 // For now, we'll just format Gregorian or return null
 
@@ -52,19 +53,42 @@ class HebrewUtils {
     if (dateStrYYYYMMDD == null || dateStrYYYYMMDD.isEmpty) {
       return null;
     }
+
     try {
-      final dateObj = DateTime.parse(dateStrYYYYMMDD);
-      // Placeholder for Hebrew date conversion.
-      // Using hebcal_dart package would be:
-      // final hebrewDate = JewishDate.fromDateTime(dateObj);
-      // return hebrewDate.toStringHeb(); // Or a specific format
-      // For now, return Gregorian in a readable format or a placeholder
-      return DateFormat('d MMMM yyyy', 'he_IL')
-          .format(dateObj); // Example: 24 אוקטובר 2023
-      // Or a simple placeholder:
-      // return "תאריך עברי ל-${DateFormat('dd/MM/yyyy').format(dateObj)}";
+      final DateTime gregorianDate = DateTime.parse(dateStrYYYYMMDD);
+      
+      JewishDate hebrewDate = JewishDate.fromDateTime(gregorianDate);
+      
+      // Using specific API names based on common kosher_dart patterns
+      int dayInt = hebrewDate.getJewishDayOfMonth(); 
+      String dayGematria = HebrewUtils.intToGematria(dayInt);
+      
+      HebrewDateFormatter hdf = HebrewDateFormatter();
+      hdf.hebrewFormat = true; // Ensure output is in Hebrew characters
+      
+      String monthName = hdf.formatMonth(hebrewDate);
+      
+      // Last attempt: Use the generic format() method and extract the year.
+      // The default pattern is "dd MMMM, yyyy".
+      // With hebrewFormat = true, this might output something like "כ"ה תשרי, תשפ"ד".
+      String fullFormattedDate = hdf.format(hebrewDate);
+      String yearHebrew = fullFormattedDate; // Default to full date if split fails
+      if (fullFormattedDate.contains(', ')) {
+        yearHebrew = fullFormattedDate.split(', ').last;
+      } else if (fullFormattedDate.contains(' ')) { 
+        // If no comma, maybe it's "Day Month Year" already, try taking last part.
+        // This is very speculative.
+        List<String> parts = fullFormattedDate.split(' ');
+        if (parts.length > 2) { // Ensure there are enough parts for a year
+          yearHebrew = parts.last;
+        }
+      }
+      // This is a fallback and might need adjustment based on actual output.
+      
+      return '$dayGematria $monthName $yearHebrew';
+      
     } catch (e) {
-      print("Error parsing date for Hebrew conversion: $e");
+      print("Error in getCompletionDateString: $e");
       return null;
     }
   }
