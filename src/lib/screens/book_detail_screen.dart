@@ -81,11 +81,11 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
         progressProvider.justManuallyCompletedBook!['book'] == widget.bookName;
 
     if (shouldShowBookCompletionAnimation) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) { 
-          progressProvider.clearJustManuallyCompletedBookFlag();
-        }
-      });
+      // WidgetsBinding.instance.addPostFrameCallback((_) {
+      //   if (mounted) { 
+      //     progressProvider.clearJustManuallyCompletedBookFlag();
+      //   }
+      // });
     }
 
     // Check if the review completion animation should be shown and clear the flag
@@ -94,11 +94,11 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
         progressProvider.justCompletedReviewDetails!['book'] == widget.bookName;
 
     if (shouldShowReviewAnimation) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) { 
-          progressProvider.clearJustCompletedReviewDetailsFlag();
-        }
-      });
+      // WidgetsBinding.instance.addPostFrameCallback((_) {
+      //   if (mounted) { 
+      //     progressProvider.clearJustCompletedReviewDetailsFlag();
+      //   }
+      // });
     }
 
     final currentCompletionStatus = progressProvider.isBookCompleted(
@@ -326,30 +326,14 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
 
         // Conditional Animation Overlay for main book completion
         if (shouldShowBookCompletionAnimation)
-          Positioned.fill(
-            child: Container(
-              color: Colors.blue.withOpacity(0.7), // Use a distinct color
-              alignment: Alignment.center,
-              child: const Text(
-                'בדיקה: סיום ספר!',
-                textDirection: TextDirection.rtl,
-                style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
-              ),
-            ),
+          const Positioned.fill( // Add const if CompletionAnimationWidget can be const
+            child: CompletionAnimationWidget(),
           ),
 
         // Conditional Animation Overlay for review completion
         if (shouldShowReviewAnimation)
-          Positioned.fill(
-            child: Container(
-              color: Colors.green.withOpacity(0.7), // Use a different distinct color
-              alignment: Alignment.center,
-              child: const Text(
-                'בדיקה: סיום חזרה!',
-                textDirection: TextDirection.rtl,
-                style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
-              ),
-            ),
+          const Positioned.fill( // Add const if ReviewCompletionAnimationWidget can be const
+            child: ReviewCompletionAnimationWidget(),
           ),
         ],
       ),

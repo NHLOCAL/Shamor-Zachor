@@ -6,7 +6,7 @@ import './providers/data_provider.dart';
 import './providers/progress_provider.dart';
 import './screens/main_layout_screen.dart';
 import './screens/book_detail_screen.dart';
-import './screens/debug_animation_test_screen.dart'; // Added import
+// import './screens/debug_animation_test_screen.dart'; // Commented out/Removed import
 
 void main() {
   runApp(const MyApp());
@@ -193,11 +193,11 @@ class MyApp extends StatelessWidget {
               overlayColor: WidgetStateProperty.all(
                   primaryBrown.withOpacity(0.1)), // צבע עדין בעת לחיצה/ריחוף
             )),
-        // initialRoute: '/', // Commented out
-        // routes: { // Commented out
-        //   '/': (ctx) => const MainLayoutScreen(),
-        // },
-        home: const DebugAnimationTestScreen(), // Set new home screen
+        initialRoute: '/', // Restored
+        routes: { // Restored
+          '/': (ctx) => const MainLayoutScreen(),
+        },
+        // home: const DebugAnimationTestScreen(), // Removed
         onGenerateRoute: (settings) {
           if (settings.name == BookDetailScreen.routeName) {
             final args = settings.arguments as Map<String, String>;
