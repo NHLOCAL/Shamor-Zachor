@@ -326,14 +326,30 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
 
         // Conditional Animation Overlay for main book completion
         if (shouldShowBookCompletionAnimation)
-          const Positioned.fill(
-            child: CompletionAnimationWidget(),
+          Positioned.fill(
+            child: Container(
+              color: Colors.blue.withOpacity(0.7), // Use a distinct color
+              alignment: Alignment.center,
+              child: const Text(
+                'בדיקה: סיום ספר!',
+                textDirection: TextDirection.rtl,
+                style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+              ),
+            ),
           ),
 
         // Conditional Animation Overlay for review completion
         if (shouldShowReviewAnimation)
-          const Positioned.fill(
-            child: ReviewCompletionAnimationWidget(),
+          Positioned.fill(
+            child: Container(
+              color: Colors.green.withOpacity(0.7), // Use a different distinct color
+              alignment: Alignment.center,
+              child: const Text(
+                'בדיקה: סיום חזרה!',
+                textDirection: TextDirection.rtl,
+                style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+              ),
+            ),
           ),
         ],
       ),
