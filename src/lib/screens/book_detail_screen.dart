@@ -4,6 +4,8 @@ import '../providers/data_provider.dart';
 import '../providers/progress_provider.dart';
 import '../models/book_model.dart';
 import '../widgets/hebrew_utils.dart';
+import '../widgets/completion_animation_widget.dart';
+import '../widgets/review_completion_animation_widget.dart';
 
 class BookDetailScreen extends StatefulWidget {
   static const routeName = '/book-detail';
@@ -73,6 +75,32 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
       );
     }
 
+    // Check if the book completion animation should be shown and clear the flag
+    bool shouldShowBookCompletionAnimation = progressProvider.justManuallyCompletedBook != null &&
+        progressProvider.justManuallyCompletedBook!['category'] == widget.categoryName &&
+        progressProvider.justManuallyCompletedBook!['book'] == widget.bookName;
+
+    if (shouldShowBookCompletionAnimation) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) { 
+          progressProvider.clearJustManuallyCompletedBookFlag();
+        }
+      });
+    }
+
+    // Check if the review completion animation should be shown and clear the flag
+    bool shouldShowReviewAnimation = progressProvider.justCompletedReviewDetails != null &&
+        progressProvider.justCompletedReviewDetails!['category'] == widget.categoryName &&
+        progressProvider.justCompletedReviewDetails!['book'] == widget.bookName;
+
+    if (shouldShowReviewAnimation) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) { 
+          progressProvider.clearJustCompletedReviewDetailsFlag();
+        }
+      });
+    }
+
     final currentCompletionStatus = progressProvider.isBookCompleted(
         widget.categoryName, widget.bookName, bookDetails);
     if (_isSelectAllChecked != currentCompletionStatus) {
@@ -102,18 +130,20 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
             ),
           ],
         ),
-        body: Card(
-          margin: const EdgeInsets.all(12), // מרווח סביב הכרטיס
-          elevation: 2, // הצללה קלה
-          color: theme.colorScheme.surface, // צבע רקע לכרטיס
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          child: Padding(
-            padding: const EdgeInsets.all(15.0),
-            child: Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 10.0),
+        body: Stack( // Wrap existing body content with a Stack
+          children: [
+            // Original body content (the Card)
+            Card(
+              margin: const EdgeInsets.all(12), // מרווח סביב הכרטיס
+              elevation: 2, // הצללה קלה
+              color: theme.colorScheme.surface, // צבע רקע לכרטיס
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              child: Padding(
+                padding: const EdgeInsets.all(15.0),
+                child: Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 10.0),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
@@ -293,7 +323,21 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
             ),
           ),
         ),
+
+        // Conditional Animation Overlay for main book completion
+        if (shouldShowBookCompletionAnimation)
+          const Positioned.fill(
+            child: CompletionAnimationWidget(),
+          ),
+
+        // Conditional Animation Overlay for review completion
+        if (shouldShowReviewAnimation)
+          const Positioned.fill(
+            child: ReviewCompletionAnimationWidget(),
+          ),
+        ],
       ),
-    );
-  }
+    ),
+  );
+}
 }
