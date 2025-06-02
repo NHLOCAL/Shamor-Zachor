@@ -1,21 +1,34 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import '../models/progress_model.dart';
 import '../models/book_model.dart';
 import '../services/progress_service.dart';
 
+enum CompletionEventType {
+  bookCompleted,
+  reviewCycleCompleted,
+}
+
+class CompletionEvent {
+  final CompletionEventType type;
+  final String? bookName; // Optional: To specify which book
+  final int? reviewCycleNumber; // Optional: To specify which review cycle (1, 2, or 3)
+
+  CompletionEvent(this.type, {this.bookName, this.reviewCycleNumber});
+}
+
 class ProgressProvider with ChangeNotifier {
-  final ProgressService _progressService; // Changed: no direct instantiation
+  final ProgressService _progressService = ProgressService();
   FullProgressMap _fullProgress = {};
   CompletionDatesMap _completionDates = {}; // Cache completion dates
-  Map<String, String>? justManuallyCompletedBook;
-  Map<String, dynamic>? justCompletedReviewDetails; 
-  // Will store {'category': String, 'book': String, 'reviewType': String}
+
+  final _completionEventController = StreamController<CompletionEvent>.broadcast();
+  Stream<CompletionEvent> get completionEvents => _completionEventController.stream;
 
   bool _isLoading = false;
   bool get isLoading => _isLoading;
 
-  ProgressProvider({ProgressService? progressService}) // Changed: constructor takes optional service
-      : _progressService = progressService ?? ProgressService() { // Changed: initializer list
+  ProgressProvider() {
     _loadInitialProgress();
   }
 
@@ -48,8 +61,6 @@ class ProgressProvider with ChangeNotifier {
       String columnName,
       bool value,
       BookDetails bookDetails) async {
-    // The wasCompletedBeforeUpdate logic is now part of the new block below.
-
     await _progressService.saveProgress(
         categoryName, bookName, daf, amudKey, columnName, value);
 
@@ -90,95 +101,54 @@ class ProgressProvider with ChangeNotifier {
       }
     }
 
-    // Start of new flag logic block
-    // Ensure 'bookDetails' is available and non-null in this scope.
-    // The method signature is: updateProgress(..., BookDetails bookDetails)
-
-    // 1. Handle Main Book Completion ('learn' column)
-    if (columnName == 'learn') {
-      // Store the actual current value of pageProgress.learn (which is 'value')
-      bool currentItemLearnStatus = pageProgress.learn; 
-
-      // Temporarily set item's learn status to its opposite to check 'before' state
-      pageProgress.learn = !currentItemLearnStatus; 
-      bool wasBookCompletedBeforeThis = isBookCompleted(categoryName, bookName, bookDetails);
-      
-      // Restore item's actual current learn status
-      pageProgress.learn = currentItemLearnStatus; 
-
-      if (value == true) { // Current action is marking 'learn' as true
-        bool isBookNowCompleted = isBookCompleted(categoryName, bookName, bookDetails);
-        if (isBookNowCompleted && !wasBookCompletedBeforeThis) {
-          justManuallyCompletedBook = {'category': categoryName, 'book': bookName};
-        } else {
-          justManuallyCompletedBook = null; // Not newly completed or was already complete
-        }
-      } else { // Current action is marking 'learn' as false
-        justManuallyCompletedBook = null;
-      }
-      // A 'learn' action should clear any pending review completion flag
-      justCompletedReviewDetails = null; 
-    }
-    // 2. Handle Review Type Completion ('review1', 'review2', 'review3' columns)
-    else if (columnName == 'review1' || columnName == 'review2' || columnName == 'review3') {
-      // Store the actual current value of the specific review status
-      bool currentItemReviewStatus = false;
-      switch(columnName) {
-        case 'review1': currentItemReviewStatus = pageProgress.review1; break;
-        case 'review2': currentItemReviewStatus = pageProgress.review2; break;
-        case 'review3': currentItemReviewStatus = pageProgress.review3; break;
-      }
-
-      // Temporarily set item's review status to its opposite to check 'before' state
-      switch(columnName) {
-        case 'review1': pageProgress.review1 = !currentItemReviewStatus; break;
-        case 'review2': pageProgress.review2 = !currentItemReviewStatus; break;
-        case 'review3': pageProgress.review3 = !currentItemReviewStatus; break;
-      }
-      bool wasReviewTypeCompletedBeforeThis = isReviewTypeCompleted(categoryName, bookName, columnName, bookDetails);
-      
-      // Restore item's actual current review status
-      switch(columnName) {
-        case 'review1': pageProgress.review1 = currentItemReviewStatus; break;
-        case 'review2': pageProgress.review2 = currentItemReviewStatus; break;
-        case 'review3': pageProgress.review3 = currentItemReviewStatus; break;
-      }
-
-      if (value == true) { // Current action is marking a review as true
-        bool isReviewTypeNowCompleted = isReviewTypeCompleted(categoryName, bookName, columnName, bookDetails);
-        if (isReviewTypeNowCompleted && !wasReviewTypeCompletedBeforeThis) {
-          justCompletedReviewDetails = {
-            'category': categoryName,
-            'book': bookName,
-            'reviewType': columnName,
-          };
-        } else {
-          justCompletedReviewDetails = null; // Not newly completed or was already complete
-        }
-      } else { // Current action is marking a review as false
-        justCompletedReviewDetails = null;
-      }
-      // A review action should clear any pending main book completion flag
-      justManuallyCompletedBook = null; 
-    }
-    // 3. Default: if not 'learn' or a known 'reviewX' column, clear both flags
-    else {
-      justManuallyCompletedBook = null;
-      justCompletedReviewDetails = null;
-    }
-    // End of new flag logic block
-
     if (value && columnName == 'learn') {
+      bool wasAlreadyCompleted = getCompletionDateSync(categoryName, bookName) != null;
       bool isNowComplete = isBookCompleted(categoryName, bookName, bookDetails);
-      // Check completion date from sync method before attempting to save
-      if (isNowComplete &&
-          getCompletionDateSync(categoryName, bookName) == null) {
+
+      if (isNowComplete && !wasAlreadyCompleted) {
         await _progressService.saveCompletionDate(categoryName, bookName);
         _completionDates = await _progressService.loadCompletionDates();
+        // Fire event for manual book completion
+        _completionEventController.add(CompletionEvent(CompletionEventType.bookCompleted, bookName: bookName));
+      }
+    } else if (value && (columnName == 'review1' || columnName == 'review2' || columnName == 'review3')) {
+      int? reviewCycleNumber;
+      if (columnName == 'review1') reviewCycleNumber = 1;
+      else if (columnName == 'review2') reviewCycleNumber = 2;
+      else if (columnName == 'review3') reviewCycleNumber = 3;
+
+      if (reviewCycleNumber != null) {
+        // Check if this specific change led to the completion of the review cycle
+        // We assume `updateProgress` has already updated the specific `pageProgress` object in `_fullProgress`
+        bool cycleJustCompleted = _isReviewCycleCompleted(categoryName, bookName, reviewCycleNumber, bookDetails);
+        
+        if (cycleJustCompleted) {
+          // To prevent firing multiple times if already completed and another item is checked,
+          // ideally we'd check a persisted state (e.g., a completion date for this specific review cycle).
+          // For now, based on the request, if checking an item *completes* the cycle, we fire.
+          // A simple way to avoid REPEATEDLY firing for a cycle that's already complete
+          // is to check if the item *just before this update* was NOT part of a completed cycle.
+          // However, the current `_isReviewCycleCompleted` checks the current state.
+          // The prompt implies the animation happens when "משתמש מסיים בהצלחה את אחד החזרות".
+          // So, if the state *after* the update is "completed", we fire.
+          // Consider if we need to prevent firing if the book itself was just completed by 'learn' in the same action.
+          // The current structure means a 'learn' completion takes precedence if it happens.
+          
+          _completionEventController.add(CompletionEvent(
+            CompletionEventType.reviewCycleCompleted,
+            bookName: bookName,
+            reviewCycleNumber: reviewCycleNumber,
+          ));
+        }
       }
     }
-
     notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _completionEventController.close();
+    super.dispose();
   }
 
   Future<void> toggleSelectAll(String categoryName, String bookName,
@@ -210,6 +180,50 @@ class ProgressProvider with ChangeNotifier {
     int learnedPagesCount =
         ProgressService.getCompletedPagesCount(bookProgress);
     return learnedPagesCount >= totalTargetPages;
+  }
+
+  bool _isReviewCycleCompleted(
+      String categoryName,
+      String bookName,
+      int reviewCycleNumber, // 1, 2, or 3
+      BookDetails bookDetails,
+  ) {
+    final bookProgress = getProgressForBook(categoryName, bookName);
+    if (bookProgress.isEmpty && bookDetails.pages > 0) return false;
+
+    final totalItems = bookDetails.isDafType ? bookDetails.pages * 2 : bookDetails.pages;
+    if (totalItems == 0) return false;
+
+    int completedItemsInCycle = 0;
+
+    for (int i = 0; i < bookDetails.pages; i++) {
+      final pageNumber = bookDetails.startPage + i;
+      final List<String> amudKeys = bookDetails.isDafType ? ['a', 'b'] : ['a'];
+
+      for (String amudKey in amudKeys) {
+        final pageProgress = getProgressForPageAmud(
+            categoryName, bookName, pageNumber.toString(), amudKey);
+        
+        bool isItemCompletedInCycle = false;
+        switch (reviewCycleNumber) {
+          case 1:
+            isItemCompletedInCycle = pageProgress.review1;
+            break;
+          case 2:
+            isItemCompletedInCycle = pageProgress.review2;
+            break;
+          case 3:
+            isItemCompletedInCycle = pageProgress.review3;
+            break;
+          default:
+            return false; // Invalid review cycle number
+        }
+        if (isItemCompletedInCycle) {
+          completedItemsInCycle++;
+        }
+      }
+    }
+    return completedItemsInCycle >= totalItems;
   }
 
   List<Map<String, dynamic>> getTrackedBooks(
@@ -249,53 +263,5 @@ class ProgressProvider with ChangeNotifier {
       });
     });
     return tracked;
-  }
-
-  bool isReviewTypeCompleted(String categoryName, String bookName, String reviewType, BookDetails bookDetails) {
-    final bookProgress = getProgressForBook(categoryName, bookName);
-    if (bookProgress.isEmpty && bookDetails.pages > 0) return false; // No progress but book has pages
-
-    final totalTargetItems = bookDetails.isDafType ? bookDetails.pages * 2 : bookDetails.pages;
-    if (totalTargetItems == 0) return false;
-
-    int completedReviewItems = 0;
-    bookProgress.forEach((pageStr, amudim) {
-      amudim.forEach((amudKey, pageProgress) {
-        bool isReviewDone = false;
-        switch (reviewType) {
-          case 'review1':
-            isReviewDone = pageProgress.review1;
-            break;
-          case 'review2':
-            isReviewDone = pageProgress.review2;
-            break;
-          case 'review3':
-            isReviewDone = pageProgress.review3;
-            break;
-        }
-        if (isReviewDone) {
-          completedReviewItems++;
-        }
-      });
-    });
-    return completedReviewItems >= totalTargetItems;
-  }
-
-  void clearJustManuallyCompletedBookFlag() {
-    if (justManuallyCompletedBook != null) {
-      justManuallyCompletedBook = null;
-      // notifyListeners(); // Optional: UI will likely call this after consuming the flag
-                         // and then trigger its own rebuild if needed.
-                         // Let's include it for now to be safe, can be removed if it causes issues.
-                         // Re-thinking: It's better to notify if the state it controls changes.
-      notifyListeners();
-    }
-  }
-
-  void clearJustCompletedReviewDetailsFlag() {
-    if (justCompletedReviewDetails != null) {
-      justCompletedReviewDetails = null;
-      notifyListeners();
-    }
   }
 }
