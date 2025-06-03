@@ -68,7 +68,8 @@ class ProgressProvider with ChangeNotifier {
       String amudKey,
       String columnName,
       bool value,
-      BookDetails bookDetails) async {
+      BookDetails bookDetails,
+      {bool isBulkUpdate = false}) async { // New parameter
     await _progressService.saveProgress(
         categoryName, bookName, daf, amudKey, columnName, value);
 
@@ -113,13 +114,12 @@ class ProgressProvider with ChangeNotifier {
       bool wasAlreadyCompleted = getCompletionDateSync(categoryName, bookName) != null;
       bool isNowComplete = isBookCompleted(categoryName, bookName, bookDetails);
 
-      if (isNowComplete && !wasAlreadyCompleted) {
+      if (isNowComplete && !wasAlreadyCompleted && !isBulkUpdate) { // Check isBulkUpdate
         await _progressService.saveCompletionDate(categoryName, bookName);
         _completionDates = await _progressService.loadCompletionDates();
-        // Fire event for manual book completion
         _completionEventController.add(CompletionEvent(CompletionEventType.bookCompleted, bookName: bookName));
       }
-    } else if (value && (columnName == 'review1' || columnName == 'review2' || columnName == 'review3')) {
+    } else if (value && (columnName == 'review1' || columnName == 'review2' || columnName == 'review3') && !isBulkUpdate) { // Check isBulkUpdate
       int? reviewCycleNumber;
       if (columnName == 'review1') reviewCycleNumber = 1;
       else if (columnName == 'review2') reviewCycleNumber = 2;
@@ -315,84 +315,38 @@ class ProgressProvider with ChangeNotifier {
       for (String amudKey in amudKeys) {
         bookProgress.putIfAbsent(pageStr, () => {});
         bookProgress[pageStr]!.putIfAbsent(amudKey, () => PageProgress());
-        PageProgress currentAmudProgress = bookProgress[pageStr]![amudKey]!;
+        // PageProgress currentAmudProgress = bookProgress[pageStr]![amudKey]!; // Not needed here anymore
 
-        if (select) {
-          // Set the target column to true
-          currentAmudProgress.setProperty(columnName, true);
-          // Set all other progress columns to false for this amud
-          for (String col in allColumnNames) {
-            if (col != columnName) {
-              currentAmudProgress.setProperty(col, false);
-            }
-          }
-        } else {
-          // Deselecting: Set the target column to false
-          currentAmudProgress.setProperty(columnName, false);
-        }
-        // Persist change for this specific item (mimicking how updateProgress works)
-        // This is less efficient than a bulk save but reuses existing save logic.
-        // Consider a bulk save in ProgressService if performance becomes an issue.
-        await _progressService.saveProgress(
-            categoryName, bookName, pageNumber, amudKey, columnName, currentAmudProgress.getProperty(columnName));
-        if (select) { // If we selected one column, others were deselected. Save those too.
-            for (String col in allColumnNames) {
-                if (col != columnName) {
-                     await _progressService.saveProgress(
-                        categoryName, bookName, pageNumber, amudKey, col, currentAmudProgress.getProperty(col));
-                }
-            }
-        }
-
-
-        if (currentAmudProgress.isEmpty) {
-          bookProgress[pageStr]!.remove(amudKey);
-          if (bookProgress[pageStr]!.isEmpty) {
-            bookProgress.remove(pageStr);
-          }
-        }
+        // Call updateProgress for each item, marking it as a bulk update
+        await updateProgress(
+          categoryName,
+          bookName,
+          pageNumber,
+          amudKey,
+          columnName,
+          select, // The new value for the property
+          bookDetails,
+          isBulkUpdate: true,
+        );
+        // Note: The previous logic for setting other columns to false when 'select' is true
+        // has been removed in the prior step and is not re-introduced here.
+        // updateProgress will only handle the specified 'columnName'.
       }
     }
-    if (bookProgress.isEmpty) {
-        _fullProgress[categoryName]!.remove(bookName);
-        if(_fullProgress[categoryName]!.isEmpty){
-            _fullProgress.remove(categoryName);
-        }
-    }
-
-
-    // After all updates, check for completion events
-    // This part reuses logic from the existing updateProgress method's completion checks.
-    if (select && columnName == learnColumn) {
-      bool wasAlreadyCompleted = getCompletionDateSync(categoryName, bookName) != null;
-      bool isNowComplete = isBookCompleted(categoryName, bookName, bookDetails);
-      if (isNowComplete && !wasAlreadyCompleted) {
-        await _progressService.saveCompletionDate(categoryName, bookName);
-        _completionDates = await _progressService.loadCompletionDates();
-        _completionEventController.add(CompletionEvent(CompletionEventType.bookCompleted, bookName: bookName));
-      }
-    } else if (select && (columnName == review1Column || columnName == review2Column || columnName == review3Column)) {
-      int? reviewCycleNumber;
-      if (columnName == review1Column) reviewCycleNumber = 1;
-      else if (columnName == review2Column) reviewCycleNumber = 2;
-      else if (columnName == review3Column) reviewCycleNumber = 3;
-
-      if (reviewCycleNumber != null) {
-        bool cycleJustCompleted = _isReviewCycleCompleted(categoryName, bookName, reviewCycleNumber, bookDetails);
-        if (cycleJustCompleted) {
-          _completionEventController.add(CompletionEvent(
-            CompletionEventType.reviewCycleCompleted,
-            bookName: bookName,
-            reviewCycleNumber: reviewCycleNumber,
-          ));
-        }
-      }
-    }
-    // If deselecting, a book might become "not completed"
-    // The current completion check logic in `isBookCompleted` reads the live state, so it will reflect changes.
-    // If a "book uncompleted" event were needed, logic would go here.
-
-    notifyListeners();
+    // No need to manually clean up bookProgress entries here, as updateProgress handles it.
+    // No need to manually trigger completion events here, as updateProgress handles it (conditionally on isBulkUpdate).
+    
+    // notifyListeners() is called by the last updateProgress, but to be safe,
+    // and because multiple updateProgress calls might have occurred, one call here ensures UI updates.
+    // However, if updateProgress always calls notifyListeners, this might be redundant or cause extra builds.
+    // For now, let's rely on updateProgress's notifyListeners. If issues arise, this can be revisited.
+    // Consider if a single notifyListeners() call after the loop is better.
+    // Given that updateProgress itself calls notifyListeners(), this explicit call might be removed
+    // if performance becomes a concern due to multiple notifications.
+    // However, the current structure of updateProgress has one notifyListeners at its end.
+    // If many items are updated, many notifications fire.
+    // A possible optimization: batch notifications. But for now, keep as is.
+     notifyListeners(); // Ensure UI reflects all changes after the loop.
   }
 
   Map<String, bool?> getColumnSelectionStates(

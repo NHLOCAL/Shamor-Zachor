@@ -82,7 +82,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text("אזהרה"),
-          content: const Text("פעולה זו תאפס את הנתונים שסימנת! האם להמשיך?"),
+          content: const Text("פעולה זו תשנה את כל הסימונים בעמודה זו. האם להמשיך?"),
           actions: <Widget>[
             TextButton(
               child: const Text("לא"),
@@ -200,9 +200,12 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                             final columnLabel = col['label']!;
                             final bool? checkboxValue = columnSelectionStates[columnId];
 
-                            return Expanded( // Use Expanded to ensure columns take available space
+                            return Expanded( 
+                              flex: 1, // Explicitly set flex: 1 for header columns
                               child: Column(
                                 mainAxisSize: MainAxisSize.min,
+                                mainAxisAlignment: MainAxisAlignment.center, // Center content vertically
+                                crossAxisAlignment: CrossAxisAlignment.center, // Center content horizontally
                                 children: [
                                   Checkbox(
                                     visualDensity: VisualDensity.compact,
@@ -317,65 +320,76 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                               flex: 10,
                               child: Row(
                                 mainAxisAlignment:
-                                    MainAxisAlignment.spaceEvenly,
+                                    MainAxisAlignment.spaceEvenly, // This might not be strictly necessary if all children are Expanded
                                 children: [
-                                  Tooltip(
-                                      message: "לימוד",
-                                      child: Checkbox(
-                                          visualDensity: VisualDensity
-                                              .compact, // צפוף יותר
-                                          value: pageProgress.learn,
-                                          onChanged: (val) =>
-                                              progressProvider.updateProgress(
-                                                  widget.categoryName,
-                                                  widget.bookName,
-                                                  pageNumber,
-                                                  amudKey,
-                                                  'learn',
-                                                  val ?? false,
-                                                  bookDetails))),
-                                  Tooltip(
-                                      message: "חזרה 1",
-                                      child: Checkbox(
-                                          visualDensity: VisualDensity.compact,
-                                          value: pageProgress.review1,
-                                          onChanged: (val) =>
-                                              progressProvider.updateProgress(
-                                                  widget.categoryName,
-                                                  widget.bookName,
-                                                  pageNumber,
-                                                  amudKey,
-                                                  'review1',
-                                                  val ?? false,
-                                                  bookDetails))),
-                                  Tooltip(
-                                      message: "חזרה 2",
-                                      child: Checkbox(
-                                          visualDensity: VisualDensity.compact,
-                                          value: pageProgress.review2,
-                                          onChanged: (val) =>
-                                              progressProvider.updateProgress(
-                                                  widget.categoryName,
-                                                  widget.bookName,
-                                                  pageNumber,
-                                                  amudKey,
-                                                  'review2',
-                                                  val ?? false,
-                                                  bookDetails))),
-                                  Tooltip(
-                                      message: "חזרה 3",
-                                      child: Checkbox(
-                                          visualDensity: VisualDensity.compact,
-                                          value: pageProgress.review3,
-                                          onChanged: (val) =>
-                                              progressProvider.updateProgress(
-                                                  widget.categoryName,
-                                                  widget.bookName,
-                                                  pageNumber,
-                                                  amudKey,
-                                                  'review3',
-                                                  val ?? false,
-                                                  bookDetails))),
+                                  Expanded(
+                                    flex: 1,
+                                    child: Tooltip(
+                                        message: "לימוד",
+                                        child: Checkbox(
+                                            visualDensity: VisualDensity.compact,
+                                            value: pageProgress.learn,
+                                            onChanged: (val) =>
+                                                progressProvider.updateProgress(
+                                                    widget.categoryName,
+                                                    widget.bookName,
+                                                    pageNumber,
+                                                    amudKey,
+                                                    ProgressProvider.learnColumn, // Use constant
+                                                    val ?? false,
+                                                    bookDetails))),
+                                  ),
+                                  Expanded(
+                                    flex: 1,
+                                    child: Tooltip(
+                                        message: "חזרה 1",
+                                        child: Checkbox(
+                                            visualDensity: VisualDensity.compact,
+                                            value: pageProgress.review1,
+                                            onChanged: (val) =>
+                                                progressProvider.updateProgress(
+                                                    widget.categoryName,
+                                                    widget.bookName,
+                                                    pageNumber,
+                                                    amudKey,
+                                                    ProgressProvider.review1Column, // Use constant
+                                                    val ?? false,
+                                                    bookDetails))),
+                                  ),
+                                  Expanded(
+                                    flex: 1,
+                                    child: Tooltip(
+                                        message: "חזרה 2",
+                                        child: Checkbox(
+                                            visualDensity: VisualDensity.compact,
+                                            value: pageProgress.review2,
+                                            onChanged: (val) =>
+                                                progressProvider.updateProgress(
+                                                    widget.categoryName,
+                                                    widget.bookName,
+                                                    pageNumber,
+                                                    amudKey,
+                                                    ProgressProvider.review2Column, // Use constant
+                                                    val ?? false,
+                                                    bookDetails))),
+                                  ),
+                                  Expanded(
+                                    flex: 1,
+                                    child: Tooltip(
+                                        message: "חזרה 3",
+                                        child: Checkbox(
+                                            visualDensity: VisualDensity.compact,
+                                            value: pageProgress.review3,
+                                            onChanged: (val) =>
+                                                progressProvider.updateProgress(
+                                                    widget.categoryName,
+                                                    widget.bookName,
+                                                    pageNumber,
+                                                    amudKey,
+                                                    ProgressProvider.review3Column, // Use constant
+                                                    val ?? false,
+                                                    bookDetails))),
+                                  ),
                                 ],
                               ),
                             ),

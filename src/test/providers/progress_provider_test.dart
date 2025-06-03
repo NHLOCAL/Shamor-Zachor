@@ -69,112 +69,216 @@ void main() {
   // This is a helper function for tests that need ProgressProvider with a specific ProgressService mock.
   // It's a bit of a hack due to not being able to inject ProgressService easily without code changes.
   ProgressProvider providerWithMockedService(MockProgressService service) {
-      // Conceptually, this provider would use 'service'
-      // In reality, without DI, this is hard. We'll simulate by preparing provider's state.
-      final pp = ProgressProvider(); 
-      // We can't directly replace its _progressService.
-      // So for `toggleSelectAllForColumn` we'll check `verify(mockProgressService.saveProgress(...))`
-      // and assume our `progressProvider` somehow uses the global `mockProgressService` instance for this test run.
-      // This is not ideal but a limitation of testing code not designed for easy DI.
-      return pp; 
+      // This function is less relevant now as we're not deeply mocking ProgressService calls
+      // directly from toggleSelectAllForColumn tests in the same way due to DI limitations.
+      // Instead, we'll test state changes and side effects like event emissions.
+      final pp = ProgressProvider();
+      // Ideally, `pp` would be configured to use `service`.
+      // For now, tests will rely on the actual ProgressService or state manipulation.
+      return pp;
   }
-
 
   group('ProgressProvider Unit Tests', () {
     group('toggleSelectAllForColumn', () {
-      final bookDetailsDaf = createBookDetails('Shas Bavli', 10, true, startPage: 2); // 10 daf = 20 amudim
-      final bookDetailsPerek = createBookDetails('Tanach', 5, false, startPage: 1); // 5 perakim
+      final bookDetailsDaf = createBookDetails('Shas Bavli', 1, true, startPage: 2); // 1 daf = 2 amudim (2a, 2b)
+      final bookDetailsPerek = createBookDetails('Tanach', 1, false, startPage: 1); // 1 perek
 
-      test('selects all in target column (learn), deselects others - Daf type', () async {
-        // For this test, we need to ensure that when progressProvider.toggleSelectAllForColumn is called,
-        // the underlying calls to mockProgressService.saveProgress are what we expect.
-        // We'll use a fresh provider instance for clarity or reset its state.
-        progressProvider = providerWithMockedService(mockProgressService); // Conceptual
+      setUp(() {
+        // Reset provider for each test to ensure clean state
+        progressProvider = ProgressProvider(); 
+        // It's important that ProgressProvider uses a mockable service or we test its state.
+        // The current ProgressProvider instantiates ProgressService internally.
+        // For these tests, we'll observe the state of `progressProvider` itself.
+        // We also need to ensure `_progressService.saveProgress` calls within `updateProgress` don't fail.
+        // This setup remains challenging without DI for ProgressService.
+        // Let's assume `updateProgress` can run using the real `ProgressService` for state changes.
+      });
+
+      test('selects all in target column (learn), DOES NOT change other columns - Daf type', () async {
+        // Setup initial state: review1 is true for one item, learn is false
+        await progressProvider.updateProgress('Talmud', 'Bava Metzia', 2, 'a', ProgressProvider.review1Column, true, bookDetailsDaf);
+        await progressProvider.updateProgress('Talmud', 'Bava Metzia', 2, 'a', ProgressProvider.learnColumn, false, bookDetailsDaf);
+        await progressProvider.updateProgress('Talmud', 'Bava Metzia', 2, 'b', ProgressProvider.learnColumn, false, bookDetailsDaf);
+
         await progressProvider.toggleSelectAllForColumn('Talmud', 'Bava Metzia', bookDetailsDaf, ProgressProvider.learnColumn, true);
 
-        // Verify saveProgress calls for each item
-        for (int i = 0; i < bookDetailsDaf.pages; i++) {
-          final pageNum = bookDetailsDaf.startPage + i;
-          for (String amudKey in ['a', 'b']) {
-            // Verify 'learn' was set to true
-            verify(mockProgressService.saveProgress('Talmud', 'Bava Metzia', pageNum, amudKey, ProgressProvider.learnColumn, true)).called(1);
-            // Verify other columns were set to false
-            for (String col in ProgressProvider.allColumnNames) {
-              if (col != ProgressProvider.learnColumn) {
-                verify(mockProgressService.saveProgress('Talmud', 'Bava Metzia', pageNum, amudKey, col, false)).called(1);
-              }
-            }
-          }
-        }
-        verify(mockProgressService.saveCompletionDate('Talmud', 'Bava Metzia')).called(1); // Assuming it completes the book
-        expect(progressProvider.getCompletionDateSync('Talmud', 'Bava Metzia'), isNotNull); // This check requires state, hard with current setup
-        // verify(progressProvider.notifyListeners()).called(1); // Need to mock notifyListeners
+        // Verify 'learn' was set to true for all items
+        PageProgress item2a = progressProvider.getProgressForPageAmud('Talmud', 'Bava Metzia', '2', 'a');
+        PageProgress item2b = progressProvider.getProgressForPageAmud('Talmud', 'Bava Metzia', '2', 'b');
+        expect(item2a.learn, true);
+        expect(item2b.learn, true);
+
+        // Verify 'review1' for item 2a remained true (was not changed)
+        expect(item2a.review1, true);
+        // Verify other columns for item 2b (which had no prior state) are still false
+        expect(item2b.review1, false);
+        expect(item2b.review2, false);
+        expect(item2b.review3, false);
       });
 
-      test('deselects all in target column (learn) - Perek type', () async {
-        progressProvider = providerWithMockedService(mockProgressService);
-        // First, imagine some are selected. We need to set up initial state for this.
-        // This is where not having easy DI for _fullProgress makes it hard.
-        // Let's assume it's deselected from a state where all were selected.
+      test('deselects all in target column (learn) - Perek type, others unchanged', () async {
+        // Setup initial state: learn and review1 are true for the item
+        await progressProvider.updateProgress('Tanach', 'Bereishit', 1, 'a', ProgressProvider.learnColumn, true, bookDetailsPerek);
+        await progressProvider.updateProgress('Tanach', 'Bereishit', 1, 'a', ProgressProvider.review1Column, true, bookDetailsPerek);
+
         await progressProvider.toggleSelectAllForColumn('Tanach', 'Bereishit', bookDetailsPerek, ProgressProvider.learnColumn, false);
-
-        for (int i = 0; i < bookDetailsPerek.pages; i++) {
-          final pageNum = bookDetailsPerek.startPage + i;
-            verify(mockProgressService.saveProgress('Tanach', 'Bereishit', pageNum, 'a', ProgressProvider.learnColumn, false)).called(1);
-            // Verify other columns were NOT called for saving (as they shouldn't change)
-            for (String col in ProgressProvider.allColumnNames) {
-              if (col != ProgressProvider.learnColumn) {
-                verifyNever(mockProgressService.saveProgress('Tanach', 'Bereishit', pageNum, 'a', col, any));
-              }
-            }
-        }
-        // verify(progressProvider.notifyListeners()).called(1);
+        
+        PageProgress item1a = progressProvider.getProgressForPageAmud('Tanach', 'Bereishit', '1', 'a');
+        expect(item1a.learn, false);
+        expect(item1a.review1, true); // review1 should remain true
       });
-       // Add more tests: empty book, completion status changes, review cycle completion
+
+      test('toggleSelectAllForColumn does NOT fire completion event for book completion', () async {
+        final bookToComplete = createBookDetails('CompleteMe', 1, false, startPage: 1); // 1 item book
+        bool eventFired = false;
+        progressProvider.completionEvents.listen((event) {
+          if (event.type == CompletionEventType.bookCompleted) {
+            eventFired = true;
+          }
+        });
+
+        await progressProvider.toggleSelectAllForColumn('Category', 'CompleteMe', bookToComplete, ProgressProvider.learnColumn, true);
+        
+        // Allow time for stream to process if needed, though it should be synchronous here
+        await Future.delayed(Duration.zero); 
+        expect(eventFired, false); // Event should NOT be fired due to isBulkUpdate: true
+      });
+
+       test('toggleSelectAllForColumn does NOT fire completion event for review cycle', () async {
+        final bookToReview = createBookDetails('ReviewMe', 1, false, startPage: 1); // 1 item book
+        // Pre-mark as learned to allow review cycle completion
+        await progressProvider.updateProgress('Category', 'ReviewMe', 1, 'a', ProgressProvider.learnColumn, true, bookToReview, isBulkUpdate: true);
+
+        bool eventFired = false;
+        progressProvider.completionEvents.listen((event) {
+          if (event.type == CompletionEventType.reviewCycleCompleted) {
+            eventFired = true;
+          }
+        });
+        
+        await progressProvider.toggleSelectAllForColumn('Category', 'ReviewMe', bookToReview, ProgressProvider.review1Column, true);
+        
+        await Future.delayed(Duration.zero);
+        expect(eventFired, false); // Event should NOT be fired
+      });
     });
 
+    group('updateProgress with isBulkUpdate flag', () {
+      final bookDetails = createBookDetails('TestBook', 1, false, startPage: 1); // Single item book
+
+      test('fires book completion event if isBulkUpdate is false', () async {
+        bool eventFired = false;
+        String? eventBookName;
+        progressProvider.completionEvents.listen((event) {
+          if (event.type == CompletionEventType.bookCompleted) {
+            eventFired = true;
+            eventBookName = event.bookName;
+          }
+        });
+
+        await progressProvider.updateProgress('TestCategory', 'TestBook', 1, 'a', ProgressProvider.learnColumn, true, bookDetails, isBulkUpdate: false);
+        
+        await Future.delayed(Duration.zero); // Allow stream to propagate
+        expect(eventFired, true);
+        expect(eventBookName, 'TestBook');
+      });
+
+      test('does NOT fire book completion event if isBulkUpdate is true', () async {
+        bool eventFired = false;
+        progressProvider.completionEvents.listen((event) {
+          if (event.type == CompletionEventType.bookCompleted) {
+            eventFired = true;
+          }
+        });
+
+        await progressProvider.updateProgress('TestCategory', 'TestBook', 1, 'a', ProgressProvider.learnColumn, true, bookDetails, isBulkUpdate: true);
+        
+        await Future.delayed(Duration.zero);
+        expect(eventFired, false);
+      });
+
+      test('fires review cycle completion event if isBulkUpdate is false', () async {
+         // Ensure 'learn' is marked first so review can complete a cycle
+        await progressProvider.updateProgress('TestCategory', 'TestBook', 1, 'a', ProgressProvider.learnColumn, true, bookDetails, isBulkUpdate: true);
+
+        bool eventFired = false;
+        int? cycleNumber;
+        progressProvider.completionEvents.listen((event) {
+          if (event.type == CompletionEventType.reviewCycleCompleted) {
+            eventFired = true;
+            cycleNumber = event.reviewCycleNumber;
+          }
+        });
+
+        await progressProvider.updateProgress('TestCategory', 'TestBook', 1, 'a', ProgressProvider.review1Column, true, bookDetails, isBulkUpdate: false);
+        
+        await Future.delayed(Duration.zero);
+        expect(eventFired, true);
+        expect(cycleNumber, 1);
+      });
+
+      test('does NOT fire review cycle completion event if isBulkUpdate is true', () async {
+        await progressProvider.updateProgress('TestCategory', 'TestBook', 1, 'a', ProgressProvider.learnColumn, true, bookDetails, isBulkUpdate: true);
+        
+        bool eventFired = false;
+        progressProvider.completionEvents.listen((event) {
+          if (event.type == CompletionEventType.reviewCycleCompleted) {
+            eventFired = true;
+          }
+        });
+
+        await progressProvider.updateProgress('TestCategory', 'TestBook', 1, 'a', ProgressProvider.review1Column, true, bookDetails, isBulkUpdate: true);
+        
+        await Future.delayed(Duration.zero);
+        expect(eventFired, false);
+      });
+    });
+    
+    // Original getColumnSelectionStates tests - should remain valid
     group('getColumnSelectionStates', () {
       final bookDetails = createBookDetails('Sample Book', 2, true, startPage: 1); // 2 daf = 4 amudim (1a,1b,2a,2b)
+      
+      setUp((){
+        // Ensure progressProvider is fresh for each getColumnSelectionStates test too
+        progressProvider = ProgressProvider();
+      });
 
-      test('returns all true if all items in a column are selected', () {
+      test('returns all true if all items in a column are selected', () async {
         // Manually setup _fullProgress state for this test
-        progressProvider.updateProgress('Cat1', 'Book1', 1, 'a', ProgressProvider.learnColumn, true, bookDetails);
-        progressProvider.updateProgress('Cat1', 'Book1', 1, 'b', ProgressProvider.learnColumn, true, bookDetails);
-        progressProvider.updateProgress('Cat1', 'Book1', 2, 'a', ProgressProvider.learnColumn, true, bookDetails);
-        progressProvider.updateProgress('Cat1', 'Book1', 2, 'b', ProgressProvider.learnColumn, true, bookDetails);
+        // Use isBulkUpdate: true for setup calls to avoid side-effects like animations in these state-setup calls
+        await progressProvider.updateProgress('Cat1', 'Book1', 1, 'a', ProgressProvider.learnColumn, true, bookDetails, isBulkUpdate: true);
+        await progressProvider.updateProgress('Cat1', 'Book1', 1, 'b', ProgressProvider.learnColumn, true, bookDetails, isBulkUpdate: true);
+        await progressProvider.updateProgress('Cat1', 'Book1', 2, 'a', ProgressProvider.learnColumn, true, bookDetails, isBulkUpdate: true);
+        await progressProvider.updateProgress('Cat1', 'Book1', 2, 'b', ProgressProvider.learnColumn, true, bookDetails, isBulkUpdate: true);
         
         // Other columns should be false for this test to be clean
         for (String col in [ProgressProvider.review1Column, ProgressProvider.review2Column, ProgressProvider.review3Column]) {
-             progressProvider.updateProgress('Cat1', 'Book1', 1, 'a', col, false, bookDetails);
-             progressProvider.updateProgress('Cat1', 'Book1', 1, 'b', col, false, bookDetails);
-             progressProvider.updateProgress('Cat1', 'Book1', 2, 'a', col, false, bookDetails);
-             progressProvider.updateProgress('Cat1', 'Book1', 2, 'b', col, false, bookDetails);
+             await progressProvider.updateProgress('Cat1', 'Book1', 1, 'a', col, false, bookDetails, isBulkUpdate: true);
+             await progressProvider.updateProgress('Cat1', 'Book1', 1, 'b', col, false, bookDetails, isBulkUpdate: true);
+             await progressProvider.updateProgress('Cat1', 'Book1', 2, 'a', col, false, bookDetails, isBulkUpdate: true);
+             await progressProvider.updateProgress('Cat1', 'Book1', 2, 'b', col, false, bookDetails, isBulkUpdate: true);
         }
-
 
         final states = progressProvider.getColumnSelectionStates('Cat1', 'Book1', bookDetails);
         expect(states[ProgressProvider.learnColumn], true);
-        expect(states[ProgressProvider.review1Column], false); // Assuming others are false
+        expect(states[ProgressProvider.review1Column], false);
       });
 
-      test('returns all false if no items in a column are selected', () {
-        // Manually setup _fullProgress state
-        progressProvider.updateProgress('Cat1', 'Book1', 1, 'a', ProgressProvider.learnColumn, false, bookDetails);
-        progressProvider.updateProgress('Cat1', 'Book1', 1, 'b', ProgressProvider.learnColumn, false, bookDetails);
-        progressProvider.updateProgress('Cat1', 'Book1', 2, 'a', ProgressProvider.learnColumn, false, bookDetails);
-        progressProvider.updateProgress('Cat1', 'Book1', 2, 'b', ProgressProvider.learnColumn, false, bookDetails);
-        // Ensure other items are also false or non-existent for a clean "all false" state
-
+      test('returns all false if no items in a column are selected', () async {
+        await progressProvider.updateProgress('Cat1', 'Book1', 1, 'a', ProgressProvider.learnColumn, false, bookDetails, isBulkUpdate: true);
+        await progressProvider.updateProgress('Cat1', 'Book1', 1, 'b', ProgressProvider.learnColumn, false, bookDetails, isBulkUpdate: true);
+        await progressProvider.updateProgress('Cat1', 'Book1', 2, 'a', ProgressProvider.learnColumn, false, bookDetails, isBulkUpdate: true);
+        await progressProvider.updateProgress('Cat1', 'Book1', 2, 'b', ProgressProvider.learnColumn, false, bookDetails, isBulkUpdate: true);
+        
         final states = progressProvider.getColumnSelectionStates('Cat1', 'Book1', bookDetails);
         expect(states[ProgressProvider.learnColumn], false);
       });
 
-      test('returns null for mixed selection in a column', () {
-        // Manually setup _fullProgress state
-        progressProvider.updateProgress('Cat1', 'Book1', 1, 'a', ProgressProvider.learnColumn, true, bookDetails);
-        progressProvider.updateProgress('Cat1', 'Book1', 1, 'b', ProgressProvider.learnColumn, false, bookDetails);
-        progressProvider.updateProgress('Cat1', 'Book1', 2, 'a', ProgressProvider.learnColumn, true, bookDetails);
-        progressProvider.updateProgress('Cat1', 'Book1', 2, 'b', ProgressProvider.learnColumn, false, bookDetails);
+      test('returns null for mixed selection in a column', () async {
+        await progressProvider.updateProgress('Cat1', 'Book1', 1, 'a', ProgressProvider.learnColumn, true, bookDetails, isBulkUpdate: true);
+        await progressProvider.updateProgress('Cat1', 'Book1', 1, 'b', ProgressProvider.learnColumn, false, bookDetails, isBulkUpdate: true);
+        await progressProvider.updateProgress('Cat1', 'Book1', 2, 'a', ProgressProvider.learnColumn, true, bookDetails, isBulkUpdate: true);
+        await progressProvider.updateProgress('Cat1', 'Book1', 2, 'b', ProgressProvider.learnColumn, false, bookDetails, isBulkUpdate: true);
 
         final states = progressProvider.getColumnSelectionStates('Cat1', 'Book1', bookDetails);
         expect(states[ProgressProvider.learnColumn], null);

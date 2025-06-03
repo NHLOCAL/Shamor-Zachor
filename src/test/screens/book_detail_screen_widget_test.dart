@@ -155,7 +155,7 @@ void main() {
       await tester.pumpAndSettle(); // For dialog animation
 
       expect(find.text('אזהרה'), findsOneWidget); // Dialog title
-      expect(find.text('פעולה זו תאפס את הנתונים שסימנת! האם להמשיך?'), findsOneWidget); // Dialog content
+      expect(find.text('פעולה זו תשנה את כל הסימונים בעמודה זו. האם להמשיך?'), findsOneWidget); // Dialog content UPDATED
       
       await tester.tap(find.text('כן')); // Tap "Yes"
       await tester.pumpAndSettle();
