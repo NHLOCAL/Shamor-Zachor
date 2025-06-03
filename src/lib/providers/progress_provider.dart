@@ -22,6 +22,14 @@ class ProgressProvider with ChangeNotifier {
   FullProgressMap _fullProgress = {};
   CompletionDatesMap _completionDates = {}; // Cache completion dates
 
+  // Column Name Constants
+  static const String learnColumn = 'learn';
+  static const String review1Column = 'review1';
+  static const String review2Column = 'review2';
+  static const String review3Column = 'review3';
+  static const List<String> allColumnNames = [learnColumn, review1Column, review2Column, review3Column];
+
+
   final _completionEventController = StreamController<CompletionEvent>.broadcast();
   Stream<CompletionEvent> get completionEvents => _completionEventController.stream;
 
@@ -60,7 +68,8 @@ class ProgressProvider with ChangeNotifier {
       String amudKey,
       String columnName,
       bool value,
-      BookDetails bookDetails) async {
+      BookDetails bookDetails,
+      {bool isBulkUpdate = false}) async { // New parameter
     await _progressService.saveProgress(
         categoryName, bookName, daf, amudKey, columnName, value);
 
@@ -105,13 +114,12 @@ class ProgressProvider with ChangeNotifier {
       bool wasAlreadyCompleted = getCompletionDateSync(categoryName, bookName) != null;
       bool isNowComplete = isBookCompleted(categoryName, bookName, bookDetails);
 
-      if (isNowComplete && !wasAlreadyCompleted) {
+      if (isNowComplete && !wasAlreadyCompleted && !isBulkUpdate) { // Check isBulkUpdate
         await _progressService.saveCompletionDate(categoryName, bookName);
         _completionDates = await _progressService.loadCompletionDates();
-        // Fire event for manual book completion
         _completionEventController.add(CompletionEvent(CompletionEventType.bookCompleted, bookName: bookName));
       }
-    } else if (value && (columnName == 'review1' || columnName == 'review2' || columnName == 'review3')) {
+    } else if (value && (columnName == 'review1' || columnName == 'review2' || columnName == 'review3') && !isBulkUpdate) { // Check isBulkUpdate
       int? reviewCycleNumber;
       if (columnName == 'review1') reviewCycleNumber = 1;
       else if (columnName == 'review2') reviewCycleNumber = 2;
@@ -263,5 +271,158 @@ class ProgressProvider with ChangeNotifier {
       });
     });
     return tracked;
+  }
+
+  Future<void> _saveProgress() async {
+    // This is a simplified stand-in. The actual implementation might involve
+    // iterating _fullProgress and calling _progressService.saveProgress for each modified item,
+    // or having a bulk save method in _progressService.
+    // For now, we assume _progressService.saveAllMasechta (or a similar method)
+    // would be adapted or a new method created in ProgressService to persist _fullProgress.
+    // However, the original saveProgress in this class calls the service for individual items.
+    // To align with the existing pattern, toggleSelectAllForColumn will call updateProgress internally,
+    // which in turn calls _progressService.saveProgress.
+    // So, a separate _saveProgress might not be strictly needed here if we structure it that way.
+    // Let's assume for now that individual calls to updateProgress handle saving.
+    // If a full overwrite save is needed: await _progressService.saveFullProgress(_fullProgress);
+    // For now, this method can be a no-op if individual updates handle their own saving.
+  }
+
+  Future<void> toggleSelectAllForColumn(
+    String categoryName,
+    String bookName,
+    BookDetails bookDetails,
+    String columnName, // e.g., 'learn', 'review1'
+    bool select,
+  ) async {
+    if (!allColumnNames.contains(columnName)) {
+      if (kDebugMode) {
+        print("Invalid column name: $columnName");
+      }
+      return;
+    }
+
+    // Access the current progress for the book or initialize if it doesn't exist
+    _fullProgress.putIfAbsent(categoryName, () => {});
+    _fullProgress[categoryName]!.putIfAbsent(bookName, () => {});
+    final bookProgress = _fullProgress[categoryName]![bookName]!;
+
+    for (int i = 0; i < bookDetails.pages; i++) {
+      final pageNumber = bookDetails.startPage + i;
+      final pageStr = pageNumber.toString();
+      final List<String> amudKeys = bookDetails.isDafType ? ['a', 'b'] : ['a'];
+
+      for (String amudKey in amudKeys) {
+        bookProgress.putIfAbsent(pageStr, () => {});
+        bookProgress[pageStr]!.putIfAbsent(amudKey, () => PageProgress());
+        // PageProgress currentAmudProgress = bookProgress[pageStr]![amudKey]!; // Not needed here anymore
+
+        // Call updateProgress for each item, marking it as a bulk update
+        await updateProgress(
+          categoryName,
+          bookName,
+          pageNumber,
+          amudKey,
+          columnName,
+          select, // The new value for the property
+          bookDetails,
+          isBulkUpdate: true,
+        );
+        // Note: The previous logic for setting other columns to false when 'select' is true
+        // has been removed in the prior step and is not re-introduced here.
+        // updateProgress will only handle the specified 'columnName'.
+      }
+    }
+    // No need to manually clean up bookProgress entries here, as updateProgress handles it.
+    // No need to manually trigger completion events here, as updateProgress handles it (conditionally on isBulkUpdate).
+    
+    // notifyListeners() is called by the last updateProgress, but to be safe,
+    // and because multiple updateProgress calls might have occurred, one call here ensures UI updates.
+    // However, if updateProgress always calls notifyListeners, this might be redundant or cause extra builds.
+    // For now, let's rely on updateProgress's notifyListeners. If issues arise, this can be revisited.
+    // Consider if a single notifyListeners() call after the loop is better.
+    // Given that updateProgress itself calls notifyListeners(), this explicit call might be removed
+    // if performance becomes a concern due to multiple notifications.
+    // However, the current structure of updateProgress has one notifyListeners at its end.
+    // If many items are updated, many notifications fire.
+    // A possible optimization: batch notifications. But for now, keep as is.
+     notifyListeners(); // Ensure UI reflects all changes after the loop.
+  }
+
+  Map<String, bool?> getColumnSelectionStates(
+    String categoryName,
+    String bookName,
+    BookDetails? bookDetails, // Make bookDetails nullable
+  ) {
+    Map<String, bool?> columnStates = {
+      learnColumn: null,
+      review1Column: null,
+      review2Column: null,
+      review3Column: null,
+    };
+
+    if (bookDetails == null) {
+      // If bookDetails is null, we can't determine the items, so return indeterminate for all.
+      return columnStates;
+    }
+    
+    final bookProgress = _fullProgress[categoryName]?[bookName];
+    final totalItems = bookDetails.isDafType ? bookDetails.pages * 2 : bookDetails.pages;
+
+    if (totalItems == 0) { // If there are no items in the book, treat columns as unselected.
+        columnStates.updateAll((key, value) => false);
+        return columnStates;
+    }
+
+
+    for (String currentColumnName in allColumnNames) {
+      bool allSelectedInColumn = true;
+      bool noneSelectedInColumn = true; // Assume none selected until one is found
+
+      if (bookProgress == null || bookProgress.isEmpty) { // No progress data for the book
+          allSelectedInColumn = false; // Cannot be all selected if no progress
+          // noneSelectedInColumn remains true
+      } else {
+        int itemsChecked = 0;
+        for (int i = 0; i < bookDetails.pages; i++) {
+          final pageNumber = bookDetails.startPage + i;
+          final pageStr = pageNumber.toString();
+          final List<String> amudKeys = bookDetails.isDafType ? ['a', 'b'] : ['a'];
+
+          for (String amudKey in amudKeys) {
+            final pageAmudProgress = bookProgress[pageStr]?[amudKey];
+            bool itemSelected = pageAmudProgress?.getProperty(currentColumnName) ?? false;
+
+            if (itemSelected) {
+              noneSelectedInColumn = false; // Found at least one selected
+              itemsChecked++;
+            } else {
+              allSelectedInColumn = false; // Found at least one not selected
+            }
+          }
+        }
+         // Refined check after loop:
+        if (itemsChecked == 0 && totalItems > 0) { // No items were checked for this column
+            noneSelectedInColumn = true;
+            allSelectedInColumn = false;
+        } else if (itemsChecked == totalItems) { // All items were checked
+            allSelectedInColumn = true;
+            noneSelectedInColumn = false;
+        } else { // Mixed state
+            allSelectedInColumn = false;
+            noneSelectedInColumn = false;
+        }
+      }
+
+
+      if (allSelectedInColumn && totalItems > 0) { // totalItems > 0 condition added
+        columnStates[currentColumnName] = true;
+      } else if (noneSelectedInColumn) {
+        columnStates[currentColumnName] = false;
+      } else {
+        columnStates[currentColumnName] = null; // Mixed
+      }
+    }
+    return columnStates;
   }
 }
