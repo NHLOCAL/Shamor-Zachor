@@ -28,6 +28,43 @@ class PageProgress {
   }
 
   bool get isEmpty => !learn && !review1 && !review2 && !review3;
+
+  // Helper methods to set/get properties by string name
+  void setProperty(String propertyName, bool value) {
+    switch (propertyName) {
+      case 'learn':
+        learn = value;
+        break;
+      case 'review1':
+        review1 = value;
+        break;
+      case 'review2':
+        review2 = value;
+        break;
+      case 'review3':
+        review3 = value;
+        break;
+      default:
+        // Optionally handle unknown property name, e.g., throw an error or log
+        break;
+    }
+  }
+
+  bool getProperty(String propertyName) {
+    switch (propertyName) {
+      case 'learn':
+        return learn;
+      case 'review1':
+        return review1;
+      case 'review2':
+        return review2;
+      case 'review3':
+        return review3;
+      default:
+        // Optionally handle unknown property name
+        return false;
+    }
+  }
 }
 
 // Structure: categoryName -> bookName -> pageNumberStr (e.g., "2") -> amudKey ("a" or "b") -> PageProgress

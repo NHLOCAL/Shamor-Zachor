@@ -28,6 +28,8 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^4.0.0
+  mockito: ^5.4.4 # Added mockito
+  build_runner: ^2.4.10 # Added build_runner
   flutter_launcher_icons: ^0.13.1 # הוספת החבילה
 
 flutter_launcher_icons:

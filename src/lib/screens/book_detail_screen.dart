@@ -24,8 +24,14 @@ class BookDetailScreen extends StatefulWidget {
 }
 
 class _BookDetailScreenState extends State<BookDetailScreen> {
-  bool _isSelectAllChecked = false;
   StreamSubscription<CompletionEvent>? _completionSubscription;
+
+  final List<Map<String, String>> _columnData = [
+    {'id': ProgressProvider.learnColumn, 'label': 'לימוד'},
+    {'id': ProgressProvider.review1Column, 'label': 'חזרה 1'},
+    {'id': ProgressProvider.review2Column, 'label': 'חזרה 2'},
+    {'id': ProgressProvider.review3Column, 'label': 'חזרה 3'},
+  ];
 
   @override
   void initState() {
@@ -41,11 +47,6 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
           "אשריך! תזכה ללמוד ספרים אחרים ולסיימם!",
         );
       } else if (event.type == CompletionEventType.reviewCycleCompleted) {
-        // String reviewCycleMessage = "מזל טוב! הלומד וחוזר כזורע וקוצר!";
-        // Optionally, could customize message further based on event.reviewCycleNumber
-        // if (event.reviewCycleNumber != null) {
-        //   reviewCycleMessage = "מזל טוב על סיום חזרה ${event.reviewCycleNumber}! הלומד וחוזר כזורע וקוצר!";
-        // }
         CompletionAnimationOverlay.show(
           context,
           "מזל טוב! הלומד וחוזר כזורע וקוצר!",
@@ -53,22 +54,20 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
       }
     });
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      // final progressProvider = // Already defined above
-      //     Provider.of<ProgressProvider>(context, listen: false);
-      final dataProvider = Provider.of<DataProvider>(context, listen: false);
-      final bookDetails =
-          dataProvider.getBookDetails(widget.categoryName, widget.bookName);
-      if (bookDetails != null) {
-        if (mounted) {
-          setState(() {
-            _isSelectAllChecked = progressProvider.isBookCompleted( // progressProvider is available from initState
-                widget.categoryName, widget.bookName, bookDetails);
-          });
-        }
-      }
-    });
+    // WidgetsBinding.instance.addPostFrameCallback((_) { // This logic for _isSelectAllChecked is no longer needed
+    //   if (!mounted) return;
+    //   final dataProvider = Provider.of<DataProvider>(context, listen: false);
+    //   final bookDetails =
+    //       dataProvider.getBookDetails(widget.categoryName, widget.bookName);
+    //   if (bookDetails != null) {
+    //     if (mounted) {
+    //       // setState(() {
+    //       //   _isSelectAllChecked = progressProvider.isBookCompleted( 
+    //       //       widget.categoryName, widget.bookName, bookDetails);
+    //       // });
+    //     }
+    //   }
+    // });
   }
 
   @override
@@ -77,16 +76,31 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
     super.dispose();
   }
 
-  void _toggleSelectAll(
-      bool? value, ProgressProvider progressProvider, BookDetails bookDetails) {
-    if (value == null) return;
-    if (mounted) {
-      setState(() {
-        _isSelectAllChecked = value;
-      });
-    }
-    progressProvider.toggleSelectAll(
-        widget.categoryName, widget.bookName, bookDetails, value);
+  Future<bool> _showWarningDialog() async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text("אזהרה"),
+          content: const Text("פעולה זו תאפס את הנתונים שסימנת! האם להמשיך?"),
+          actions: <Widget>[
+            TextButton(
+              child: const Text("לא"),
+              onPressed: () {
+                Navigator.of(context).pop(false);
+              },
+            ),
+            TextButton(
+              child: const Text("כן"),
+              onPressed: () {
+                Navigator.of(context).pop(true);
+              },
+            ),
+          ],
+        );
+      },
+    );
+    return result ?? false; // Return false if dialog is dismissed
   }
 
   @override
@@ -104,19 +118,13 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
         body: const Center(child: Text('פרטי הספר לא נמצאו.')),
       );
     }
+    
+    final columnSelectionStates = progressProvider.getColumnSelectionStates(
+        widget.categoryName, widget.bookName, bookDetails);
 
     final currentCompletionStatus = progressProvider.isBookCompleted(
         widget.categoryName, widget.bookName, bookDetails);
-    if (_isSelectAllChecked != currentCompletionStatus) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          setState(() {
-            _isSelectAllChecked = currentCompletionStatus;
-          });
-        }
-      });
-    }
-
+    
     final isBookCompleteIcon = currentCompletionStatus
         ? Icon(Icons.check_circle, color: Colors.green.shade700)
         : Icon(Icons.circle_outlined,
@@ -144,28 +152,28 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
             padding: const EdgeInsets.all(15.0),
             child: Column(
               children: [
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 10.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      Text('סמן הכל כנלמד',
-                          style: TextStyle(
-                              fontSize: 16,
-                              color: theme.colorScheme.onSurface)),
-                      const SizedBox(width: 8),
-                      Checkbox(
-                        value: _isSelectAllChecked,
-                        onChanged: (val) => _toggleSelectAll(
-                            val, progressProvider, bookDetails),
-                        activeColor: theme.primaryColor,
-                      ),
-                    ],
-                  ),
-                ),
+                // Padding( // Global "Select All" checkbox removed
+                //   padding: const EdgeInsets.only(bottom: 10.0),
+                //   child: Row(
+                //     mainAxisAlignment: MainAxisAlignment.end,
+                //     children: [
+                //       Text('סמן הכל כנלמד',
+                //           style: TextStyle(
+                //               fontSize: 16,
+                //               color: theme.colorScheme.onSurface)),
+                //       const SizedBox(width: 8),
+                //       Checkbox(
+                //         value: _isSelectAllChecked,
+                //         onChanged: (val) => _toggleSelectAll(
+                //             val, progressProvider, bookDetails),
+                //         activeColor: theme.primaryColor,
+                //       ),
+                //     ],
+                //   ),
+                // ),
                 Container(
                   padding:
-                      const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+                      const EdgeInsets.symmetric(vertical: 8, horizontal: 8), // Adjusted padding
                   decoration: BoxDecoration(
                       border: Border(
                           bottom: BorderSide(
@@ -178,18 +186,74 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                           bookDetails.contentType,
                           style: TextStyle(
                               fontWeight: FontWeight.bold,
+                              fontSize: 14, // Adjusted font size
                               color: theme.colorScheme.onSurface),
                           textAlign: TextAlign.right,
                         ),
                       ),
                       Expanded(
                         flex: 10,
-                        child: Text(
-                          'לימוד וחזרות',
-                          style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: theme.colorScheme.onSurface),
-                          textAlign: TextAlign.center,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: _columnData.map((col) {
+                            final columnId = col['id']!;
+                            final columnLabel = col['label']!;
+                            final bool? checkboxValue = columnSelectionStates[columnId];
+
+                            return Expanded( // Use Expanded to ensure columns take available space
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Checkbox(
+                                    visualDensity: VisualDensity.compact,
+                                    value: checkboxValue,
+                                    onChanged: (bool? newValue) async {
+                                      // Determine the intended 'select' action for toggleSelectAllForColumn
+                                      // If newValue is true, user wants to select all.
+                                      // If newValue is false or null (when tristate cycles), user wants to deselect all for that column.
+                                      final bool selectAction = newValue == true;
+                                      
+                                      // Only show warning if attempting to check (select) or if it's mixed and becoming unchecked
+                                      // Or, more simply, always show if there's an actual change intended by user click
+                                      // The current logic in _showWarningDialog is generic enough.
+                                      // Let's refine: warning is about RESETTING data. 
+                                      // Selecting a column resets other columns. Deselecting just deselects.
+                                      // So, warning is most critical when selectAction is true.
+                                      // However, the prompt implies the warning is for *any* such bulk action.
+                                      
+                                      // If current state is already what newValue suggests (e.g. already true, newValue is true), do nothing.
+                                      // This can happen if the state update from provider is faster than expected.
+                                      // However, `onChanged` for a checkbox usually fires only on actual user interaction that changes the state.
+                                      // Let's assume `newValue` represents a state the user *wants* to transition to.
+
+                                      final confirmed = await _showWarningDialog();
+                                      if (confirmed && mounted) {
+                                        // Use listen:false for actions
+                                        await Provider.of<ProgressProvider>(context, listen: false)
+                                            .toggleSelectAllForColumn(
+                                          widget.categoryName,
+                                          widget.bookName,
+                                          bookDetails, // bookDetails is already confirmed not null
+                                          columnId,
+                                          selectAction, 
+                                        );
+                                      }
+                                    },
+                                    tristate: true,
+                                    activeColor: theme.primaryColor,
+                                  ),
+                                  FittedBox( // Ensure text fits, especially for longer labels if any
+                                    fit: BoxFit.scaleDown,
+                                    child: Text(
+                                      columnLabel, 
+                                      style: TextStyle(fontSize: 11, color: theme.colorScheme.onSurface),
+                                      overflow: TextOverflow.ellipsis, // Prevent overflow with ellipsis
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }).toList(),
                         ),
                       ),
                     ],
