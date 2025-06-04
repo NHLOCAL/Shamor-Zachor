@@ -36,9 +36,9 @@ flutter_native_splash:
   color_dark: "#FFDBCF" # Optional: if you want a different color for dark mode
   android: true # This can stay to explicitly enable/disable for Android
   ios: true     # This can stay to explicitly enable/disable for iOS
-  web: true    # Keeping web as false as per previous config
-  # הוסרה השורה: windows: true
-  # image: assets/your_splash_image.png # Uncomment if you have a splash image
+  web: true
+  image: assets/launcher_icon/app_icon.png
+
 
 flutter_launcher_icons:
   android: "launcher_icon"
