@@ -1,9 +1,7 @@
 name: shamor_vezachor
-description: "A new Flutter project."
-
+description: "שמור וזכור: כלי יעיל ללומדי תורה למעקב מסודר אחר לימוד ספרי יסוד וניהול חזרות"
 publish_to: 'none'
-
-version: 1.0.0+1
+version: 0.7.0+1
 
 environment:
   sdk: ^3.5.4
@@ -14,9 +12,9 @@ dependencies:
   flutter_localizations:
     sdk: flutter
   intl: 0.20.2
-  provider: ^6.0.5 # ודא שהגרסה תואמת את שלך, אם שונה
-  shared_preferences: ^2.2.0 # ודא שהגרסה תואמת את שלך, אם שונה
-  path_provider: ^2.1.1 # ודא שהגרסה תואמת את שלך, אם שונה
+  provider: ^6.0.5
+  shared_preferences: ^2.2.0
+  path_provider: ^2.1.1
   cupertino_icons: ^1.0.8
   kosher_dart: ^2.0.17
   confetti: ^0.7.0
@@ -27,32 +25,44 @@ dependency_overrides:
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  flutter_native_splash: ^2.4.0
   flutter_lints: ^4.0.0
-  mockito: ^5.4.4 # Added mockito
-  build_runner: ^2.4.10 # Added build_runner
-  flutter_launcher_icons: ^0.13.1 # הוספת החבילה
+  mockito: ^5.4.4
+  build_runner: ^2.4.10
+  flutter_launcher_icons: ^0.13.1
+
+flutter_native_splash:
+  color: "#FFDBCF"
+  color_dark: "#FFDBCF" # Optional: if you want a different color for dark mode
+  android: true # This can stay to explicitly enable/disable for Android
+  ios: true     # This can stay to explicitly enable/disable for iOS
+  web: true    # Keeping web as false as per previous config
+  # הוסרה השורה: windows: true
+  # image: assets/your_splash_image.png # Uncomment if you have a splash image
 
 flutter_launcher_icons:
   android: "launcher_icon"
   ios: true
-  image_path: "assets/launcher_icon/app_icon.png" # עדכן אם שם הקובץ או הנתיב שונים
-  min_sdk_android: 21 # אופציונלי, התאם ל-minSdk שלך
+  image_path: "assets/launcher_icon/app_icon.png"
+  min_sdk_android: 21
+  remove_alpha_ios: true
+  adaptive_icon_background: "#FFDBCF"
   web:
     generate: true
-    image_path: "assets/launcher_icon/app_icon.png" # עדכן אם שם הקובץ או הנתיב שונים
-    background_color: "#0175C2" # התאם לצבע הרקע שלך מה-manifest.json
-    theme_color: "#0175C2" # התאם לצבע ה-theme שלך מה-manifest.json
+    image_path: "assets/launcher_icon/app_icon.png"
+    background_color: "#FFDBCF"
+    theme_color: "#FFDBCF"
   windows:
     generate: true
-    image_path: "assets/launcher_icon/app_icon.png" # עדכן אם שם הקובץ או הנתיב שונים
-    icon_size: 48 # ניתן לבחור גדלים שונים
+    image_path: "assets/launcher_icon/app_icon.png"
+    icon_size: 256
   macos:
     generate: true
-    image_path: "assets/launcher_icon/app_icon.png" # עדכן אם שם הקובץ או הנתיב שונים
+    image_path: "assets/launcher_icon/app_icon.png"
 
 flutter:
   uses-material-design: true
   assets:
     - assets/data/
-    - assets/launcher_icon/ # הוספת הנתיב לאייקון ה-launcher
-    - assets/images/ # הוספת הנתיב לתמונות בתוך האפליקציה
+    - assets/launcher_icon/
+    - assets/images/
