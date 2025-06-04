@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "top.ze-kal.shamor_vezachor"
+    namespace = "top.zekal.shamor_vezachor"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -19,7 +19,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "top.ze-kal.shamor_vezachor"
+        applicationId = "top.zekal.shamor_vezachor"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
