@@ -253,5 +253,5 @@ google-services.json
 
 
 # Ignore Flutter generated files
-**/flutter/
+**/flutter/generated**
 repomix-output.md
