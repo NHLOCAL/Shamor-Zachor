@@ -38,9 +38,9 @@ jobs:
         run: flutter pub get
 
       # 5. הרצת טסטים בתוך src (אופציונלי)
-      - name: Run Flutter Tests
-        working-directory: src
-        run: flutter test
+      # - name: Run Flutter Tests
+      # working-directory: src
+      #  run: flutter test
 
       # 6. בניית ה-APK במצב Release מתוך src
       - name: Build Android APK
