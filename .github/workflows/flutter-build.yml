@@ -25,7 +25,7 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      # 3. התקנת Flutter 3.32.1 (הגרסה היציבה האחרונה) :contentReference[oaicite:1]{index=1}
+      # 3. התקנת Flutter 3.32.1 (הגרסה היציבה האחרונה)
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
@@ -39,8 +39,8 @@ jobs:
 
       # 5. הרצת טסטים בתוך src (אופציונלי)
       # - name: Run Flutter Tests
-      # working-directory: src
-      #  run: flutter test
+      #   working-directory: src
+      #   run: flutter test
 
       # 6. בניית ה-APK במצב Release מתוך src
       - name: Build Android APK
@@ -86,11 +86,11 @@ jobs:
         run: flutter pub get
 
       # 4. הרצת טסטים בתוך src (אופציונלי)
-      #- name: Run Flutter Tests
-      #  working-directory: src
-      #  run: flutter test
+      # - name: Run Flutter Tests
+      #   working-directory: src
+      #   run: flutter test
 
-      # 5. בניית גרסת Windows (EXE) מ-src
+      # 5. בניית גרסת Windows (EXE) מתוך src
       - name: Build Windows EXE
         working-directory: src
         run: flutter build windows --release
@@ -100,13 +100,13 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: windows-build
-          path: src/build/windows/runner/Release/
+          path: src/build/windows/x64/runner/Release/
 
       # 7. הארכוב (zip) של קבצי ה-EXE כדי להקל על ההורדה
       - name: Zip Windows Release
         working-directory: src
         run: |
-          Compress-Archive -Path build/windows/runner/Release/* -DestinationPath windows-release.zip
+          Compress-Archive -Path build/windows/x64/runner/Release/* -DestinationPath windows-release.zip
           mv windows-release.zip ../windows-release.zip
 
       # 8. יצירת Release עם קובץ ה-ZIP (רק ב־Tag)
