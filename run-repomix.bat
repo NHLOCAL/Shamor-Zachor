@@ -1,5 +1,5 @@
 @echo off
 
-npx repomix "shamor_vezachor" --style markdown --remove-comments -i "assets/**"
+npx repomix "src" --style markdown --remove-comments -i "assets/**"
 
 pause
