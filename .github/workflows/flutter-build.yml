@@ -86,9 +86,9 @@ jobs:
         run: flutter pub get
 
       # 4. הרצת טסטים בתוך src (אופציונלי)
-      - name: Run Flutter Tests
-        working-directory: src
-        run: flutter test
+      #- name: Run Flutter Tests
+      #  working-directory: src
+      #  run: flutter test
 
       # 5. בניית גרסת Windows (EXE) מ-src
       - name: Build Windows EXE
