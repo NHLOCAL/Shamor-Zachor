@@ -1,0 +1,121 @@
+# קובץ: .github/workflows/build.yml
+name: Build Flutter APK + EXE
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+      - release/*
+  workflow_dispatch:
+
+jobs:
+  android:
+    name: Build Android APK
+    runs-on: ubuntu-latest
+    steps:
+      # 1. Checkout הקוד
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      # 2. התקנת Java 17 (ל־Android SDK)
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      # 3. התקנת Flutter 3.32.1 (הגרסה היציבה האחרונה) :contentReference[oaicite:1]{index=1}
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.32.1'
+          channel: 'stable'
+
+      # 4. התקנת התלויות בתוך תיקיית src
+      - name: Install Dependencies
+        working-directory: src
+        run: flutter pub get
+
+      # 5. הרצת טסטים בתוך src (אופציונלי)
+      - name: Run Flutter Tests
+        working-directory: src
+        run: flutter test
+
+      # 6. בניית ה-APK במצב Release מתוך src
+      - name: Build Android APK
+        working-directory: src
+        run: flutter build apk --release
+
+      # 7. העלאת ה-APK כארטיפקט
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-build
+          path: src/build/app/outputs/flutter-apk/app-release.apk
+
+      # 8. יצירת Release ב־GitHub עם ה-APK (רק ב־Tag)
+      - name: Publish Android Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: src/build/app/outputs/flutter-apk/app-release.apk
+          tag_name: ${{ github.ref_name }}
+          name: Android Release ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+
+  windows:
+    name: Build Windows EXE
+    runs-on: windows-latest
+    steps:
+      # 1. Checkout הקוד
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      # 2. התקנת Flutter 3.32.1
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.32.1'
+          channel: 'stable'
+
+      # 3. התקנת התלויות בתוך src
+      - name: Install Dependencies
+        working-directory: src
+        run: flutter pub get
+
+      # 4. הרצת טסטים בתוך src (אופציונלי)
+      - name: Run Flutter Tests
+        working-directory: src
+        run: flutter test
+
+      # 5. בניית גרסת Windows (EXE) מ-src
+      - name: Build Windows EXE
+        working-directory: src
+        run: flutter build windows --release
+
+      # 6. העלאת תיקיית ה־EXE כארטיפקט
+      - name: Upload Windows Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-build
+          path: src/build/windows/runner/Release/
+
+      # 7. הארכוב (zip) של קבצי ה-EXE כדי להקל על ההורדה
+      - name: Zip Windows Release
+        working-directory: src
+        run: |
+          Compress-Archive -Path build/windows/runner/Release/* -DestinationPath windows-release.zip
+          mv windows-release.zip ../windows-release.zip
+
+      # 8. יצירת Release עם קובץ ה-ZIP (רק ב־Tag)
+      - name: Publish Windows Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: windows-release.zip
+          tag_name: ${{ github.ref_name }}
+          name: Windows Release ${{ github.ref_name }}
+          draft: false
+          prerelease: false
