@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:confetti/confetti.dart';
 
@@ -7,9 +6,9 @@ class CompletionAnimationOverlay extends StatefulWidget {
   final String message;
 
   const CompletionAnimationOverlay({
-    Key? key,
+    super.key,
     required this.message,
-  }) : super(key: key);
+  });
 
   static void show(BuildContext context, String message) {
     OverlayEntry? overlayEntry;
@@ -118,7 +117,7 @@ class _CompletionAnimationOverlayState
                   const SizedBox(height: 20),
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                       backgroundColor: Theme.of(context).primaryColor,
+                      backgroundColor: Theme.of(context).primaryColor,
                     ),
                     onPressed: () {
                       // Manually dismiss: find the overlay entry and remove it.

@@ -12,7 +12,8 @@ enum CompletionEventType {
 class CompletionEvent {
   final CompletionEventType type;
   final String? bookName; // Optional: To specify which book
-  final int? reviewCycleNumber; // Optional: To specify which review cycle (1, 2, or 3)
+  final int?
+      reviewCycleNumber; // Optional: To specify which review cycle (1, 2, or 3)
 
   CompletionEvent(this.type, {this.bookName, this.reviewCycleNumber});
 }
@@ -27,11 +28,17 @@ class ProgressProvider with ChangeNotifier {
   static const String review1Column = 'review1';
   static const String review2Column = 'review2';
   static const String review3Column = 'review3';
-  static const List<String> allColumnNames = [learnColumn, review1Column, review2Column, review3Column];
+  static const List<String> allColumnNames = [
+    learnColumn,
+    review1Column,
+    review2Column,
+    review3Column
+  ];
 
-
-  final _completionEventController = StreamController<CompletionEvent>.broadcast();
-  Stream<CompletionEvent> get completionEvents => _completionEventController.stream;
+  final _completionEventController =
+      StreamController<CompletionEvent>.broadcast();
+  Stream<CompletionEvent> get completionEvents =>
+      _completionEventController.stream;
 
   bool _isLoading = false;
   bool get isLoading => _isLoading;
@@ -61,15 +68,10 @@ class ProgressProvider with ChangeNotifier {
         PageProgress();
   }
 
-  Future<void> updateProgress(
-      String categoryName,
-      String bookName,
-      int daf,
-      String amudKey,
-      String columnName,
-      bool value,
-      BookDetails bookDetails,
-      {bool isBulkUpdate = false}) async { // New parameter
+  Future<void> updateProgress(String categoryName, String bookName, int daf,
+      String amudKey, String columnName, bool value, BookDetails bookDetails,
+      {bool isBulkUpdate = false}) async {
+    // New parameter
     await _progressService.saveProgress(
         categoryName, bookName, daf, amudKey, columnName, value);
 
@@ -111,25 +113,37 @@ class ProgressProvider with ChangeNotifier {
     }
 
     if (value && columnName == 'learn') {
-      bool wasAlreadyCompleted = getCompletionDateSync(categoryName, bookName) != null;
+      bool wasAlreadyCompleted =
+          getCompletionDateSync(categoryName, bookName) != null;
       bool isNowComplete = isBookCompleted(categoryName, bookName, bookDetails);
 
-      if (isNowComplete && !wasAlreadyCompleted && !isBulkUpdate) { // Check isBulkUpdate
+      if (isNowComplete && !wasAlreadyCompleted && !isBulkUpdate) {
+        // Check isBulkUpdate
         await _progressService.saveCompletionDate(categoryName, bookName);
         _completionDates = await _progressService.loadCompletionDates();
-        _completionEventController.add(CompletionEvent(CompletionEventType.bookCompleted, bookName: bookName));
+        _completionEventController.add(CompletionEvent(
+            CompletionEventType.bookCompleted,
+            bookName: bookName));
       }
-    } else if (value && (columnName == 'review1' || columnName == 'review2' || columnName == 'review3') && !isBulkUpdate) { // Check isBulkUpdate
+    } else if (value &&
+        (columnName == 'review1' ||
+            columnName == 'review2' ||
+            columnName == 'review3') &&
+        !isBulkUpdate) {
+      // Check isBulkUpdate
       int? reviewCycleNumber;
-      if (columnName == 'review1') reviewCycleNumber = 1;
-      else if (columnName == 'review2') reviewCycleNumber = 2;
+      if (columnName == 'review1') {
+        reviewCycleNumber = 1;
+      } else if (columnName == 'review2')
+        reviewCycleNumber = 2;
       else if (columnName == 'review3') reviewCycleNumber = 3;
 
       if (reviewCycleNumber != null) {
         // Check if this specific change led to the completion of the review cycle
         // We assume `updateProgress` has already updated the specific `pageProgress` object in `_fullProgress`
-        bool cycleJustCompleted = _isReviewCycleCompleted(categoryName, bookName, reviewCycleNumber, bookDetails);
-        
+        bool cycleJustCompleted = _isReviewCycleCompleted(
+            categoryName, bookName, reviewCycleNumber, bookDetails);
+
         if (cycleJustCompleted) {
           // To prevent firing multiple times if already completed and another item is checked,
           // ideally we'd check a persisted state (e.g., a completion date for this specific review cycle).
@@ -141,7 +155,7 @@ class ProgressProvider with ChangeNotifier {
           // So, if the state *after* the update is "completed", we fire.
           // Consider if we need to prevent firing if the book itself was just completed by 'learn' in the same action.
           // The current structure means a 'learn' completion takes precedence if it happens.
-          
+
           _completionEventController.add(CompletionEvent(
             CompletionEventType.reviewCycleCompleted,
             bookName: bookName,
@@ -191,15 +205,16 @@ class ProgressProvider with ChangeNotifier {
   }
 
   bool _isReviewCycleCompleted(
-      String categoryName,
-      String bookName,
-      int reviewCycleNumber, // 1, 2, or 3
-      BookDetails bookDetails,
+    String categoryName,
+    String bookName,
+    int reviewCycleNumber, // 1, 2, or 3
+    BookDetails bookDetails,
   ) {
     final bookProgress = getProgressForBook(categoryName, bookName);
     if (bookProgress.isEmpty && bookDetails.pages > 0) return false;
 
-    final totalItems = bookDetails.isDafType ? bookDetails.pages * 2 : bookDetails.pages;
+    final totalItems =
+        bookDetails.isDafType ? bookDetails.pages * 2 : bookDetails.pages;
     if (totalItems == 0) return false;
 
     int completedItemsInCycle = 0;
@@ -211,7 +226,7 @@ class ProgressProvider with ChangeNotifier {
       for (String amudKey in amudKeys) {
         final pageProgress = getProgressForPageAmud(
             categoryName, bookName, pageNumber.toString(), amudKey);
-        
+
         bool isItemCompletedInCycle = false;
         switch (reviewCycleNumber) {
           case 1:
@@ -273,21 +288,6 @@ class ProgressProvider with ChangeNotifier {
     return tracked;
   }
 
-  Future<void> _saveProgress() async {
-    // This is a simplified stand-in. The actual implementation might involve
-    // iterating _fullProgress and calling _progressService.saveProgress for each modified item,
-    // or having a bulk save method in _progressService.
-    // For now, we assume _progressService.saveAllMasechta (or a similar method)
-    // would be adapted or a new method created in ProgressService to persist _fullProgress.
-    // However, the original saveProgress in this class calls the service for individual items.
-    // To align with the existing pattern, toggleSelectAllForColumn will call updateProgress internally,
-    // which in turn calls _progressService.saveProgress.
-    // So, a separate _saveProgress might not be strictly needed here if we structure it that way.
-    // Let's assume for now that individual calls to updateProgress handle saving.
-    // If a full overwrite save is needed: await _progressService.saveFullProgress(_fullProgress);
-    // For now, this method can be a no-op if individual updates handle their own saving.
-  }
-
   Future<void> toggleSelectAllForColumn(
     String categoryName,
     String bookName,
@@ -335,7 +335,7 @@ class ProgressProvider with ChangeNotifier {
     }
     // No need to manually clean up bookProgress entries here, as updateProgress handles it.
     // No need to manually trigger completion events here, as updateProgress handles it (conditionally on isBulkUpdate).
-    
+
     // notifyListeners() is called by the last updateProgress, but to be safe,
     // and because multiple updateProgress calls might have occurred, one call here ensures UI updates.
     // However, if updateProgress always calls notifyListeners, this might be redundant or cause extra builds.
@@ -346,7 +346,7 @@ class ProgressProvider with ChangeNotifier {
     // However, the current structure of updateProgress has one notifyListeners at its end.
     // If many items are updated, many notifications fire.
     // A possible optimization: batch notifications. But for now, keep as is.
-     notifyListeners(); // Ensure UI reflects all changes after the loop.
+    notifyListeners(); // Ensure UI reflects all changes after the loop.
   }
 
   Map<String, bool?> getColumnSelectionStates(
@@ -365,33 +365,38 @@ class ProgressProvider with ChangeNotifier {
       // If bookDetails is null, we can't determine the items, so return indeterminate for all.
       return columnStates;
     }
-    
+
     final bookProgress = _fullProgress[categoryName]?[bookName];
-    final totalItems = bookDetails.isDafType ? bookDetails.pages * 2 : bookDetails.pages;
+    final totalItems =
+        bookDetails.isDafType ? bookDetails.pages * 2 : bookDetails.pages;
 
-    if (totalItems == 0) { // If there are no items in the book, treat columns as unselected.
-        columnStates.updateAll((key, value) => false);
-        return columnStates;
+    if (totalItems == 0) {
+      // If there are no items in the book, treat columns as unselected.
+      columnStates.updateAll((key, value) => false);
+      return columnStates;
     }
-
 
     for (String currentColumnName in allColumnNames) {
       bool allSelectedInColumn = true;
-      bool noneSelectedInColumn = true; // Assume none selected until one is found
+      bool noneSelectedInColumn =
+          true; // Assume none selected until one is found
 
-      if (bookProgress == null || bookProgress.isEmpty) { // No progress data for the book
-          allSelectedInColumn = false; // Cannot be all selected if no progress
-          // noneSelectedInColumn remains true
+      if (bookProgress == null || bookProgress.isEmpty) {
+        // No progress data for the book
+        allSelectedInColumn = false; // Cannot be all selected if no progress
+        // noneSelectedInColumn remains true
       } else {
         int itemsChecked = 0;
         for (int i = 0; i < bookDetails.pages; i++) {
           final pageNumber = bookDetails.startPage + i;
           final pageStr = pageNumber.toString();
-          final List<String> amudKeys = bookDetails.isDafType ? ['a', 'b'] : ['a'];
+          final List<String> amudKeys =
+              bookDetails.isDafType ? ['a', 'b'] : ['a'];
 
           for (String amudKey in amudKeys) {
             final pageAmudProgress = bookProgress[pageStr]?[amudKey];
-            bool itemSelected = pageAmudProgress?.getProperty(currentColumnName) ?? false;
+            bool itemSelected =
+                pageAmudProgress?.getProperty(currentColumnName) ?? false;
 
             if (itemSelected) {
               noneSelectedInColumn = false; // Found at least one selected
@@ -401,21 +406,24 @@ class ProgressProvider with ChangeNotifier {
             }
           }
         }
-         // Refined check after loop:
-        if (itemsChecked == 0 && totalItems > 0) { // No items were checked for this column
-            noneSelectedInColumn = true;
-            allSelectedInColumn = false;
-        } else if (itemsChecked == totalItems) { // All items were checked
-            allSelectedInColumn = true;
-            noneSelectedInColumn = false;
-        } else { // Mixed state
-            allSelectedInColumn = false;
-            noneSelectedInColumn = false;
+        // Refined check after loop:
+        if (itemsChecked == 0 && totalItems > 0) {
+          // No items were checked for this column
+          noneSelectedInColumn = true;
+          allSelectedInColumn = false;
+        } else if (itemsChecked == totalItems) {
+          // All items were checked
+          allSelectedInColumn = true;
+          noneSelectedInColumn = false;
+        } else {
+          // Mixed state
+          allSelectedInColumn = false;
+          noneSelectedInColumn = false;
         }
       }
 
-
-      if (allSelectedInColumn && totalItems > 0) { // totalItems > 0 condition added
+      if (allSelectedInColumn && totalItems > 0) {
+        // totalItems > 0 condition added
         columnStates[currentColumnName] = true;
       } else if (noneSelectedInColumn) {
         columnStates[currentColumnName] = false;

@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/data_provider.dart';
 import '../providers/progress_provider.dart';
-import '../models/book_model.dart';
 import '../widgets/hebrew_utils.dart';
 import '../widgets/completion_animation_overlay.dart';
 
@@ -37,7 +36,8 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
   void initState() {
     super.initState();
 
-    final progressProvider = Provider.of<ProgressProvider>(context, listen: false);
+    final progressProvider =
+        Provider.of<ProgressProvider>(context, listen: false);
     _completionSubscription = progressProvider.completionEvents.listen((event) {
       if (!mounted) return; // Ensure widget is still in the tree
 
@@ -62,7 +62,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
     //   if (bookDetails != null) {
     //     if (mounted) {
     //       // setState(() {
-    //       //   _isSelectAllChecked = progressProvider.isBookCompleted( 
+    //       //   _isSelectAllChecked = progressProvider.isBookCompleted(
     //       //       widget.categoryName, widget.bookName, bookDetails);
     //       // });
     //     }
@@ -82,7 +82,8 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text("אזהרה"),
-          content: const Text("פעולה זו תשנה את כל הסימונים בעמודה זו. האם להמשיך?"),
+          content:
+              const Text("פעולה זו תשנה את כל הסימונים בעמודה זו. האם להמשיך?"),
           actions: <Widget>[
             TextButton(
               child: const Text("לא"),
@@ -118,13 +119,13 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
         body: const Center(child: Text('פרטי הספר לא נמצאו.')),
       );
     }
-    
+
     final columnSelectionStates = progressProvider.getColumnSelectionStates(
         widget.categoryName, widget.bookName, bookDetails);
 
     final currentCompletionStatus = progressProvider.isBookCompleted(
         widget.categoryName, widget.bookName, bookDetails);
-    
+
     final isBookCompleteIcon = currentCompletionStatus
         ? Icon(Icons.check_circle, color: Colors.green.shade700)
         : Icon(Icons.circle_outlined,
@@ -172,8 +173,8 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                 //   ),
                 // ),
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(vertical: 8, horizontal: 8), // Adjusted padding
+                  padding: const EdgeInsets.symmetric(
+                      vertical: 8, horizontal: 8), // Adjusted padding
                   decoration: BoxDecoration(
                       border: Border(
                           bottom: BorderSide(
@@ -198,14 +199,18 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                           children: _columnData.map((col) {
                             final columnId = col['id']!;
                             final columnLabel = col['label']!;
-                            final bool? checkboxValue = columnSelectionStates[columnId];
+                            final bool? checkboxValue =
+                                columnSelectionStates[columnId];
 
-                            return Expanded( 
-                              flex: 1, // Explicitly set flex: 1 for header columns
+                            return Expanded(
+                              flex:
+                                  1, // Explicitly set flex: 1 for header columns
                               child: Column(
                                 mainAxisSize: MainAxisSize.min,
-                                mainAxisAlignment: MainAxisAlignment.center, // Center content vertically
-                                crossAxisAlignment: CrossAxisAlignment.center, // Center content horizontally
+                                mainAxisAlignment: MainAxisAlignment
+                                    .center, // Center content vertically
+                                crossAxisAlignment: CrossAxisAlignment
+                                    .center, // Center content horizontally
                                 children: [
                                   Checkbox(
                                     visualDensity: VisualDensity.compact,
@@ -214,43 +219,51 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                                       // Determine the intended 'select' action for toggleSelectAllForColumn
                                       // If newValue is true, user wants to select all.
                                       // If newValue is false or null (when tristate cycles), user wants to deselect all for that column.
-                                      final bool selectAction = newValue == true;
-                                      
+                                      final bool selectAction =
+                                          newValue == true;
+
                                       // Only show warning if attempting to check (select) or if it's mixed and becoming unchecked
                                       // Or, more simply, always show if there's an actual change intended by user click
                                       // The current logic in _showWarningDialog is generic enough.
-                                      // Let's refine: warning is about RESETTING data. 
+                                      // Let's refine: warning is about RESETTING data.
                                       // Selecting a column resets other columns. Deselecting just deselects.
                                       // So, warning is most critical when selectAction is true.
                                       // However, the prompt implies the warning is for *any* such bulk action.
-                                      
+
                                       // If current state is already what newValue suggests (e.g. already true, newValue is true), do nothing.
                                       // This can happen if the state update from provider is faster than expected.
                                       // However, `onChanged` for a checkbox usually fires only on actual user interaction that changes the state.
                                       // Let's assume `newValue` represents a state the user *wants* to transition to.
 
-                                      final confirmed = await _showWarningDialog();
+                                      final confirmed =
+                                          await _showWarningDialog();
                                       if (confirmed && mounted) {
                                         // Use listen:false for actions
-                                        await Provider.of<ProgressProvider>(context, listen: false)
+                                        await Provider.of<ProgressProvider>(
+                                                context,
+                                                listen: false)
                                             .toggleSelectAllForColumn(
                                           widget.categoryName,
                                           widget.bookName,
                                           bookDetails, // bookDetails is already confirmed not null
                                           columnId,
-                                          selectAction, 
+                                          selectAction,
                                         );
                                       }
                                     },
                                     tristate: true,
                                     activeColor: theme.primaryColor,
                                   ),
-                                  FittedBox( // Ensure text fits, especially for longer labels if any
+                                  FittedBox(
+                                    // Ensure text fits, especially for longer labels if any
                                     fit: BoxFit.scaleDown,
                                     child: Text(
-                                      columnLabel, 
-                                      style: TextStyle(fontSize: 11, color: theme.colorScheme.onSurface),
-                                      overflow: TextOverflow.ellipsis, // Prevent overflow with ellipsis
+                                      columnLabel,
+                                      style: TextStyle(
+                                          fontSize: 11,
+                                          color: theme.colorScheme.onSurface),
+                                      overflow: TextOverflow
+                                          .ellipsis, // Prevent overflow with ellipsis
                                     ),
                                   ),
                                 ],
@@ -319,15 +332,16 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                             Expanded(
                               flex: 10,
                               child: Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceEvenly, // This might not be strictly necessary if all children are Expanded
+                                mainAxisAlignment: MainAxisAlignment
+                                    .spaceEvenly, // This might not be strictly necessary if all children are Expanded
                                 children: [
                                   Expanded(
                                     flex: 1,
                                     child: Tooltip(
                                         message: "לימוד",
                                         child: Checkbox(
-                                            visualDensity: VisualDensity.compact,
+                                            visualDensity:
+                                                VisualDensity.compact,
                                             value: pageProgress.learn,
                                             onChanged: (val) =>
                                                 progressProvider.updateProgress(
@@ -335,7 +349,8 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                                                     widget.bookName,
                                                     pageNumber,
                                                     amudKey,
-                                                    ProgressProvider.learnColumn, // Use constant
+                                                    ProgressProvider
+                                                        .learnColumn, // Use constant
                                                     val ?? false,
                                                     bookDetails))),
                                   ),
@@ -344,7 +359,8 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                                     child: Tooltip(
                                         message: "חזרה 1",
                                         child: Checkbox(
-                                            visualDensity: VisualDensity.compact,
+                                            visualDensity:
+                                                VisualDensity.compact,
                                             value: pageProgress.review1,
                                             onChanged: (val) =>
                                                 progressProvider.updateProgress(
@@ -352,7 +368,8 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                                                     widget.bookName,
                                                     pageNumber,
                                                     amudKey,
-                                                    ProgressProvider.review1Column, // Use constant
+                                                    ProgressProvider
+                                                        .review1Column, // Use constant
                                                     val ?? false,
                                                     bookDetails))),
                                   ),
@@ -361,7 +378,8 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                                     child: Tooltip(
                                         message: "חזרה 2",
                                         child: Checkbox(
-                                            visualDensity: VisualDensity.compact,
+                                            visualDensity:
+                                                VisualDensity.compact,
                                             value: pageProgress.review2,
                                             onChanged: (val) =>
                                                 progressProvider.updateProgress(
@@ -369,7 +387,8 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                                                     widget.bookName,
                                                     pageNumber,
                                                     amudKey,
-                                                    ProgressProvider.review2Column, // Use constant
+                                                    ProgressProvider
+                                                        .review2Column, // Use constant
                                                     val ?? false,
                                                     bookDetails))),
                                   ),
@@ -378,7 +397,8 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                                     child: Tooltip(
                                         message: "חזרה 3",
                                         child: Checkbox(
-                                            visualDensity: VisualDensity.compact,
+                                            visualDensity:
+                                                VisualDensity.compact,
                                             value: pageProgress.review3,
                                             onChanged: (val) =>
                                                 progressProvider.updateProgress(
@@ -386,7 +406,8 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                                                     widget.bookName,
                                                     pageNumber,
                                                     amudKey,
-                                                    ProgressProvider.review3Column, // Use constant
+                                                    ProgressProvider
+                                                        .review3Column, // Use constant
                                                     val ?? false,
                                                     bookDetails))),
                                   ),

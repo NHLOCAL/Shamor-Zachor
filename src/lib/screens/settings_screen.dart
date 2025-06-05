@@ -351,7 +351,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                       subtitle: Text(
                         'קטגוריה: $categoryName\nסוג: ${bookDetails.contentType} (${bookDetails.pages} ${bookDetails.contentType == "דף" ? "דפים" : bookDetails.contentType})',
-                        style: TextStyle(
+                        style: const TextStyle(
                           color: Colors
                               .black87, // Improved readability for subtitle
                         ),
