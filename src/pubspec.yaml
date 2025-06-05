@@ -15,6 +15,7 @@ dependencies:
   provider: ^6.0.5
   shared_preferences: ^2.2.0
   path_provider: ^2.1.1
+  uuid: ^4.5.1 # Added uuid dependency
   cupertino_icons: ^1.0.8
   kosher_dart: ^2.0.17
   confetti: ^0.7.0

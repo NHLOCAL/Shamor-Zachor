@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import './tracking_screen.dart';
 import './books_screen.dart';
+import './settings_screen.dart'; // Assuming settings_screen.dart is in the same directory
 
 class MainLayoutScreen extends StatefulWidget {
   const MainLayoutScreen({super.key});
@@ -15,6 +16,7 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
   static const List<Widget> _widgetOptions = <Widget>[
     TrackingScreen(),
     BooksScreen(),
+    SettingsScreen(), // New screen added
   ];
 
   void _onItemTapped(int index) {
@@ -66,6 +68,11 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
               icon: Icon(Icons.menu_book_outlined),
               selectedIcon: Icon(Icons.menu_book),
               label: 'ספרים',
+            ),
+            NavigationDestination( // New destination added
+              icon: Icon(Icons.settings_outlined),
+              selectedIcon: Icon(Icons.settings),
+              label: 'הגדרות',
             ),
           ],
         ),

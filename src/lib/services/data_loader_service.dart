@@ -2,12 +2,18 @@ import 'dart:convert';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:path/path.dart' as p; // For basename
 import '../models/book_model.dart';
+import './custom_book_service.dart';
 
 class DataLoaderService {
   // Cache to prevent repeated loading, similar to lru_cache
   Map<String, BookCategory>? _cachedData;
 
+  void clearCache() {
+    _cachedData = null;
+  }
+
   Future<Map<String, BookCategory>> loadData() async {
+    final customBookService = CustomBookService(); // Added
     if (_cachedData != null) {
       return _cachedData!;
     }
@@ -49,6 +55,35 @@ class DataLoaderService {
         print("Error loading or parsing $path: $e");
       }
     }
+
+    // Load and merge custom books
+    final List<CustomBook> customBooksList = await customBookService.loadCustomBooks();
+    for (final customBook in customBooksList) {
+        int startPageForCustomBook = (customBook.contentType == "דף") ? 2 : 1;
+        final bookDetails = BookDetails(
+            pages: customBook.pages,
+            contentType: customBook.contentType,
+            columns: customBook.columns.isNotEmpty ? customBook.columns : [customBook.contentType],
+            startPage: startPageForCustomBook,
+            isCustom: true,
+            id: customBook.id, // <<< Add this line
+        );
+        if (combinedData.containsKey(customBook.categoryName)) {
+            combinedData[customBook.categoryName]!.books[customBook.bookName] = bookDetails;
+        } else {
+            combinedData[customBook.categoryName] = BookCategory(
+                name: customBook.categoryName,
+                contentType: customBook.contentType,
+                columns: customBook.columns.isNotEmpty ? customBook.columns : [customBook.contentType],
+                books: {customBook.bookName: bookDetails},
+                defaultStartPage: startPageForCustomBook,
+                isCustom: true,
+                sourceFile: "custom_books.json",
+            );
+        }
+    }
+    // End of custom book loading
+
     _cachedData = combinedData;
     return combinedData;
   }
