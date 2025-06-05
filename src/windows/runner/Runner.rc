@@ -1,11 +1,11 @@
-#include "resource.h"
+﻿#include "resource.h"
 
 #define APSTUDIO_READONLY_SYMBOLS
 #include "winres.h"
 #undef APSTUDIO_READONLY_SYMBOLS
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
-LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
+LANGUAGE LANG_HEBREW, SUBLANG_DEFAULT
 
 #ifdef APSTUDIO_INVOKED
 1 TEXTINCLUDE
@@ -55,13 +55,13 @@ VS_VERSION_INFO VERSIONINFO
 BEGIN
     BLOCK "StringFileInfo"
     BEGIN
-        BLOCK "040904B0" // English (United States), Unicode
+        BLOCK "040D04B0" // Hebrew (Israel), Unicode
         BEGIN
             VALUE "CompanyName", "ze-kal.top" "\0"
             VALUE "FileDescription", "שמור וזכור" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
             VALUE "InternalName", "ShamorVezachor" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2025 ze-kal.top. All rights reserved." "\0"
+            VALUE "LegalCopyright", "כל הזכויות שמורות © 2025 ze-kal.top" "\0"
             VALUE "OriginalFilename", "ShamorVezachor.exe" "\0"
             VALUE "ProductName", "שמור וזכור" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
@@ -69,7 +69,7 @@ BEGIN
     END
     BLOCK "VarFileInfo"
     BEGIN
-        VALUE "Translation", 0x0409, 1200 // English (US), Unicode (UTF-8)
+        VALUE "Translation", 0x040D, 1200 // Hebrew (Israel), Unicode (UTF-8)
     END
 END
 #endif

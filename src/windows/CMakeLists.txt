@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.14)
 project(shamor_vezachor LANGUAGES CXX)
 
+add_definitions(-DUNICODE -D_UNICODE)
+
 set(BINARY_NAME "ShamorVezachor")
 cmake_policy(VERSION 3.14...3.25)
 
