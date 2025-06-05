@@ -18,6 +18,8 @@ class BookCategory {
   final List<String> columns;
   final Map<String, BookDetails> books;
   final int defaultStartPage;
+  final bool isCustom;
+  final String sourceFile;
 
   BookCategory({
     required this.name,
@@ -25,16 +27,16 @@ class BookCategory {
     required this.columns,
     required this.books,
     required this.defaultStartPage,
+    required this.isCustom,
+    required this.sourceFile,
   });
 
-  factory BookCategory.fromJson(Map<String, dynamic> json, String fileName) {
+  factory BookCategory.fromJson(Map<String, dynamic> json, String sourceFile, { bool isCustom = false}) {
     Map<String, dynamic> rawData = _asMap(json['data']);
     Map<String, BookDetails> parsedBooks = {};
 
-    int startPageForCategory = 1;
-    if (fileName == "shas.json" || fileName == "yerushalmi.json") {
-      startPageForCategory = 2;
-    }
+    // Adjust defaultStartPage logic
+    int defaultStartPage = _asString(json['content_type']) == "דף" ? 2 : 1;
 
     rawData.forEach((key, value) {
       if (value is Map<String, dynamic>) {
@@ -42,7 +44,8 @@ class BookCategory {
           value,
           contentType: _asString(json['content_type']),
           columns: _asListString(json['columns']),
-          startPage: startPageForCategory,
+          startPage: defaultStartPage, // Use the new defaultStartPage logic
+          isCustom: isCustom, // Pass isCustom
         );
       }
     });
@@ -52,7 +55,9 @@ class BookCategory {
       contentType: _asString(json['content_type']),
       columns: _asListString(json['columns']),
       books: parsedBooks,
-      defaultStartPage: startPageForCategory,
+      defaultStartPage: defaultStartPage, // Use the new defaultStartPage logic
+      isCustom: isCustom, // Pass isCustom
+      sourceFile: sourceFile, // Pass sourceFile
     );
   }
 
@@ -72,12 +77,16 @@ class BookDetails {
   final String contentType;
   final List<String> columns;
   final int startPage;
+  final bool isCustom;
+  final String? id; // Added id field
 
   BookDetails({
     required this.pages,
     required this.contentType,
     required this.columns,
     required this.startPage,
+    this.isCustom = false, // Default value for isCustom
+    this.id, // Added id to constructor
   });
 
   factory BookDetails.fromJson(
@@ -85,12 +94,16 @@ class BookDetails {
     required String contentType,
     required List<String> columns,
     required int startPage,
+    bool isCustom = false,
+    String? id, // Added id to factory parameters
   }) {
     return BookDetails(
       pages: _asInt(json['pages']),
       contentType: contentType,
       columns: columns,
       startPage: startPage,
+      isCustom: isCustom,
+      id: id, // Passed id to constructor
     );
   }
 

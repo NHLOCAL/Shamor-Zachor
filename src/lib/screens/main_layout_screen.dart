@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import './tracking_screen.dart';
 import './books_screen.dart';
+import './settings_screen.dart'; // Assuming settings_screen.dart is in the same directory
 
 class MainLayoutScreen extends StatefulWidget {
   const MainLayoutScreen({super.key});
@@ -15,6 +16,7 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
   static const List<Widget> _widgetOptions = <Widget>[
     TrackingScreen(),
     BooksScreen(),
+    SettingsScreen(), // New screen added
   ];
 
   void _onItemTapped(int index) {
@@ -33,21 +35,23 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
-        appBar: AppBar(
-          title: Row(
-            mainAxisAlignment: MainAxisAlignment.center, // ממורכז כבר
-            children: [
-              ImageIcon(
-                const AssetImage('assets/images/app_icon_for_bar.png'),
-                color: appBarFgColor,
-                size: 28, // הגדלתי קצת את האייקון
-              ),
-              const SizedBox(width: 8),
-              Text('שמור וזכור', style: appBarTitleTextStyle),
-            ],
-          ),
-          centerTitle: true, // מוודא שהכותרת ממורכזת
-        ),
+        appBar: _selectedIndex != 2
+            ? AppBar(
+                title: Row(
+                  mainAxisAlignment: MainAxisAlignment.center, // ממורכז כבר
+                  children: [
+                    ImageIcon(
+                      const AssetImage('assets/images/app_icon_for_bar.png'),
+                      color: appBarFgColor,
+                      size: 28, // הגדלתי קצת את האייקון
+                    ),
+                    const SizedBox(width: 8),
+                    Text('שמור וזכור', style: appBarTitleTextStyle),
+                  ],
+                ),
+                centerTitle: true, // מוודא שהכותרת ממורכזת
+              )
+            : null, // אין AppBar במסך הגדרות
         body: IndexedStack(
           // Padding הוסר מכאן ויושם בתוך המסכים עצמם
           index: _selectedIndex,
@@ -66,6 +70,12 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
               icon: Icon(Icons.menu_book_outlined),
               selectedIcon: Icon(Icons.menu_book),
               label: 'ספרים',
+            ),
+            NavigationDestination(
+              // New destination added
+              icon: Icon(Icons.settings_outlined),
+              selectedIcon: Icon(Icons.settings),
+              label: 'הגדרות',
             ),
           ],
         ),

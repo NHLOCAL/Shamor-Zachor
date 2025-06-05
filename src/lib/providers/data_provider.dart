@@ -1,9 +1,11 @@
 import 'package:flutter/foundation.dart';
 import '../models/book_model.dart';
 import '../services/data_loader_service.dart';
+import '../services/custom_book_service.dart'; // Added import
 
 class DataProvider with ChangeNotifier {
   final DataLoaderService _dataLoaderService = DataLoaderService();
+  final CustomBookService _customBookService = CustomBookService(); // Added service instance
   Map<String, BookCategory> _allBookData = {};
   bool _isLoading = false;
   String? _error;
@@ -17,6 +19,7 @@ class DataProvider with ChangeNotifier {
   }
 
   Future<void> loadAllData() async {
+    _dataLoaderService.clearCache(); // Added cache clearing
     _isLoading = true;
     _error = null;
     notifyListeners();
@@ -36,5 +39,82 @@ class DataProvider with ChangeNotifier {
 
   BookDetails? getBookDetails(String categoryName, String bookName) {
     return _allBookData[categoryName]?.books[bookName];
+  }
+
+  // Custom book management methods
+  Future<void> addCustomBook({
+      required String categoryName,
+      required String bookName,
+      required String contentType,
+      required int pages,
+      required List<String> columns,
+  }) async {
+      _isLoading = true;
+      _error = null;
+      notifyListeners();
+      try {
+          await _customBookService.addCustomBook(
+              categoryName: categoryName,
+              bookName: bookName,
+              contentType: contentType,
+              pages: pages,
+              columns: columns,
+          );
+          await loadAllData(); // Reload all data after adding
+      } catch (e) {
+          _error = "Error adding custom book: ${e.toString()}";
+      }
+      _isLoading = false;
+      notifyListeners();
+  }
+
+  Future<void> editCustomBook({
+      required String id,
+      required String categoryName,
+      required String bookName,
+      required String contentType,
+      required int pages,
+      required List<String> columns,
+  }) async {
+      _isLoading = true;
+      _error = null;
+      notifyListeners();
+      try {
+          final success = await _customBookService.editCustomBook(
+              id: id,
+              categoryName: categoryName,
+              bookName: bookName,
+              contentType: contentType,
+              pages: pages,
+              columns: columns,
+          );
+          if (success) {
+              await loadAllData(); // Reload all data after editing
+          } else {
+              _error = "Failed to find custom book to edit (ID: $id).";
+          }
+      } catch (e) {
+          _error = "Error editing custom book: ${e.toString()}";
+      }
+      _isLoading = false;
+      notifyListeners();
+  }
+
+  Future<void> deleteCustomBook(String id) async {
+      _isLoading = true;
+      _error = null;
+      notifyListeners();
+      try {
+          final success = await _customBookService.deleteCustomBook(id);
+          if (success) {
+              await loadAllData(); // Reload all data after deleting
+          } else {
+              _error = "Failed to find custom book to delete (ID: $id).";
+          }
+      } catch (e) {
+          _error = "Error deleting custom book: ${e.toString()}";
+      }
+      _isLoading = false;
+      notifyListeners();
   }
 }
