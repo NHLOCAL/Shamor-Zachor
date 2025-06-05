@@ -24,172 +24,211 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final pagesController =
         TextEditingController(text: existingBook?.pages.toString() ?? '');
 
-    final List<String> contentTypes = ['פרק', 'דף', 'סימן'];
+    final List<String> contentTypes = ['פרק', 'דף', 'סימן', 'אחר...'];
     String? selectedContentType = existingBook?.contentType;
+    final customContentTypeController = TextEditingController();
+    bool isCustomType = false;
 
+    // Detect if existingBook has a custom type
     if (selectedContentType != null &&
-        !contentTypes.contains(selectedContentType)) {
-      selectedContentType = 'פרק'; // Default if existing is not in list
+        !['פרק', 'דף', 'סימן'].contains(selectedContentType)) {
+      isCustomType = true;
+      customContentTypeController.text = selectedContentType;
+      selectedContentType = 'אחר...';
     }
     if (existingBook == null) {
-      // For new book, ensure a default is selected or allow null then validate
       selectedContentType = 'פרק';
+      isCustomType = false;
     }
 
     showDialog(
       context: context,
       builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text(
-            existingBook == null ? 'הוסף ספר חדש' : 'ערוך ספר',
-            style: TextStyle(color: Theme.of(context).colorScheme.primary),
-          ),
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
-          content: SingleChildScrollView(
-            padding: const EdgeInsets.all(16.0),
-            child: Form(
-              key: _formKey, // Using the state member _formKey
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: <Widget>[
-                  TextFormField(
-                    controller: categoryNameController,
-                    decoration: InputDecoration(
-                      labelText: 'שם קטגוריה',
-                      border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8.0)),
-                      filled: true,
-                      fillColor: Theme.of(context)
-                          .colorScheme
-                          .surfaceContainerHighest
-                          .withValues(alpha: 77),
-                    ),
-                    textDirection: TextDirection.rtl,
-                    validator: (value) => (value == null || value.isEmpty)
-                        ? 'נא להזין שם קטגוריה'
-                        : null,
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: bookNameController,
-                    decoration: InputDecoration(
-                      labelText: 'שם הספר',
-                      border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8.0)),
-                      filled: true,
-                      fillColor: Theme.of(context)
-                          .colorScheme
-                          .surfaceContainerHighest
-                          .withValues(alpha: 77),
-                    ),
-                    textDirection: TextDirection.rtl,
-                    validator: (value) => (value == null || value.isEmpty)
-                        ? 'נא להזין שם ספר'
-                        : null,
-                  ),
-                  const SizedBox(height: 16),
-                  StatefulBuilder(
-                      builder: (BuildContext context, StateSetter setState) {
-                    return DropdownButtonFormField<String>(
-                      decoration: InputDecoration(
-                        labelText: 'סוג תוכן',
-                        border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8.0)),
-                        filled: true,
-                        fillColor: Theme.of(context)
-                            .colorScheme
-                            .surfaceContainerHighest
-                            .withValues(alpha: 77),
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: Text(
+                existingBook == null ? 'הוסף ספר חדש' : 'ערוך ספר',
+                style: TextStyle(color: Theme.of(context).colorScheme.primary),
+              ),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12.0)),
+              content: SingleChildScrollView(
+                padding: const EdgeInsets.all(16.0),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      TextFormField(
+                        controller: categoryNameController,
+                        decoration: InputDecoration(
+                          labelText: 'שם קטגוריה',
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8.0)),
+                          filled: true,
+                          fillColor: Theme.of(context)
+                              .colorScheme
+                              .surfaceContainerHighest
+                              .withValues(alpha: 77),
+                        ),
+                        textDirection: TextDirection.rtl,
+                        validator: (value) => (value == null || value.isEmpty)
+                            ? 'נא להזין שם קטגוריה'
+                            : null,
                       ),
-                      value: selectedContentType,
-                      items: contentTypes.map((String value) {
-                        return DropdownMenuItem<String>(
-                            value: value, child: Text(value));
-                      }).toList(),
-                      onChanged: (String? newValue) {
-                        setState(() {
-                          selectedContentType = newValue;
-                        });
-                      },
-                      validator: (value) =>
-                          value == null ? 'נא לבחור סוג תוכן' : null,
-                    );
-                  }),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: pagesController,
-                    decoration: InputDecoration(
-                      labelText: 'מספר עמודים/פרקים',
-                      border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8.0)),
-                      filled: true,
-                      fillColor: Theme.of(context)
-                          .colorScheme
-                          .surfaceContainerHighest
-                          .withValues(alpha: 77),
-                    ),
-                    keyboardType: TextInputType.number,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'נא להזין מספר';
-                      }
-                      if (int.tryParse(value) == null) {
-                        return 'נא להזין מספר תקין';
-                      }
-                      return null;
-                    },
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: bookNameController,
+                        decoration: InputDecoration(
+                          labelText: 'שם הספר',
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8.0)),
+                          filled: true,
+                          fillColor: Theme.of(context)
+                              .colorScheme
+                              .surfaceContainerHighest
+                              .withValues(alpha: 77),
+                        ),
+                        textDirection: TextDirection.rtl,
+                        validator: (value) => (value == null || value.isEmpty)
+                            ? 'נא להזין שם ספר'
+                            : null,
+                      ),
+                      const SizedBox(height: 16),
+                      DropdownButtonFormField<String>(
+                        decoration: InputDecoration(
+                          labelText: 'סוג תוכן',
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8.0)),
+                          filled: true,
+                          fillColor: Theme.of(context)
+                              .colorScheme
+                              .surfaceContainerHighest
+                              .withValues(alpha: 77),
+                        ),
+                        value: selectedContentType,
+                        items: contentTypes.map((String value) {
+                          return DropdownMenuItem<String>(
+                              value: value, child: Text(value));
+                        }).toList(),
+                        onChanged: (String? newValue) {
+                          setState(() {
+                            selectedContentType = newValue;
+                            isCustomType = newValue == 'אחר...';
+                            if (!isCustomType) {
+                              customContentTypeController.clear();
+                            }
+                          });
+                        },
+                        validator: (value) =>
+                            value == null ? 'נא לבחור סוג תוכן' : null,
+                      ),
+                      if (isCustomType) ...[
+                        const SizedBox(height: 12),
+                        TextFormField(
+                          controller: customContentTypeController,
+                          decoration: InputDecoration(
+                            labelText: 'הזן סוג תוכן מותאם',
+                            border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8.0)),
+                            filled: true,
+                            fillColor: Theme.of(context)
+                                .colorScheme
+                                .surfaceContainerHighest
+                                .withValues(alpha: 77),
+                          ),
+                          textDirection: TextDirection.rtl,
+                          validator: (value) {
+                            if (isCustomType &&
+                                (value == null || value.isEmpty)) {
+                              return 'נא להזין סוג תוכן מותאם';
+                            }
+                            return null;
+                          },
+                        ),
+                      ],
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: pagesController,
+                        decoration: InputDecoration(
+                          labelText: 'מספר עמודים/פרקים',
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8.0)),
+                          filled: true,
+                          fillColor: Theme.of(context)
+                              .colorScheme
+                              .surfaceContainerHighest
+                              .withValues(alpha: 77),
+                        ),
+                        keyboardType: TextInputType.number,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'נא להזין מספר';
+                          }
+                          if (int.tryParse(value) == null) {
+                            return 'נא להזין מספר תקין';
+                          }
+                          return null;
+                        },
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
-            ),
-          ),
-          actions: <Widget>[
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: Text('ביטול',
-                  style: TextStyle(
-                      color: Theme.of(context).colorScheme.secondary)),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Theme.of(context).colorScheme.primary,
-                foregroundColor: Theme.of(context).colorScheme.onPrimary,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8.0)),
-              ),
-              onPressed: () {
-                if (_formKey.currentState!.validate()) {
-                  final String finalContentType = selectedContentType ??
-                      'פרק'; // Fallback, though validator should prevent null
-                  final List<String> columns = (finalContentType == 'דף')
-                      ? ["עמוד א'", "עמוד ב'"]
-                      : [finalContentType];
+              actions: <Widget>[
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: Text('ביטול',
+                      style: TextStyle(
+                          color: Theme.of(context).colorScheme.secondary)),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Theme.of(context).colorScheme.primary,
+                    foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8.0)),
+                  ),
+                  onPressed: () {
+                    if (_formKey.currentState!.validate()) {
+                      String finalContentType;
+                      if (selectedContentType == 'אחר...') {
+                        finalContentType =
+                            customContentTypeController.text.trim();
+                      } else {
+                        finalContentType = selectedContentType ?? 'פרק';
+                      }
+                      final List<String> columns = (finalContentType == 'דף')
+                          ? ["עמוד א'", "עמוד ב'"]
+                          : [finalContentType];
 
-                  if (existingBook != null && existingBook.id != null) {
-                    dataProvider.editCustomBook(
-                      id: existingBook.id!,
-                      categoryName: categoryNameController.text,
-                      bookName: bookNameController.text,
-                      contentType: finalContentType,
-                      pages: int.parse(pagesController.text),
-                      columns: columns,
-                    );
-                  } else {
-                    dataProvider.addCustomBook(
-                      categoryName: categoryNameController.text,
-                      bookName: bookNameController.text,
-                      contentType: finalContentType,
-                      pages: int.parse(pagesController.text),
-                      columns: columns,
-                    );
-                  }
-                  Navigator.of(context).pop();
-                }
-              },
-              child: const Text('שמור'),
-            ),
-          ],
+                      if (existingBook != null && existingBook.id != null) {
+                        dataProvider.editCustomBook(
+                          id: existingBook.id!,
+                          categoryName: categoryNameController.text,
+                          bookName: bookNameController.text,
+                          contentType: finalContentType,
+                          pages: int.parse(pagesController.text),
+                          columns: columns,
+                        );
+                      } else {
+                        dataProvider.addCustomBook(
+                          categoryName: categoryNameController.text,
+                          bookName: bookNameController.text,
+                          contentType: finalContentType,
+                          pages: int.parse(pagesController.text),
+                          columns: columns,
+                        );
+                      }
+                      Navigator.of(context).pop();
+                    }
+                  },
+                  child: const Text('שמור'),
+                ),
+              ],
+            );
+          },
         );
       },
     );
@@ -313,7 +352,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       subtitle: Text(
                         'קטגוריה: $categoryName\nסוג: ${bookDetails.contentType} (${bookDetails.pages} ${bookDetails.contentType == "דף" ? "דפים" : bookDetails.contentType})',
                         style: TextStyle(
-                          color: Colors.black87, // Improved readability for subtitle
+                          color: Colors
+                              .black87, // Improved readability for subtitle
                         ),
                       ),
                       trailing: Row(
@@ -369,11 +409,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           child: Text(
                             'ניהול ספרים מותאמים אישית',
                             textAlign: TextAlign.center,
-                            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                  color: Theme.of(context).colorScheme.primary,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 22, // Slightly smaller for a subtler look
-                                ) ??
+                            style: Theme.of(context)
+                                    .textTheme
+                                    .headlineSmall
+                                    ?.copyWith(
+                                      color:
+                                          Theme.of(context).colorScheme.primary,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize:
+                                          22, // Slightly smaller for a subtler look
+                                    ) ??
                                 const TextStyle(
                                   fontSize: 22,
                                   fontWeight: FontWeight.bold,
