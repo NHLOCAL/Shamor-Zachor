@@ -307,16 +307,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           fontWeight: FontWeight.w600, // Bolder title
                           fontSize:
                               Theme.of(context).textTheme.titleMedium?.fontSize,
+                          color: Colors.black, // Improved readability
                         ),
                       ),
                       subtitle: Text(
                         'קטגוריה: $categoryName\nסוג: ${bookDetails.contentType} (${bookDetails.pages} ${bookDetails.contentType == "דף" ? "דפים" : bookDetails.contentType})',
                         style: TextStyle(
-                          color: Theme.of(context)
-                              .textTheme
-                              .bodySmall
-                              ?.color
-                              ?.withValues(alpha: 204), // Subtler subtitle
+                          color: Colors.black87, // Improved readability for subtitle
                         ),
                       ),
                       trailing: Row(
@@ -368,54 +365,40 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     children: <Widget>[
                       Padding(
                         padding: const EdgeInsets.only(top: 16.0, bottom: 8.0),
-                        child: Text(
-                          'ניהול ספרים מותאמים אישית',
-                          style: Theme.of(context)
-                                  .textTheme
-                                  .titleLarge
-                                  ?.copyWith(
-                                    color:
-                                        Theme.of(context).colorScheme.primary,
-                                  ) ??
-                              const TextStyle(
+                        child: Center(
+                          child: Text(
+                            'ניהול ספרים מותאמים אישית',
+                            textAlign: TextAlign.center,
+                            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                  color: Theme.of(context).colorScheme.primary,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 22, // Slightly smaller for a subtler look
+                                ) ??
+                                const TextStyle(
                                   fontSize: 22,
                                   fontWeight: FontWeight.bold,
-                                  color: Colors
-                                      .blue /* Fallback color */), // Fallback style
+                                  color: Colors.blue,
+                                ),
+                          ),
                         ),
                       ),
                       const SizedBox(
                           height:
                               10), // This SizedBox can be adjusted or removed if bottom padding is sufficient
-                      SizedBox(
-                        // To make the button full-width
-                        width: double.infinity,
-                        child: ElevatedButton.icon(
+                      Center(
+                        child: FloatingActionButton.extended(
+                          onPressed: () => _showAddOrEditBookDialog(),
                           icon: const Icon(Icons.add),
                           label: const Text('הוסף ספר חדש'),
-                          onPressed: () => _showAddOrEditBookDialog(),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Theme.of(context)
-                                .colorScheme
-                                .primary, // Use theme's primary color
-                            foregroundColor: Theme.of(context)
-                                .colorScheme
-                                .onPrimary, // Text/icon color for contrast
-                            padding: const EdgeInsets.symmetric(
-                                vertical: 12.0), // Adjust vertical padding
-                            textStyle: TextStyle(
-                              fontSize: Theme.of(context)
-                                      .textTheme
-                                      .labelLarge
-                                      ?.fontSize ??
-                                  16.0, // Ensure good font size
-                              fontWeight: FontWeight.bold,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(
-                                  8.0), // Slightly rounded corners
-                            ),
+                          backgroundColor:
+                              Theme.of(context).colorScheme.primary,
+                          foregroundColor:
+                              Theme.of(context).colorScheme.onPrimary,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(28.0),
                           ),
+                          extendedPadding:
+                              const EdgeInsets.symmetric(horizontal: 24.0),
                         ),
                       ),
                       const SizedBox(height: 20),
