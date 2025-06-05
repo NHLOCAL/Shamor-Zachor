@@ -1,6 +1,6 @@
 # שמור וזכור - מערכת מעקב לימוד 📖
 
-**שמור וזכור** הוא כלי ייחודי שנועד לסייע ללומדי תורה במעקב אחר לימוד ספרי יסוד תורניים בצורה מסודרת וברורה. היישום מאפשר לעקוב בצורה יעילה אחר ההתקדמות בלימוד, כולל תמיכה במגוון ספרים מארון הספרים היהודי. הממשק פשוט לשימוש וכולל אפשרויות המקלות על המעקב והניהול של תהליך הלימוד.
+"**שמור וזכור** הוא כלי ייחודי, שנבנה מחדש באמצעות Flutter, המיועד לסייע ללומדי תורה במעקב אחר לימוד ספרי יסוד תורניים בצורה מסודרת וברורה. היישום, המבוסס כעת על Flutter, מאפשר לעקוב בצורה יעילה אחר ההתקדמות בלימוד, כולל תמיכה במגוון ספרים מארון הספרים היהודי, ומציע חווית משתמש אחידה וחלקה במגוון פלטפורמות. הממשק פשוט לשימוש וכולל אפשרויות המקלות על המעקב והניהול של תהליך הלימוד."
 
 ## 📸 תמונת מסך
 
@@ -21,11 +21,11 @@
 
 ## 🚀 הורדה והפעלה
 
-הדרך הקלה ביותר להשתמש ב"שמור וזכור" היא להוריד את גרסת ההפצה העדכנית ביותר מהקישור הבא. אין צורך בהתקנות מסובכות!
+הדרך הקלה ביותר להשתמש ב"שמור וזכור" היא להוריד את גרסת ההפצה העדכנית ביותר מהקישור הבא. היישום זמין למגוון מערכות הפעלה הודות לפיתוח באמצעות Flutter.
 
 🔗 [**הורד את הגרסה האחרונה מכאן**](https://github.com/NHLOCAL/Shamor-Zachor/releases/latest)
 
-הורידו את הקובץ המתאים למערכת ההפעלה שלכם (קובץ התקנה עבור **Windows** או קובץ **APK** עבור **Android**) והפעילו/התקינו אותו.
+הורידו את קובץ ההתקנה המתאים למערכת ההפעלה שלכם (לדוגמה, **APK** עבור **Android**, קובץ התקנה עבור **Windows**, וכו') והפעילו/התקינו אותו בהתאם להוראות הפלטפורמה.
 
 ## 🔍 אופן השימוש
 
@@ -39,27 +39,33 @@
 
 ## 📂 מבנה הקבצים (למפתחים)
 
--   **`main.py`**: הקובץ הראשי של היישום, המכיל את לוגיקת הממשק המשתמש (UI) באמצעות Flet, ניהול ניווט ותצוגות.
--   **`data_loader.py`**: אחראי על טעינה ועיבוד של נתוני הספרים (מסכתות, פרקים, מספר עמודים וכו') מקבצי JSON בתיקיית `data/`. כולל פונקציות עזר כמו קבלת תאריך עברי.
--   **`progress_manager.py`**: מחלקה סטטית לניהול שמירה וקריאה של התקדמות המשתמש ותאריכי סיום.
--   **`data/`**: תיקייה המכילה קבצי JSON עם המבנה והמידע עבור כל קטגוריית לימוד (תנ"ך, תלמוד בבלי וכו').
--   **`assets/`**: תיקייה המכילה קבצי מדיה כמו אייקונים ותמונות.
+הפרויקט פותח באמצעות Flutter ומאורגן במבנה הסטנדרטי של פרויקטי Flutter:
+
+-   **`src/lib/main.dart`**: נקודת הכניסה הראשית של היישום. מכיל את הגדרות האפליקציה והניווט הראשי.
+-   **`src/lib/models/`**: מכיל את מודלי הנתונים של האפליקציה (למשל, `book_model.dart`, `progress_model.dart`).
+-   **`src/lib/providers/`**: מכיל את ספקי המצב (Providers) לניהול מצב האפליקציה (למשל, `data_provider.dart`, `progress_provider.dart`).
+-   **`src/lib/screens/`**: מכיל את קבצי הווידג'טים המייצגים את המסכים השונים באפליקציה (למשל, `books_screen.dart`, `tracking_screen.dart`).
+-   **`src/lib/services/`**: מכיל לוגיקה עסקית ושירותים, כגון טעינת נתונים (`data_loader_service.dart`) וניהול התקדמות (`progress_service.dart`).
+-   **`src/lib/widgets/`**: מכיל ווידג'טים לשימוש חוזר ברחבי האפליקציה.
+-   **`src/pubspec.yaml`**: קובץ התצורה של הפרויקט, המגדיר את התלויות (dependencies), נכסים (assets) ופרטים נוספים של הפרויקט.
+-   **`src/assets/data/`**: תיקייה המכילה קבצי JSON עם המבנה והמידע עבור כל קטגוריית לימוד (תנ"ך, תלמוד בבלי וכו').
+-   **`src/assets/images/`**: תיקייה המכילה קבצי תמונות ואייקונים המשמשים באפליקציה.
+-   **`legacy/`**: תיקייה המכילה את קוד המקור של הגרסה הקודמת של היישום, שהייתה מבוססת Python.
 
 ## 📋 דרישות מערכת (להרצה מקוד המקור)
 
--   Python 3.10+
--   ספריית Flet (לממשק המשתמש)
--   ספריית hebrew-numbers (להמרת מספרים לגימטריה)
--   ספריית pyluach (להמרת תאריכים לעברית)
+-   [Flutter SDK](https://flutter.dev/docs/get-started/install) (יש לוודא התקנה תקינה וזמינות הפקודה `flutter` בשורת הפקודה)
+-   סביבת פיתוח מתאימה לפלטפורמה הרצויה (למשל, Android Studio עבור פיתוח לאנדרואיד, Xcode עבור iOS, וכו').
 
-להתקנת התלויות:
+לפני ההרצה הראשונה, יש למשוך את התלויות של הפרויקט. בתיקיית השורש של הפרויקט (`src/`), הריצו:
 ```bash
-pip install flet hebrew-numbers pyluach
+flutter pub get
 ```
-להרצת האפליקציה מקוד המקור:
+לאחר מכן, ניתן להריץ את האפליקציה באמצעות הפקודה הבאה (מומלץ להריץ מתוך תיקיית `src/`):
 ```bash
-flet run main.py
+flutter run
 ```
+האפליקציה תרוץ על המכשיר/אמולטור המחובר או על דפדפן האינטרנט, בהתאם להגדרות.
 
 ## 🤝 תרומה ושיפור
 
