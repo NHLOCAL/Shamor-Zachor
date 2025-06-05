@@ -1,5 +1,5 @@
 # קובץ: .github/workflows/build.yml
-name: Build Flutter APK + EXE
+name: Build Flutter APK + EXE & Create Release
 
 on:
   push:
@@ -7,8 +7,8 @@ on:
       - main
       - dev
       - release/*
-    tags:
-      - '*.*.*'
+    tags: # הפעל על כל תג (למשל, 0.6.0, 1.0.0, v1.0.1)
+      - '*' # ניתן לצמצם לתבנית ספציפית כמו 'v*' או '[0-9]+.[0-9]+.[0-9]+'
   workflow_dispatch:
 
 jobs:
@@ -16,108 +16,140 @@ jobs:
     name: Build Android APK
     runs-on: ubuntu-latest
     steps:
-      # 1. Checkout הקוד
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      # 2. התקנת Java 17 (ל־Android SDK)
       - name: Set up Java 17
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
 
-      # 3. התקנת Flutter 3.32.1 (הגרסה היציבה האחרונה)
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.32.1'
+          flutter-version: '3.32.1' # או הגרסה היציבה העדכנית ביותר/הגרסה שלך
           channel: 'stable'
 
-      # 4. התקנת התלויות בתוך תיקיית src
       - name: Install Dependencies
         working-directory: src
         run: flutter pub get
 
-      # 5. הרצת טסטים בתוך src (אופציונלי)
+      # אופציונלי: הרצת טסטים
       # - name: Run Flutter Tests
       #   working-directory: src
       #   run: flutter test
 
-      # 6. בניית ה-APK במצב Release מתוך src
       - name: Build Android APK
         working-directory: src
         run: flutter build apk --release
 
-      # 7. העלאת ה-APK כארטיפקט
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: android-build
+          name: android-apk-artifact # שם ייחודי לארטיפקט
           path: src/build/app/outputs/flutter-apk/app-release.apk
-
-      # 8. יצירת Release ב־GitHub עם ה-APK (רק ב־Tag)
-      - name: Publish Android Release
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v2
-        with:
-          files: src/build/app/outputs/flutter-apk/app-release.apk
-          tag_name: ${{ github.ref_name }}
-          name: Android Release ${{ github.ref_name }}
-          draft: true
-          prerelease: false
 
   windows:
     name: Build Windows EXE
     runs-on: windows-latest
     steps:
-      # 1. Checkout הקוד
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      # 2. התקנת Flutter 3.32.1
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.32.1'
+          flutter-version: '3.32.1' # אותה גרסה כמו באנדרואיד
           channel: 'stable'
 
-      # 3. התקנת התלויות בתוך src
       - name: Install Dependencies
         working-directory: src
         run: flutter pub get
 
-      # 4. הרצת טסטים בתוך src (אופציונלי)
+      # אופציונלי: הרצת טסטים
       # - name: Run Flutter Tests
       #   working-directory: src
       #   run: flutter test
 
-      # 5. בניית גרסת Windows (EXE) מתוך src
       - name: Build Windows EXE
         working-directory: src
         run: flutter build windows --release
 
-      # 6. העלאת תיקיית ה־EXE כארטיפקט
-      - name: Upload Windows Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: windows-build
-          path: src/build/windows/x64/runner/Release/
-
-      # 7. הארכוב (zip) של קבצי ה-EXE כדי להקל על ההורדה
       - name: Zip Windows Release
-        working-directory: src
+        working-directory: src # קובץ ה-ZIP ייווצר ב-src/windows-release.zip
         run: |
           Compress-Archive -Path build/windows/x64/runner/Release/* -DestinationPath windows-release.zip
-          mv windows-release.zip ../windows-release.zip
 
-      # 8. יצירת Release עם קובץ ה-ZIP (רק ב־Tag)
-      - name: Publish Windows Release
-        if: startsWith(github.ref, 'refs/tags/')
+      - name: Upload Windows ZIP Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-zip-artifact # שם ייחודי לארטיפקט
+          path: src/windows-release.zip
+
+  publish-release:
+    name: Publish GitHub Release
+    if: startsWith(github.ref, 'refs/tags/') # הרץ רק כאשר נוצר תג
+    needs: [android, windows] # הרץ רק לאחר ששני ה-jobs הקודמים הסתיימו בהצלחה
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # הרשאה נדרשת ליצירת Release
+
+    steps:
+      - name: Download Android APK artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: android-apk-artifact
+          path: artifacts/android # הורד לתיקייה זמנית
+
+      - name: Download Windows ZIP artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-zip-artifact
+          path: artifacts/windows # הורד לתיקייה זמנית
+
+      - name: Prepare Release Assets and Rename
+        id: prepare_assets # נותן ID לשלב כדי שנוכל להתייחס ל-outputs שלו אם נרצה
+        env:
+          # github.ref_name יכיל את שם התג, לדוגמה "0.6.0" או "v0.6.0"
+          # אם התג הוא "v0.6.0" ואתה רוצה "0.6.0", תצטרך עיבוד נוסף.
+          # כרגע נשתמש בשם התג כפי שהוא.
+          TAG_VERSION: ${{ github.ref_name }}
+        run: |
+          APK_ORIGINAL_PATH="artifacts/android/app-release.apk"
+          APK_NEW_NAME="shamor-vezachor-${TAG_VERSION}.apk"
+          APK_NEW_PATH="artifacts/android/${APK_NEW_NAME}"
+
+          ZIP_ORIGINAL_PATH="artifacts/windows/windows-release.zip"
+          ZIP_NEW_NAME="shamor-vezachor-${TAG_VERSION}.zip"
+          ZIP_NEW_PATH="artifacts/windows/${ZIP_NEW_NAME}"
+
+          echo "Renaming APK: ${APK_ORIGINAL_PATH} -> ${APK_NEW_PATH}"
+          mv "${APK_ORIGINAL_PATH}" "${APK_NEW_PATH}"
+
+          echo "Renaming ZIP: ${ZIP_ORIGINAL_PATH} -> ${ZIP_NEW_PATH}"
+          mv "${ZIP_ORIGINAL_PATH}" "${ZIP_NEW_PATH}"
+
+          echo "Final files for release:"
+          ls -R artifacts/
+
+          # אם תרצה להשתמש בשמות החדשים כ-outputs (לא חובה כאן כי אנו בונים אותם מחדש ב-softprops)
+          # echo "apk_path=${APK_NEW_PATH}" >> $GITHUB_OUTPUT
+          # echo "zip_path=${ZIP_NEW_PATH}" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: windows-release.zip
-          tag_name: ${{ github.ref_name }}
-          name: Windows Release ${{ github.ref_name }}
-          draft: false
-          prerelease: false
+          # הנתיבים כאן צריכים להתאים לשמות החדשים שנוצרו בשלב הקודם
+          files: |
+            artifacts/android/shamor-vezachor-${{ github.ref_name }}.apk
+            artifacts/windows/shamor-vezachor-${{ github.ref_name }}.zip
+          tag_name: ${{ github.ref_name }} # השתמש בשם התג המקורי
+          name: Release ${{ github.ref_name }} # שם ה-Release (למשל "Release 0.6.0")
+          body: | # תיאור אופציונלי ל-Release
+            גרסה ${{ github.ref_name }} של שמור וזכור.
+            קבצים מצורפים:
+            - `shamor-vezachor-${{ github.ref_name }}.apk` (אנדרואיד)
+            - `shamor-vezachor-${{ github.ref_name }}.zip` (חלונות)
+          draft: true # <-- ה-Release ייווצר כטיוטה
+          prerelease: false # הגדר כ-true אם זו גרסת טרום-שחרור
