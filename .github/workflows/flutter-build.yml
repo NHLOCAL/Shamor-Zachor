@@ -62,7 +62,7 @@ jobs:
           files: src/build/app/outputs/flutter-apk/app-release.apk
           tag_name: ${{ github.ref_name }}
           name: Android Release ${{ github.ref_name }}
-          draft: false
+          draft: true
           prerelease: false
 
   windows:
