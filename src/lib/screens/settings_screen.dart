@@ -303,7 +303,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       'ניהול ספרים מותאמים אישית',
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
                             color: Theme.of(context).colorScheme.primary,
-                          ) ?? const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.blue /* Fallback color */), // Fallback style
+                          ) ?? TextStyle( // Ensure 'const' is removed from here
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                              color: Theme.of(context).colorScheme.primary // Using theme color and no inner comment
+                              ),
                     ),
                   ),
                   const SizedBox(height: 10), // This SizedBox can be adjusted or removed if bottom padding is sufficient
