@@ -257,19 +257,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
       textDirection: TextDirection.rtl,
       child: Scaffold(
         appBar: AppBar(
-          // Removed the title row with the icon and 'הגדרות' text
-          centerTitle: true, // Keep for symmetry if needed
-          bottom: PreferredSize(
-            // For loading indicator
-            preferredSize: const Size.fromHeight(4.0),
-            child: Consumer<DataProvider>(
-              builder: (context, provider, child) {
-                return provider.isLoading
-                    ? const LinearProgressIndicator()
-                    : const SizedBox.shrink();
-              },
-            ),
-          ),
+          // הוסר ה-PreferredSize עם ה-LinearProgressIndicator
+          // נשאר רק AppBar רגיל, כמו בשאר האפליקציה
+          centerTitle: true,
         ),
         body: Consumer<DataProvider>(
           builder: (context, dataProvider, child) {
