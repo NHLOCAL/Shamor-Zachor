@@ -255,3 +255,4 @@ google-services.json
 # Ignore Flutter generated files
 **/flutter/generated**
 repomix-output.md
+.vscode/settings.json
