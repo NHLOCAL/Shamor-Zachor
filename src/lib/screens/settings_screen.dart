@@ -257,9 +257,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
       textDirection: TextDirection.rtl,
       child: Scaffold(
         appBar: AppBar(
-          // הוסר ה-PreferredSize עם ה-LinearProgressIndicator
-          // נשאר רק AppBar רגיל, כמו בשאר האפליקציה
           centerTitle: true,
+          title: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.settings,
+                  color: Theme.of(context).appBarTheme.foregroundColor,
+                  size: 26),
+              const SizedBox(width: 8),
+              Text('הגדרות',
+                  style: Theme.of(context).appBarTheme.titleTextStyle),
+            ],
+          ),
         ),
         body: Consumer<DataProvider>(
           builder: (context, dataProvider, child) {

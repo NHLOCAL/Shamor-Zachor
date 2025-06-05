@@ -35,21 +35,23 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
-        appBar: AppBar(
-          title: Row(
-            mainAxisAlignment: MainAxisAlignment.center, // ממורכז כבר
-            children: [
-              ImageIcon(
-                const AssetImage('assets/images/app_icon_for_bar.png'),
-                color: appBarFgColor,
-                size: 28, // הגדלתי קצת את האייקון
-              ),
-              const SizedBox(width: 8),
-              Text('שמור וזכור', style: appBarTitleTextStyle),
-            ],
-          ),
-          centerTitle: true, // מוודא שהכותרת ממורכזת
-        ),
+        appBar: _selectedIndex != 2
+            ? AppBar(
+                title: Row(
+                  mainAxisAlignment: MainAxisAlignment.center, // ממורכז כבר
+                  children: [
+                    ImageIcon(
+                      const AssetImage('assets/images/app_icon_for_bar.png'),
+                      color: appBarFgColor,
+                      size: 28, // הגדלתי קצת את האייקון
+                    ),
+                    const SizedBox(width: 8),
+                    Text('שמור וזכור', style: appBarTitleTextStyle),
+                  ],
+                ),
+                centerTitle: true, // מוודא שהכותרת ממורכזת
+              )
+            : null, // אין AppBar במסך הגדרות
         body: IndexedStack(
           // Padding הוסר מכאן ויושם בתוך המסכים עצמם
           index: _selectedIndex,
@@ -69,7 +71,8 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
               selectedIcon: Icon(Icons.menu_book),
               label: 'ספרים',
             ),
-            NavigationDestination( // New destination added
+            NavigationDestination(
+              // New destination added
               icon: Icon(Icons.settings_outlined),
               selectedIcon: Icon(Icons.settings),
               label: 'הגדרות',
