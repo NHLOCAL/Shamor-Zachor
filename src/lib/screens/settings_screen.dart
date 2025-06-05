@@ -62,8 +62,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       filled: true,
                       fillColor: Theme.of(context)
                           .colorScheme
-                          .surfaceVariant
-                          .withOpacity(0.3),
+                          .surfaceContainerHighest
+                          .withValues(alpha: 77),
                     ),
                     textDirection: TextDirection.rtl,
                     validator: (value) => (value == null || value.isEmpty)
@@ -80,8 +80,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       filled: true,
                       fillColor: Theme.of(context)
                           .colorScheme
-                          .surfaceVariant
-                          .withOpacity(0.3),
+                          .surfaceContainerHighest
+                          .withValues(alpha: 77),
                     ),
                     textDirection: TextDirection.rtl,
                     validator: (value) => (value == null || value.isEmpty)
@@ -99,8 +99,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         filled: true,
                         fillColor: Theme.of(context)
                             .colorScheme
-                            .surfaceVariant
-                            .withOpacity(0.3),
+                            .surfaceContainerHighest
+                            .withValues(alpha: 77),
                       ),
                       value: selectedContentType,
                       items: contentTypes.map((String value) {
@@ -126,15 +126,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       filled: true,
                       fillColor: Theme.of(context)
                           .colorScheme
-                          .surfaceVariant
-                          .withOpacity(0.3),
+                          .surfaceContainerHighest
+                          .withValues(alpha: 77),
                     ),
                     keyboardType: TextInputType.number,
                     validator: (value) {
-                      if (value == null || value.isEmpty)
+                      if (value == null || value.isEmpty) {
                         return 'נא להזין מספר';
-                      if (int.tryParse(value) == null)
+                      }
+                      if (int.tryParse(value) == null) {
                         return 'נא להזין מספר תקין';
+                      }
                       return null;
                     },
                   ),
@@ -255,17 +257,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       textDirection: TextDirection.rtl,
       child: Scaffold(
         appBar: AppBar(
-          title: Row(
-            mainAxisAlignment: MainAxisAlignment.center, // Center the Row
-            mainAxisSize: MainAxisSize
-                .min, // Ensure Row doesn't take full width if not centered by AppBar's centerTitle
-            children: const [
-              Icon(Icons.settings), // Settings icon
-              SizedBox(width: 8), // Spacing between icon and text
-              Text('הגדרות'), // The text "הגדרות"
-            ],
-          ),
-          centerTitle: true, // Ensure this is present
+          // Removed the title row with the icon and 'הגדרות' text
+          centerTitle: true, // Keep for symmetry if needed
           bottom: PreferredSize(
             // For loading indicator
             preferredSize: const Size.fromHeight(4.0),
@@ -323,7 +316,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               .textTheme
                               .bodySmall
                               ?.color
-                              ?.withOpacity(0.8), // Subtler subtitle
+                              ?.withValues(alpha: 204), // Subtler subtitle
                         ),
                       ),
                       trailing: Row(
@@ -435,12 +428,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       // Other settings sections can be added here
                     ],
                   ),
-                ),
-              ),
-            );
-          },
-        ),
-      ),
-    );
+                ), // Padding
+              ), // ConstrainedBox
+            ); // Center
+          }, // Consumer<DataProvider>
+        ), // body
+      ), // Scaffold
+    ); // Directionality
   }
-}
+} // class
