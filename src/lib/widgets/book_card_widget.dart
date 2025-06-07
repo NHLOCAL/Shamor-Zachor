@@ -178,18 +178,48 @@ class BookCardWidget extends StatelessWidget {
             ),
           ],
         );
-        percentageTextForOverlay = "${(learnProgress * 100).round()}%";
+
+        double textPercentageToShow;
+        if (learnProgress < 1.0) {
+          textPercentageToShow = learnProgress;
+        } else if (review1Progress < 1.0) { // learnProgress is 1.0
+          textPercentageToShow = review1Progress;
+        } else if (review2Progress < 1.0) { // learnProgress and review1Progress are 1.0
+          textPercentageToShow = review2Progress;
+        } else { // learnProgress, review1Progress, and review2Progress are 1.0
+          textPercentageToShow = review3Progress;
+        }
+        percentageTextForOverlay = "${(textPercentageToShow * 100).round()}%";
         statusText = _getLastPageDisplay(context);
       }
 
-      // Determine text color based on the primary progress value shown
-      // For "בתהליך", it's learnProgress. For "סיימתי", it's effectively 1.0 (numCompletedCycles >= 1).
-      double primaryProgressForTextColor = isInCompletedListContext
-          ? 1.0
-          : progressProvider.getLearnProgressPercentage(
-              categoryName, bookName, bookDetails);
+      // Determine text color based on the displayed progress value
+      double displayedProgressForTextColor;
+      if (isInCompletedListContext) {
+        displayedProgressForTextColor = 1.0; // Completed items are always 100% for this check
+      } else {
+        // For "in progress", use the same logic as textPercentageToShow
+        final learnProgress = progressProvider.getLearnProgressPercentage(
+            categoryName, bookName, bookDetails);
+        final review1Progress = progressProvider.getReview1ProgressPercentage(
+            categoryName, bookName, bookDetails);
+        final review2Progress = progressProvider.getReview2ProgressPercentage(
+            categoryName, bookName, bookDetails);
+        // review3Progress is not needed again here if already fetched above
 
-      final textColorOnProgress = primaryProgressForTextColor >= 0.45
+        if (learnProgress < 1.0) {
+          displayedProgressForTextColor = learnProgress;
+        } else if (review1Progress < 1.0) {
+          displayedProgressForTextColor = review1Progress;
+        } else if (review2Progress < 1.0) {
+          displayedProgressForTextColor = review2Progress;
+        } else {
+          displayedProgressForTextColor = progressProvider.getReview3ProgressPercentage(
+              categoryName, bookName, bookDetails); // fetch if not available
+        }
+      }
+
+      final textColorOnProgress = displayedProgressForTextColor >= 0.45
           ? Colors.white
           : theme.colorScheme.onPrimaryContainer;
 
