@@ -6,7 +6,8 @@ enum ThemeModeOption { system, light, dark }
 
 class ThemeProvider with ChangeNotifier {
   static const String _themePreferenceKey = 'theme_mode';
-  ThemeModeOption _themeModeOption = ThemeModeOption.system; // Default to system theme
+  ThemeModeOption _themeModeOption =
+      ThemeModeOption.system; // Default to system theme
 
   ThemeProvider() {
     _loadThemePreference();
@@ -19,7 +20,6 @@ class ThemeProvider with ChangeNotifier {
       case ThemeModeOption.dark:
         return ThemeMode.dark;
       case ThemeModeOption.system:
-      default:
         return ThemeMode.system;
     }
   }
@@ -31,10 +31,13 @@ class ThemeProvider with ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     final themeIndex = prefs.getInt(_themePreferenceKey);
 
-    if (themeIndex != null && themeIndex >= 0 && themeIndex < ThemeModeOption.values.length) {
+    if (themeIndex != null &&
+        themeIndex >= 0 &&
+        themeIndex < ThemeModeOption.values.length) {
       _themeModeOption = ThemeModeOption.values[themeIndex];
     } else {
-      _themeModeOption = ThemeModeOption.system; // Default if nothing is stored or value is invalid
+      _themeModeOption = ThemeModeOption
+          .system; // Default if nothing is stored or value is invalid
     }
     notifyListeners();
   }

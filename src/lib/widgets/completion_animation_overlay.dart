@@ -62,7 +62,7 @@ class _CompletionAnimationOverlayState
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Material(
-      color: theme.colorScheme.scrim ?? Colors.black.withOpacity(0.6), // Semi-transparent background
+      color: theme.colorScheme.scrim, // Semi-transparent background
       child: Stack(
         alignment: Alignment.center,
         children: [
