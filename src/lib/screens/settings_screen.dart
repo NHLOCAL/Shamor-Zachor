@@ -71,8 +71,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           fillColor: Theme.of(context)
                               .colorScheme
                               .surfaceContainerHighest
-                              .withAlpha(77), // Adjusted alpha directly
-                              .withAlpha(77), // Adjusted alpha directly
+                              .withAlpha(77), // Corrected: single withAlpha
                         ),
                         textDirection: TextDirection.rtl,
                         validator: (value) => (value == null || value.isEmpty)
@@ -90,7 +89,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           fillColor: Theme.of(context)
                               .colorScheme
                               .surfaceContainerHighest
-                              .withValues(alpha: 77),
+                              .withAlpha(77), // Corrected: .withValues to .withAlpha
                         ),
                         textDirection: TextDirection.rtl,
                         validator: (value) => (value == null || value.isEmpty)
