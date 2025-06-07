@@ -235,6 +235,62 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  Widget _buildCustomBooksManagement(DataProvider dataProvider, List<Widget> customBookWidgets) {
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 0),
+      elevation: 1.0,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
+      child: Padding(
+        padding: const EdgeInsets.all(12.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch, // Make column stretch
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8.0, right: 8.0), // Or center the text
+              child: Text(
+                'ניהול ספרים מותאמים אישית',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      color: Theme.of(context).colorScheme.primary,
+                      fontWeight: FontWeight.bold,
+                    ),
+                textAlign: TextAlign.center, // Center title
+              ),
+            ),
+            const SizedBox(height: 15),
+            Center( // Center the button
+              child: ElevatedButton.icon(
+                onPressed: () => _showAddOrEditBookDialog(),
+                icon: const Icon(Icons.add),
+                label: const Text('הוסף ספר חדש'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Theme.of(context).colorScheme.primary,
+                  foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                  padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 12.0),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(28.0),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            if (customBookWidgets.isEmpty && !dataProvider.isLoading)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 20.0),
+                child: Center(
+                  child: Text(
+                    'אין ספרים מותאמים אישית עדיין.',
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                ),
+              )
+            else
+              ...customBookWidgets, // Spread the list of widgets
+          ],
+        ),
+      ),
+    );
+  }
+
   void _confirmDeleteBook(String bookId, String bookName, String categoryName) {
     final dataProvider = Provider.of<DataProvider>(context, listen: false);
     showDialog(
@@ -464,66 +520,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   padding: const EdgeInsets.all(16.0), // Existing padding
                   child: ListView(
                     children: <Widget>[
-                      // Theme selection UI
                       _buildThemeSelection(themeProvider),
-                      const SizedBox(height: 20), // Spacing
-
-                      // Custom books management section
-                      Padding(
-                        padding: const EdgeInsets.only(top:0.0, bottom: 8.0), // Adjusted top padding
-                        child: Center(
-                          child: Text(
-                            'ניהול ספרים מותאמים אישית',
-                            textAlign: TextAlign.center,
-                            style: Theme.of(context)
-                                    .textTheme
-                                    .titleLarge // Changed from headlineSmall for consistency
-                                    ?.copyWith(
-                                      color: Theme.of(context).colorScheme.primary,
-                                      fontWeight: FontWeight.bold,
-                                     // fontSize: 22, // Using titleLarge's default size
-                                    ) ??
-                                const TextStyle( // Fallback, should ideally not be needed
-                                  fontSize: 20, // Consistent with titleLarge
-                                  fontWeight: FontWeight.bold,
-                                  // color: Colors.blue, // Fallback color
-                                ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(
-                          height:
-                              10), // This SizedBox can be adjusted or removed if bottom padding is sufficient
-                      Center(
-                        child: FloatingActionButton.extended(
-                          onPressed: () => _showAddOrEditBookDialog(),
-                          icon: const Icon(Icons.add),
-                          label: const Text('הוסף ספר חדש'),
-                          backgroundColor:
-                              Theme.of(context).colorScheme.primary,
-                          foregroundColor:
-                              Theme.of(context).colorScheme.onPrimary,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(28.0),
-                          ),
-                          extendedPadding:
-                              const EdgeInsets.symmetric(horizontal: 24.0),
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      ...(customBookWidgets.isEmpty && !dataProvider.isLoading
-                          ? [
-                              Padding( // Added padding for better spacing
-                                padding: const EdgeInsets.symmetric(vertical: 20.0),
-                                child: Center(
-                                    child: Text(
-                                      'אין ספרים מותאמים אישית עדיין.',
-                                      style: Theme.of(context).textTheme.bodyMedium,
-                                    )
-                                ),
-                              )
-                            ]
-                          : customBookWidgets),
+                      const SizedBox(height: 16),
+                      _buildCustomBooksManagement(dataProvider, customBookWidgets),
                     ],
                   ),
                 ),
