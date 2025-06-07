@@ -60,8 +60,9 @@ class _CompletionAnimationOverlayState
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Material(
-      color: Colors.black.withOpacity(0.6), // Semi-transparent background
+      color: theme.colorScheme.scrim, // Semi-transparent background
       child: Stack(
         alignment: Alignment.center,
         children: [
@@ -74,12 +75,12 @@ class _CompletionAnimationOverlayState
               numberOfParticles: 30,
               gravity: 0.2,
               emissionFrequency: 0.05,
-              colors: const [
-                Colors.green,
-                Colors.blue,
-                Colors.pink,
-                Colors.orange,
-                Colors.purple
+              colors: [
+                theme.colorScheme.primary,
+                theme.colorScheme.secondary,
+                theme.colorScheme.secondaryContainer,
+                theme.colorScheme.error,
+                theme.colorScheme.primaryContainer
               ],
               // particleDrag: 0.05, // apply drag to the confetti
               // createParticlePath: drawStar, // define a custom shape/path.
@@ -93,7 +94,7 @@ class _CompletionAnimationOverlayState
                 borderRadius: BorderRadius.circular(16.0),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.25),
+                    color: theme.shadowColor.withOpacity(0.25),
                     blurRadius: 10.0,
                     offset: const Offset(0, 4),
                   ),
@@ -128,9 +129,9 @@ class _CompletionAnimationOverlayState
                       // For now, this button can be decorative or trigger a log.
                       print("Animation acknowledged by user.");
                     },
-                    child: const Text(
+                    child: Text(
                       'אישור',
-                      style: TextStyle(color: Colors.white),
+                      style: TextStyle(color: theme.colorScheme.onPrimary),
                     ),
                   )
                 ],

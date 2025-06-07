@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/data_provider.dart';
 import '../models/book_model.dart';
+import '../providers/theme_provider.dart'; // Import ThemeProvider
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -70,7 +71,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           fillColor: Theme.of(context)
                               .colorScheme
                               .surfaceContainerHighest
-                              .withValues(alpha: 77),
+                              .withAlpha(77), // Corrected: single withAlpha
                         ),
                         textDirection: TextDirection.rtl,
                         validator: (value) => (value == null || value.isEmpty)
@@ -88,7 +89,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           fillColor: Theme.of(context)
                               .colorScheme
                               .surfaceContainerHighest
-                              .withValues(alpha: 77),
+                              .withAlpha(77), // Corrected: .withValues to .withAlpha
                         ),
                         textDirection: TextDirection.rtl,
                         validator: (value) => (value == null || value.isEmpty)
@@ -105,7 +106,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           fillColor: Theme.of(context)
                               .colorScheme
                               .surfaceContainerHighest
-                              .withValues(alpha: 77),
+                              .withAlpha(77), // Adjusted alpha directly
                         ),
                         value: selectedContentType,
                         items: contentTypes.map((String value) {
@@ -136,7 +137,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             fillColor: Theme.of(context)
                                 .colorScheme
                                 .surfaceContainerHighest
-                                .withValues(alpha: 77),
+                                .withAlpha(77), // Adjusted alpha directly
                           ),
                           textDirection: TextDirection.rtl,
                           validator: (value) {
@@ -159,7 +160,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           fillColor: Theme.of(context)
                               .colorScheme
                               .surfaceContainerHighest
-                              .withValues(alpha: 77),
+                              .withAlpha(77), // Adjusted alpha directly
                         ),
                         keyboardType: TextInputType.number,
                         validator: (value) {
@@ -234,6 +235,53 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  Widget _buildCustomBooksManagement(DataProvider dataProvider, List<Widget> customBookWidgets) {
+    return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Padding(
+        padding: const EdgeInsets.only(top: 8.0, bottom: 12.0, right: 8.0),
+        child: Text(
+          'ניהול ספרים מותאמים אישית',
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                color: Theme.of(context).colorScheme.secondary, // Using secondary color
+                fontWeight: FontWeight.w600,
+              ),
+        ),
+      ),
+      const SizedBox(height: 15),
+      Center(
+        child: ElevatedButton.icon(
+          onPressed: () => _showAddOrEditBookDialog(),
+          icon: const Icon(Icons.add),
+          label: const Text('הוסף ספר חדש'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Theme.of(context).colorScheme.primary,
+            foregroundColor: Theme.of(context).colorScheme.onPrimary,
+            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 12.0),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(28.0),
+            ),
+          ),
+        ),
+      ),
+      const SizedBox(height: 20),
+      if (customBookWidgets.isEmpty && !dataProvider.isLoading)
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 20.0),
+          child: Center(
+            child: Text(
+              'אין ספרים מותאמים אישית עדיין.',
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+          ),
+        )
+      else
+        ...customBookWidgets,
+    ],
+  );
+}
+
   void _confirmDeleteBook(String bookId, String bookName, String categoryName) {
     final dataProvider = Provider.of<DataProvider>(context, listen: false);
     showDialog(
@@ -290,8 +338,64 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  Widget _buildThemeSelection(ThemeProvider themeProvider) {
+    return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Padding(
+        padding: const EdgeInsets.only(top: 8.0, bottom: 12.0, right: 8.0),
+        child: Text(
+          'ערכת נושא',
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                color: Theme.of(context).colorScheme.secondary, // Using secondary color for header
+                fontWeight: FontWeight.w600,
+              ),
+        ),
+      ),
+      RadioListTile<ThemeModeOption>(
+        title: const Text('בהיר'),
+        value: ThemeModeOption.light,
+        groupValue: themeProvider.themeModeOption,
+        onChanged: (ThemeModeOption? value) {
+            if (value != null) {
+            themeProvider.setThemeMode(value);
+            }
+        },
+        activeColor: Theme.of(context).colorScheme.primary,
+        contentPadding: EdgeInsets.zero, // Adjust padding for RadioListTile
+      ),
+      RadioListTile<ThemeModeOption>(
+        title: const Text('כהה'),
+        value: ThemeModeOption.dark,
+        groupValue: themeProvider.themeModeOption,
+        onChanged: (ThemeModeOption? value) {
+            if (value != null) {
+            themeProvider.setThemeMode(value);
+            }
+        },
+        activeColor: Theme.of(context).colorScheme.primary,
+        contentPadding: EdgeInsets.zero,
+      ),
+      RadioListTile<ThemeModeOption>(
+        title: const Text('ברירת מחדל של המערכת'),
+        value: ThemeModeOption.system,
+        groupValue: themeProvider.themeModeOption,
+        onChanged: (ThemeModeOption? value) {
+            if (value != null) {
+            themeProvider.setThemeMode(value);
+            }
+        },
+        activeColor: Theme.of(context).colorScheme.primary,
+        contentPadding: EdgeInsets.zero,
+      ),
+    ],
+  );
+}
+
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context); // Listen to ThemeProvider changes
+
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
@@ -346,14 +450,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           fontWeight: FontWeight.w600, // Bolder title
                           fontSize:
                               Theme.of(context).textTheme.titleMedium?.fontSize,
-                          color: Colors.black, // Improved readability
+                          color: Theme.of(context).colorScheme.onSurface, // Improved readability
                         ),
                       ),
                       subtitle: Text(
                         'קטגוריה: $categoryName\nסוג: ${bookDetails.contentType} (${bookDetails.pages} ${bookDetails.contentType == "דף" ? "דפים" : bookDetails.contentType})',
-                        style: const TextStyle(
-                          color: Colors
-                              .black87, // Improved readability for subtitle
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.8), // Improved readability for subtitle
                         ),
                       ),
                       trailing: Row(
@@ -403,65 +506,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   padding: const EdgeInsets.all(16.0), // Existing padding
                   child: ListView(
                     children: <Widget>[
-                      Padding(
-                        padding: const EdgeInsets.only(top: 16.0, bottom: 8.0),
-                        child: Center(
-                          child: Text(
-                            'ניהול ספרים מותאמים אישית',
-                            textAlign: TextAlign.center,
-                            style: Theme.of(context)
-                                    .textTheme
-                                    .headlineSmall
-                                    ?.copyWith(
-                                      color:
-                                          Theme.of(context).colorScheme.primary,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize:
-                                          22, // Slightly smaller for a subtler look
-                                    ) ??
-                                const TextStyle(
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.blue,
-                                ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(
-                          height:
-                              10), // This SizedBox can be adjusted or removed if bottom padding is sufficient
-                      Center(
-                        child: FloatingActionButton.extended(
-                          onPressed: () => _showAddOrEditBookDialog(),
-                          icon: const Icon(Icons.add),
-                          label: const Text('הוסף ספר חדש'),
-                          backgroundColor:
-                              Theme.of(context).colorScheme.primary,
-                          foregroundColor:
-                              Theme.of(context).colorScheme.onPrimary,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(28.0),
-                          ),
-                          extendedPadding:
-                              const EdgeInsets.symmetric(horizontal: 24.0),
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      ...(customBookWidgets.isEmpty && !dataProvider.isLoading
-                          ? [
-                              const Center(
-                                  child: Text('אין ספרים מותאמים אישית עדיין.'))
-                            ]
-                          : customBookWidgets),
-                      // Other settings sections can be added here
+                      _buildThemeSelection(themeProvider),
+                      const Divider(height: 32, thickness: 1, indent: 16, endIndent: 16),
+                      _buildCustomBooksManagement(dataProvider, customBookWidgets),
                     ],
                   ),
-                ), // Padding
-              ), // ConstrainedBox
-            ); // Center
-          }, // Consumer<DataProvider>
-        ), // body
-      ), // Scaffold
-    ); // Directionality
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
   }
-} // class
+}
+
+// Helper extension for ColorScheme to more easily access surfaceContainerHighest
+// This is a common pattern if you find yourself needing specific Material 3 roles
+// that are not yet directly available in older Flutter versions or for custom theming.
+extension ColorSchemeValues on ColorScheme {
+  Color get surfaceContainerHighest => brightness == Brightness.light
+      ? const Color(0xFFE7E0DE) // Example light value
+      : const Color(0xFF4A4543); // Example dark value
+}

@@ -97,15 +97,15 @@ class BookCardWidget extends StatelessWidget {
         final numCompletedCycles = progressProvider.getNumberOfCompletedCycles(
             categoryName, bookName, bookDetails);
 
-        Color displayColor = Colors.green[400]!;
-        if (numCompletedCycles == 2) displayColor = Colors.green[600]!;
-        if (numCompletedCycles == 3) displayColor = Colors.green[800]!;
-        if (numCompletedCycles >= 4) displayColor = Colors.green[900]!;
+        Color displayColor = theme.primaryColor.withAlpha((0.4 * 255).round());
+        if (numCompletedCycles == 2) displayColor = theme.primaryColor.withAlpha((0.6 * 255).round());
+        if (numCompletedCycles == 3) displayColor = theme.primaryColor.withAlpha((0.8 * 255).round());
+        if (numCompletedCycles >= 4) displayColor = theme.primaryColor;
 
         progressWidget = LinearProgressIndicator(
           value: 1.0,
           minHeight: 24,
-          backgroundColor: theme.primaryColor.withOpacity(0.15),
+          backgroundColor: theme.primaryColor.withAlpha((0.15 * 255).round()),
           valueColor: AlwaysStoppedAnimation<Color>(displayColor),
           borderRadius: BorderRadius.circular(4),
         );
@@ -138,7 +138,7 @@ class BookCardWidget extends StatelessWidget {
         final review3Progress = progressProvider.getReview3ProgressPercentage(
             categoryName, bookName, bookDetails);
 
-        final progressBarBackgroundColor = theme.primaryColor.withOpacity(0.15);
+        final progressBarBackgroundColor = theme.primaryColor.withAlpha((0.15 * 255).round());
 
         progressWidget = Stack(
           children: [
@@ -147,7 +147,7 @@ class BookCardWidget extends StatelessWidget {
               minHeight: 24,
               backgroundColor: progressBarBackgroundColor,
               valueColor: AlwaysStoppedAnimation<Color>(
-                  theme.primaryColor.withOpacity(0.3)),
+                  theme.primaryColor.withAlpha((0.3 * 255).round())),
               borderRadius: BorderRadius.circular(4),
             ),
             LinearProgressIndicator(
@@ -155,7 +155,7 @@ class BookCardWidget extends StatelessWidget {
               minHeight: 24,
               backgroundColor: Colors.transparent,
               valueColor: AlwaysStoppedAnimation<Color>(
-                  theme.primaryColor.withOpacity(0.5)),
+                  theme.primaryColor.withAlpha((0.5 * 255).round())),
               borderRadius: BorderRadius.circular(4),
             ),
             LinearProgressIndicator(
@@ -163,7 +163,7 @@ class BookCardWidget extends StatelessWidget {
               minHeight: 24,
               backgroundColor: Colors.transparent,
               valueColor: AlwaysStoppedAnimation<Color>(
-                  theme.primaryColor.withOpacity(0.7)),
+                  theme.primaryColor.withAlpha((0.7 * 255).round())),
               borderRadius: BorderRadius.circular(4),
             ),
             LinearProgressIndicator(
@@ -171,7 +171,7 @@ class BookCardWidget extends StatelessWidget {
               minHeight: 24,
               backgroundColor: Colors.transparent,
               valueColor: AlwaysStoppedAnimation<Color>(
-                  theme.primaryColor.withOpacity(0.9)),
+                  theme.primaryColor.withAlpha((0.9 * 255).round())),
               borderRadius: BorderRadius.circular(4),
             ),
           ],
@@ -179,13 +179,13 @@ class BookCardWidget extends StatelessWidget {
 
         Color colorUnderText;
         if (review3Progress >= 0.5) {
-          colorUnderText = theme.primaryColor.withOpacity(0.9);
+          colorUnderText = theme.primaryColor.withAlpha((0.9 * 255).round());
         } else if (review2Progress >= 0.5) {
-          colorUnderText = theme.primaryColor.withOpacity(0.7);
+          colorUnderText = theme.primaryColor.withAlpha((0.7 * 255).round());
         } else if (review1Progress >= 0.5) {
-          colorUnderText = theme.primaryColor.withOpacity(0.5);
+          colorUnderText = theme.primaryColor.withAlpha((0.5 * 255).round());
         } else if (learnProgress >= 0.5) {
-          colorUnderText = theme.primaryColor.withOpacity(0.3);
+          colorUnderText = theme.primaryColor.withAlpha((0.3 * 255).round());
         } else {
           colorUnderText = progressBarBackgroundColor;
         }
@@ -258,7 +258,7 @@ class BookCardWidget extends StatelessWidget {
                   statusText,
                   style: TextStyle(
                       fontSize: 12,
-                      color: theme.colorScheme.onSurface.withOpacity(0.8)),
+                      color: theme.colorScheme.onSurface.withAlpha((0.8 * 255).round())),
                   textAlign: TextAlign.center,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -301,8 +301,7 @@ class BookCardWidget extends StatelessWidget {
                 if (isCompleted)
                   Padding(
                     padding: const EdgeInsets.only(left: 4.0),
-                    child: Icon(Icons.check_circle,
-                        color: Colors.green.shade600, size: 18),
+                    child: Icon(Icons.check_circle, size: 18, color: theme.colorScheme.primary),
                   ),
                 Flexible(
                   child: Text(
@@ -372,8 +371,7 @@ class SearchBookCardWidget extends StatelessWidget {
                 if (isCompleted)
                   Padding(
                     padding: const EdgeInsets.only(left: 4.0),
-                    child: Icon(Icons.check_circle,
-                        color: Colors.green.shade600, size: 18),
+                    child: Icon(Icons.check_circle, size: 18, color: theme.colorScheme.primary),
                   ),
                 Flexible(
                   child: Text(
@@ -392,7 +390,7 @@ class SearchBookCardWidget extends StatelessWidget {
               categoryName,
               style: TextStyle(
                   fontSize: 13,
-                  color: theme.colorScheme.onSurface.withOpacity(0.7)),
+                  color: theme.colorScheme.onSurface.withAlpha((0.7 * 255).round())),
               textAlign: TextAlign.center,
               overflow: TextOverflow.ellipsis,
               maxLines: 1,
