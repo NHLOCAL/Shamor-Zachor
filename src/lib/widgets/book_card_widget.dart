@@ -105,7 +105,7 @@ class BookCardWidget extends StatelessWidget {
         progressWidget = LinearProgressIndicator(
           value: 1.0,
           minHeight: 24,
-          backgroundColor: theme.colorScheme.primaryContainer.withOpacity(0.2),
+          backgroundColor: theme.primaryColor.withOpacity(0.15),
           valueColor: AlwaysStoppedAnimation<Color>(displayColor),
           borderRadius: BorderRadius.circular(4),
         );
@@ -138,8 +138,7 @@ class BookCardWidget extends StatelessWidget {
         final review3Progress = progressProvider.getReview3ProgressPercentage(
             categoryName, bookName, bookDetails);
 
-        final progressBarBackgroundColor =
-            theme.colorScheme.primaryContainer.withOpacity(0.2);
+        final progressBarBackgroundColor = theme.primaryColor.withOpacity(0.15);
 
         progressWidget = Stack(
           children: [
