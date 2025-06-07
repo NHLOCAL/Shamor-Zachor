@@ -1,52 +1,13 @@
-// For Gregorian date formatting
+import 'package:gematria/gematria.dart';
 import 'package:kosher_dart/kosher_dart.dart';
-// For Hebrew date, you'd typically use a package like hebcal_dart
-// For now, we'll just format Gregorian or return null
 
 class HebrewUtils {
-  static const Map<int, String> _gematriaMap = {
-    1: 'א', 2: 'ב', 3: 'ג', 4: 'ד', 5: 'ה', 6: 'ו', 7: 'ז', 8: 'ח', 9: 'ט',
-    10: 'י', 20: 'כ', 30: 'ל', 40: 'מ', 50: 'נ', 60: 'ס', 70: 'ע', 80: 'פ',
-    90: 'צ',
-    100: 'ק', 200: 'ר', 300: 'ש', 400: 'ת',
-    // For numbers > 400, it gets more complex (e.g., ת"ק, תר"ס).
-    // This is a simplified version.
-  };
-
   static String intToGematria(int number) {
-    if (number <= 0) return number.toString();
-    if (number > 499) {
-      return number.toString(); // Simplified, handle larger numbers if needed
+    if (number <= 0) {
+      return number.toString();
     }
-
-    // Special cases for 15 (ט"ו) and 16 (ט"ז)
-    if (number == 15) return 'טו';
-    if (number == 16) return 'טז';
-
-    String result = '';
-    List<int> values = _gematriaMap.keys.toList()
-      ..sort((a, b) => b.compareTo(a));
-
-    for (int val in values) {
-      while (number >= val) {
-        result += _gematriaMap[val]!;
-        number -= val;
-      }
-    }
-    // Add gershayim if more than one letter, unless it's a single letter >= 100 (like ק, ר, ש, ת)
-    if (result.length > 1) {
-      // Check if the last two characters are י and ה (15) or י and ו (16)
-      if (!((result.endsWith('יה') || result.endsWith('יו')) &&
-          result.length == 2)) {
-        result =
-            '${result.substring(0, result.length - 1)}"${result.substring(result.length - 1)}';
-      }
-    } else if (result.length == 1 &&
-        _gematriaMap.entries.firstWhere((e) => e.value == result).key < 10) {
-      result += "'"; // Add geresh for single digit numbers
-    }
-
-    return result;
+    // The gematria package handles all cases. We cast the result to a String.
+    return Gematria().gematria(number) as String;
   }
 
   static String? getCompletionDateString(String? dateStrYYYYMMDD) {
@@ -59,16 +20,14 @@ class HebrewUtils {
 
       JewishDate hebrewDate = JewishDate.fromDateTime(gregorianDate);
 
-      // Using specific API names based on common kosher_dart patterns
       int dayInt = hebrewDate.getJewishDayOfMonth();
       String dayGematria = HebrewUtils.intToGematria(dayInt);
 
       HebrewDateFormatter hdf = HebrewDateFormatter();
-      hdf.hebrewFormat = true; // Ensure output is in Hebrew characters
+      hdf.hebrewFormat = true;
 
       String monthName = hdf.formatMonth(hebrewDate);
-      String yearHebrew = hdf.formatHebrewNumber(
-          hebrewDate.getJewishYear()); // Format Hebrew year correctly
+      String yearHebrew = hdf.formatHebrewNumber(hebrewDate.getJewishYear());
 
       return '$dayGematria $monthName $yearHebrew';
     } catch (e) {
