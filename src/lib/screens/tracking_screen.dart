@@ -43,43 +43,69 @@ class _TrackingScreenState extends State<TrackingScreen> {
       final bookProgressData =
           item['progressData'] as Map<String, Map<String, PageProgress>>;
 
-      String? completionDateForCard =
+      final String? completionDateForCard =
           progressProvider.getCompletionDateSync(categoryName, bookName);
-      bool isActuallyCompleted = completionDateForCard != null ||
-          progressProvider.isBookCompleted(categoryName, bookName, bookDetails);
 
       final cardData = {
         'categoryName': categoryName,
         'bookName': bookName,
         'bookDetails': bookDetails,
         'bookProgressData': bookProgressData,
-        'completionDateOverride':
-            isActuallyCompleted ? completionDateForCard : null,
+        'completionDateOverride': completionDateForCard, // Pass it consistently
       };
 
-      if (isActuallyCompleted) {
+      // Use new provider methods to determine list placement
+      if (progressProvider.isBookCompleted(
+          categoryName, bookName, bookDetails)) {
+        // Check if it's already added to avoid duplicates if getTrackedBooks could somehow return duplicates
+        // (though it shouldn't based on its current logic)
         if (!completedItemsData.any((c) =>
             c['categoryName'] == categoryName && c['bookName'] == bookName)) {
           completedItemsData.add(cardData);
         }
-      } else {
-        if (bookProgressData.isNotEmpty) {
-          if (!inProgressItemsData.any((c) =>
-              c['categoryName'] == categoryName && c['bookName'] == bookName)) {
-            inProgressItemsData.add(cardData);
-          }
+      }
+
+      // A book can be completed AND in progress (e.g. learning done, but reviews in progress)
+      // The current UI shows them in "completed" once learning is done.
+      // If we want books that are also in active review to appear in "in progress",
+      // we would add them here as well or instead.
+      // Based on the new definition, `isBookConsideredInProgress` handles this.
+      // If a book is 100% learned AND 100% all reviews, `isBookConsideredInProgress` will be false.
+      // If a book is 100% learned but reviews are ongoing, it will be true.
+      // If a book is completed (learning done) and also in progress (reviews ongoing),
+      // it will appear in BOTH lists if we simply do:
+      //
+      // if (progressProvider.isBookConsideredInProgress(categoryName, bookName, bookDetails)) {
+      //   if (!inProgressItemsData.any((c) => c['categoryName'] == categoryName && c['bookName'] == bookName)) {
+      //     inProgressItemsData.add(cardData);
+      //   }
+      // }
+      //
+      // The original logic implicitly prioritized "completed" if a completion date existed.
+      // Let's maintain that: if it's in `completedItemsData`, it shouldn't also be in `inProgressItemsData`
+      // for the purpose of these two distinct lists in the UI.
+      // Determine if the book is completed (learn cycle done)
+      if (progressProvider.isBookCompleted(
+          categoryName, bookName, bookDetails)) {
+        if (!completedItemsData.any((c) =>
+            c['categoryName'] == categoryName && c['bookName'] == bookName)) {
+          completedItemsData.add(cardData);
+        }
+      }
+
+      // Determine if the book is considered in progress (active learning or review)
+      // This is independent of whether it's "completed" in terms of the learn cycle.
+      // A book can be completed (learning done) and still be in progress (reviews ongoing).
+      if (progressProvider.isBookConsideredInProgress(
+              categoryName, bookName, bookDetails)) {
+        if (!inProgressItemsData.any((c) =>
+            c['categoryName'] == categoryName && c['bookName'] == bookName)) {
+          inProgressItemsData.add(cardData);
         }
       }
     }
 
-    inProgressItemsData.removeWhere((itemData) {
-      String? date = progressProvider.getCompletionDateSync(
-          itemData['categoryName'], itemData['bookName']);
-      bool isItemCompleted = date != null ||
-          progressProvider.isBookCompleted(itemData['categoryName'],
-              itemData['bookName'], itemData['bookDetails']);
-      return isItemCompleted;
-    });
+    // The removeWhere block is no longer needed as the new provider methods handle the logic.
 
     Widget buildList(List<Map<String, dynamic>> itemsData) {
       if (itemsData.isEmpty) {
@@ -128,6 +154,8 @@ class _TrackingScreenState extends State<TrackingScreen> {
                   bookProgressData: item['bookProgressData'],
                   isFromTrackingScreen: true,
                   completionDateOverride: item['completionDateOverride'],
+                  isInCompletedListContext:
+                      _selectedFilter == TrackingFilter.completed,
                 );
               },
             );
@@ -162,6 +190,8 @@ class _TrackingScreenState extends State<TrackingScreen> {
                   bookProgressData: item['bookProgressData'],
                   isFromTrackingScreen: true,
                   completionDateOverride: item['completionDateOverride'],
+                  isInCompletedListContext:
+                      _selectedFilter == TrackingFilter.completed,
                 );
               },
             );

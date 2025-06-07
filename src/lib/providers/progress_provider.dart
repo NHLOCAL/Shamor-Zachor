@@ -433,4 +433,143 @@ class ProgressProvider with ChangeNotifier {
     }
     return columnStates;
   }
+
+  // --- Methods to be added as per Step 1 ---
+
+  double getLearnProgressPercentage(
+      String categoryName, String bookName, BookDetails bookDetails) {
+    final bookProgress = getProgressForBook(categoryName, bookName);
+    final totalTargetPages =
+        bookDetails.isDafType ? bookDetails.pages * 2 : bookDetails.pages;
+    if (totalTargetPages == 0) return 0.0;
+
+    int learnedPagesCount =
+        ProgressService.getCompletedPagesCount(bookProgress);
+    return learnedPagesCount / totalTargetPages;
+  }
+
+  double getReview1ProgressPercentage(
+      String categoryName, String bookName, BookDetails bookDetails) {
+    final bookProgress = getProgressForBook(categoryName, bookName);
+    final totalTargetPages =
+        bookDetails.isDafType ? bookDetails.pages * 2 : bookDetails.pages;
+    if (totalTargetPages == 0) return 0.0;
+
+    int review1PagesCount =
+        ProgressService.getReview1CompletedPagesCount(bookProgress);
+    return review1PagesCount / totalTargetPages;
+  }
+
+  double getReview2ProgressPercentage(
+      String categoryName, String bookName, BookDetails bookDetails) {
+    final bookProgress = getProgressForBook(categoryName, bookName);
+    final totalTargetPages =
+        bookDetails.isDafType ? bookDetails.pages * 2 : bookDetails.pages;
+    if (totalTargetPages == 0) return 0.0;
+
+    int review2PagesCount =
+        ProgressService.getReview2CompletedPagesCount(bookProgress);
+    return review2PagesCount / totalTargetPages;
+  }
+
+  double getReview3ProgressPercentage(
+      String categoryName, String bookName, BookDetails bookDetails) {
+    final bookProgress = getProgressForBook(categoryName, bookName);
+    final totalTargetPages =
+        bookDetails.isDafType ? bookDetails.pages * 2 : bookDetails.pages;
+    if (totalTargetPages == 0) return 0.0;
+
+    int review3PagesCount =
+        ProgressService.getReview3CompletedPagesCount(bookProgress);
+    return review3PagesCount / totalTargetPages;
+  }
+
+  int getNumberOfCompletedCycles(
+      String categoryName, String bookName, BookDetails bookDetails) {
+    final bookProgress = getProgressForBook(categoryName, bookName);
+    final totalTargetPages =
+        bookDetails.isDafType ? bookDetails.pages * 2 : bookDetails.pages;
+    if (totalTargetPages == 0) return 0;
+
+    int cycles = 0;
+    if (ProgressService.getCompletedPagesCount(bookProgress) >=
+        totalTargetPages) {
+      cycles++;
+    }
+    if (ProgressService.getReview1CompletedPagesCount(bookProgress) >=
+        totalTargetPages) {
+      cycles++;
+    }
+    if (ProgressService.getReview2CompletedPagesCount(bookProgress) >=
+        totalTargetPages) {
+      cycles++;
+    }
+    if (ProgressService.getReview3CompletedPagesCount(bookProgress) >=
+        totalTargetPages) {
+      cycles++;
+    }
+    return cycles;
+  }
+
+  bool isBookInActiveReview(
+      String categoryName, String bookName, BookDetails bookDetails) {
+    // Check if learning is complete. If not, it cannot be in active review.
+    // Note: isBookCompleted checks if learnProgress is 1.0 or more.
+    if (!isBookCompleted(categoryName, bookName, bookDetails)) {
+      return false;
+    }
+
+    double r1Prog =
+        getReview1ProgressPercentage(categoryName, bookName, bookDetails);
+    double r2Prog =
+        getReview2ProgressPercentage(categoryName, bookName, bookDetails);
+    double r3Prog =
+        getReview3ProgressPercentage(categoryName, bookName, bookDetails);
+
+    bool r1Active = r1Prog > 0 && r1Prog < 1.0;
+    bool r2Active = r1Prog == 1.0 && r2Prog > 0 && r2Prog < 1.0;
+    bool r3Active = r1Prog == 1.0 && r2Prog == 1.0 && r3Prog > 0 && r3Prog < 1.0;
+
+    return r1Active || r2Active || r3Active;
+  }
+
+  bool isBookConsideredInProgress(
+      String categoryName, String bookName, BookDetails bookDetails) {
+    // If there's no progress data at all for the book, it's not in progress.
+    final bookProgressData = getProgressForBook(categoryName, bookName);
+    if (bookProgressData.isEmpty) {
+      return false;
+    }
+
+    double learnProgress =
+        getLearnProgressPercentage(categoryName, bookName, bookDetails);
+    double review1Progress =
+        getReview1ProgressPercentage(categoryName, bookName, bookDetails);
+    double review2Progress =
+        getReview2ProgressPercentage(categoryName, bookName, bookDetails);
+    double review3Progress =
+        getReview3ProgressPercentage(categoryName, bookName, bookDetails);
+
+    if (learnProgress > 0 && learnProgress < 1.0) {
+      return true;
+    }
+    if (learnProgress == 1.0 && review1Progress > 0 && review1Progress < 1.0) {
+      return true;
+    }
+    if (learnProgress == 1.0 &&
+        review1Progress == 1.0 &&
+        review2Progress > 0 &&
+        review2Progress < 1.0) {
+      return true;
+    }
+    if (learnProgress == 1.0 &&
+        review1Progress == 1.0 &&
+        review2Progress == 1.0 &&
+        review3Progress > 0 &&
+        review3Progress < 1.0) {
+      return true;
+    }
+
+    return false;
+  }
 }

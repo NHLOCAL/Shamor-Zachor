@@ -223,4 +223,43 @@ class ProgressService {
     });
     return count;
   }
+
+  static int getReview1CompletedPagesCount(
+      Map<String, Map<String, PageProgress>> bookProgress) {
+    int count = 0;
+    bookProgress.forEach((pageKey, amudimMap) {
+      amudimMap.forEach((amudKey, progress) {
+        if (progress.review1) {
+          count++;
+        }
+      });
+    });
+    return count;
+  }
+
+  static int getReview2CompletedPagesCount(
+      Map<String, Map<String, PageProgress>> bookProgress) {
+    int count = 0;
+    bookProgress.forEach((pageKey, amudimMap) {
+      amudimMap.forEach((amudKey, progress) {
+        if (progress.review2) {
+          count++;
+        }
+      });
+    });
+    return count;
+  }
+
+  static int getReview3CompletedPagesCount(
+      Map<String, Map<String, PageProgress>> bookProgress) {
+    int count = 0;
+    bookProgress.forEach((pageKey, amudimMap) {
+      amudimMap.forEach((amudKey, progress) {
+        if (progress.review3) {
+          count++;
+        }
+      });
+    });
+    return count;
+  }
 }
