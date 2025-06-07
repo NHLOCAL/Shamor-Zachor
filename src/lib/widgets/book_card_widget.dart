@@ -97,10 +97,10 @@ class BookCardWidget extends StatelessWidget {
         final numCompletedCycles = progressProvider.getNumberOfCompletedCycles(
             categoryName, bookName, bookDetails);
 
-        Color displayColor = Colors.green[400]!;
-        if (numCompletedCycles == 2) displayColor = Colors.green[600]!;
-        if (numCompletedCycles == 3) displayColor = Colors.green[800]!;
-        if (numCompletedCycles >= 4) displayColor = Colors.green[900]!;
+        Color displayColor = theme.primaryColor.withOpacity(0.4);
+        if (numCompletedCycles == 2) displayColor = theme.primaryColor.withOpacity(0.6);
+        if (numCompletedCycles == 3) displayColor = theme.primaryColor.withOpacity(0.8);
+        if (numCompletedCycles >= 4) displayColor = theme.primaryColor;
 
         progressWidget = LinearProgressIndicator(
           value: 1.0,
@@ -302,7 +302,8 @@ class BookCardWidget extends StatelessWidget {
                   Padding(
                     padding: const EdgeInsets.only(left: 4.0),
                     child: Icon(Icons.check_circle,
-                        color: Colors.green.shade600, size: 18),
+                        color: theme.colorScheme.primary, size: 18),
+                        color: theme.colorScheme.primary, size: 18),
                   ),
                 Flexible(
                   child: Text(

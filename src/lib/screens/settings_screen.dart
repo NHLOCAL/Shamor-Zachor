@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/data_provider.dart';
 import '../models/book_model.dart';
+import '../providers/theme_provider.dart'; // Import ThemeProvider
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -70,7 +71,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           fillColor: Theme.of(context)
                               .colorScheme
                               .surfaceContainerHighest
-                              .withValues(alpha: 77),
+                              .withAlpha(77), // Adjusted alpha directly
+                              .withAlpha(77), // Adjusted alpha directly
                         ),
                         textDirection: TextDirection.rtl,
                         validator: (value) => (value == null || value.isEmpty)
@@ -105,7 +107,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           fillColor: Theme.of(context)
                               .colorScheme
                               .surfaceContainerHighest
-                              .withValues(alpha: 77),
+                              .withAlpha(77), // Adjusted alpha directly
                         ),
                         value: selectedContentType,
                         items: contentTypes.map((String value) {
@@ -136,7 +138,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             fillColor: Theme.of(context)
                                 .colorScheme
                                 .surfaceContainerHighest
-                                .withValues(alpha: 77),
+                                .withAlpha(77), // Adjusted alpha directly
                           ),
                           textDirection: TextDirection.rtl,
                           validator: (value) {
@@ -159,7 +161,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           fillColor: Theme.of(context)
                               .colorScheme
                               .surfaceContainerHighest
-                              .withValues(alpha: 77),
+                              .withAlpha(77), // Adjusted alpha directly
                         ),
                         keyboardType: TextInputType.number,
                         validator: (value) {
@@ -290,8 +292,69 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  Widget _buildThemeSelection(ThemeProvider themeProvider) {
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 0),
+      elevation: 1.0,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
+      child: Padding(
+        padding: const EdgeInsets.all(12.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(bottom:8.0, right: 8.0),
+              child: Text(
+                'ערכת נושא',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      color: Theme.of(context).colorScheme.primary,
+                      fontWeight: FontWeight.bold,
+                    ),
+              ),
+            ),
+            RadioListTile<ThemeModeOption>(
+              title: const Text('בהיר'),
+              value: ThemeModeOption.light,
+              groupValue: themeProvider.themeModeOption,
+              onChanged: (ThemeModeOption? value) {
+                if (value != null) {
+                  themeProvider.setThemeMode(value);
+                }
+              },
+              activeColor: Theme.of(context).colorScheme.primary,
+            ),
+            RadioListTile<ThemeModeOption>(
+              title: const Text('כהה'),
+              value: ThemeModeOption.dark,
+              groupValue: themeProvider.themeModeOption,
+              onChanged: (ThemeModeOption? value) {
+                if (value != null) {
+                  themeProvider.setThemeMode(value);
+                }
+              },
+              activeColor: Theme.of(context).colorScheme.primary,
+            ),
+            RadioListTile<ThemeModeOption>(
+              title: const Text('ברירת מחדל של המערכת'),
+              value: ThemeModeOption.system,
+              groupValue: themeProvider.themeModeOption,
+              onChanged: (ThemeModeOption? value) {
+                if (value != null) {
+                  themeProvider.setThemeMode(value);
+                }
+              },
+              activeColor: Theme.of(context).colorScheme.primary,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context); // Listen to ThemeProvider changes
+
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
@@ -346,14 +409,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           fontWeight: FontWeight.w600, // Bolder title
                           fontSize:
                               Theme.of(context).textTheme.titleMedium?.fontSize,
-                          color: Colors.black, // Improved readability
+                          color: Theme.of(context).colorScheme.onSurface, // Improved readability
                         ),
                       ),
                       subtitle: Text(
                         'קטגוריה: $categoryName\nסוג: ${bookDetails.contentType} (${bookDetails.pages} ${bookDetails.contentType == "דף" ? "דפים" : bookDetails.contentType})',
-                        style: const TextStyle(
-                          color: Colors
-                              .black87, // Improved readability for subtitle
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.8), // Improved readability for subtitle
                         ),
                       ),
                       trailing: Row(
@@ -403,26 +465,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   padding: const EdgeInsets.all(16.0), // Existing padding
                   child: ListView(
                     children: <Widget>[
+                      // Theme selection UI
+                      _buildThemeSelection(themeProvider),
+                      const SizedBox(height: 20), // Spacing
+
+                      // Custom books management section
                       Padding(
-                        padding: const EdgeInsets.only(top: 16.0, bottom: 8.0),
+                        padding: const EdgeInsets.only(top:0.0, bottom: 8.0), // Adjusted top padding
                         child: Center(
                           child: Text(
                             'ניהול ספרים מותאמים אישית',
                             textAlign: TextAlign.center,
                             style: Theme.of(context)
                                     .textTheme
-                                    .headlineSmall
+                                    .titleLarge // Changed from headlineSmall for consistency
                                     ?.copyWith(
-                                      color:
-                                          Theme.of(context).colorScheme.primary,
+                                      color: Theme.of(context).colorScheme.primary,
                                       fontWeight: FontWeight.bold,
-                                      fontSize:
-                                          22, // Slightly smaller for a subtler look
+                                     // fontSize: 22, // Using titleLarge's default size
                                     ) ??
-                                const TextStyle(
-                                  fontSize: 22,
+                                const TextStyle( // Fallback, should ideally not be needed
+                                  fontSize: 20, // Consistent with titleLarge
                                   fontWeight: FontWeight.bold,
-                                  color: Colors.blue,
+                                  // color: Colors.blue, // Fallback color
                                 ),
                           ),
                         ),
@@ -449,19 +514,34 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       const SizedBox(height: 20),
                       ...(customBookWidgets.isEmpty && !dataProvider.isLoading
                           ? [
-                              const Center(
-                                  child: Text('אין ספרים מותאמים אישית עדיין.'))
+                              Padding( // Added padding for better spacing
+                                padding: const EdgeInsets.symmetric(vertical: 20.0),
+                                child: Center(
+                                    child: Text(
+                                      'אין ספרים מותאמים אישית עדיין.',
+                                      style: Theme.of(context).textTheme.bodyMedium,
+                                    )
+                                ),
+                              )
                             ]
                           : customBookWidgets),
-                      // Other settings sections can be added here
                     ],
                   ),
-                ), // Padding
-              ), // ConstrainedBox
-            ); // Center
-          }, // Consumer<DataProvider>
-        ), // body
-      ), // Scaffold
-    ); // Directionality
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
   }
-} // class
+}
+
+// Helper extension for ColorScheme to more easily access surfaceContainerHighest
+// This is a common pattern if you find yourself needing specific Material 3 roles
+// that are not yet directly available in older Flutter versions or for custom theming.
+extension ColorSchemeValues on ColorScheme {
+  Color get surfaceContainerHighest => brightness == Brightness.light
+      ? const Color(0xFFE7E0DE) // Example light value
+      : const Color(0xFF4A4543); // Example dark value
+}

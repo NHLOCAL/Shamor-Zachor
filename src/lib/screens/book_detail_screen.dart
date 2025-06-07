@@ -127,7 +127,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
         widget.categoryName, widget.bookName, bookDetails);
 
     final isBookCompleteIcon = currentCompletionStatus
-        ? Icon(Icons.check_circle, color: Colors.green.shade700)
+        ? Icon(Icons.check_circle, color: theme.colorScheme.primary)
         : Icon(Icons.circle_outlined,
             color: theme.colorScheme.onSurface.withOpacity(0.5));
 
