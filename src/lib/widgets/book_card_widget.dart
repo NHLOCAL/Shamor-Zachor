@@ -23,7 +23,7 @@ class BookCardWidget extends StatelessWidget {
     required this.bookProgressData,
     this.isFromTrackingScreen = false,
     this.completionDateOverride,
-    this.isInCompletedListContext = false, // Added new parameter
+    this.isInCompletedListContext = false,
   });
 
   String _getLastPageDisplay(BuildContext context) {
@@ -87,34 +87,38 @@ class BookCardWidget extends StatelessWidget {
         Provider.of<ProgressProvider>(context, listen: false);
     final theme = Theme.of(context);
 
-    // Removed isCompleted from here as its usage is now context-dependent
-
     if (isFromTrackingScreen) {
       Widget progressWidget;
       String statusText;
       String percentageTextForOverlay;
+      Color textColorOnProgress;
 
       if (isInCompletedListContext) {
-        // Logic for "סיימתי" list
         final numCompletedCycles = progressProvider.getNumberOfCompletedCycles(
             categoryName, bookName, bookDetails);
 
-        Color displayColor = Colors.green[400]!; // Default for 1 cycle
+        Color displayColor = Colors.green[400]!;
         if (numCompletedCycles == 2) displayColor = Colors.green[600]!;
         if (numCompletedCycles == 3) displayColor = Colors.green[800]!;
         if (numCompletedCycles >= 4) displayColor = Colors.green[900]!;
 
         progressWidget = LinearProgressIndicator(
-          value: 1.0, // Always full for completed items
+          value: 1.0,
           minHeight: 24,
-          backgroundColor: theme.colorScheme.primaryContainer.withOpacity(0.3),
+          backgroundColor: theme.colorScheme.primaryContainer.withOpacity(0.2),
           valueColor: AlwaysStoppedAnimation<Color>(displayColor),
           borderRadius: BorderRadius.circular(4),
         );
 
         percentageTextForOverlay = "${numCompletedCycles * 100}%";
-        // Ensure numCompletedCycles is at least 1 if in this list
+
         if (numCompletedCycles < 1) percentageTextForOverlay = "100%";
+
+        textColorOnProgress =
+            ThemeData.estimateBrightnessForColor(displayColor) ==
+                    Brightness.dark
+                ? Colors.white
+                : Colors.black;
 
         final hebrewDate =
             HebrewUtils.getCompletionDateString(completionDateOverride);
@@ -125,7 +129,6 @@ class BookCardWidget extends StatelessWidget {
           statusText = "סיימת (תאריך לא נשמר)";
         }
       } else {
-        // Logic for "בתהליך" list
         final learnProgress = progressProvider.getLearnProgressPercentage(
             categoryName, bookName, bookDetails);
         final review1Progress = progressProvider.getReview1ProgressPercentage(
@@ -135,15 +138,17 @@ class BookCardWidget extends StatelessWidget {
         final review3Progress = progressProvider.getReview3ProgressPercentage(
             categoryName, bookName, bookDetails);
 
+        final progressBarBackgroundColor =
+            theme.colorScheme.primaryContainer.withOpacity(0.2);
+
         progressWidget = Stack(
           children: [
             LinearProgressIndicator(
               value: learnProgress,
               minHeight: 24,
-              backgroundColor:
-                  theme.colorScheme.primaryContainer.withOpacity(0.3),
+              backgroundColor: progressBarBackgroundColor,
               valueColor: AlwaysStoppedAnimation<Color>(
-                  theme.primaryColor.withOpacity(0.3)), // Lightest
+                  theme.primaryColor.withOpacity(0.3)),
               borderRadius: BorderRadius.circular(4),
             ),
             LinearProgressIndicator(
@@ -151,7 +156,7 @@ class BookCardWidget extends StatelessWidget {
               minHeight: 24,
               backgroundColor: Colors.transparent,
               valueColor: AlwaysStoppedAnimation<Color>(
-                  theme.primaryColor.withOpacity(0.5)), // Darker
+                  theme.primaryColor.withOpacity(0.5)),
               borderRadius: BorderRadius.circular(4),
             ),
             LinearProgressIndicator(
@@ -159,7 +164,7 @@ class BookCardWidget extends StatelessWidget {
               minHeight: 24,
               backgroundColor: Colors.transparent,
               valueColor: AlwaysStoppedAnimation<Color>(
-                  theme.primaryColor.withOpacity(0.7)), // Even darker
+                  theme.primaryColor.withOpacity(0.7)),
               borderRadius: BorderRadius.circular(4),
             ),
             LinearProgressIndicator(
@@ -167,60 +172,44 @@ class BookCardWidget extends StatelessWidget {
               minHeight: 24,
               backgroundColor: Colors.transparent,
               valueColor: AlwaysStoppedAnimation<Color>(
-                  theme.primaryColor.withOpacity(0.9)), // Darkest
+                  theme.primaryColor.withOpacity(0.9)),
               borderRadius: BorderRadius.circular(4),
             ),
           ],
         );
 
+        Color colorUnderText;
+        if (review3Progress >= 0.5) {
+          colorUnderText = theme.primaryColor.withOpacity(0.9);
+        } else if (review2Progress >= 0.5) {
+          colorUnderText = theme.primaryColor.withOpacity(0.7);
+        } else if (review1Progress >= 0.5) {
+          colorUnderText = theme.primaryColor.withOpacity(0.5);
+        } else if (learnProgress >= 0.5) {
+          colorUnderText = theme.primaryColor.withOpacity(0.3);
+        } else {
+          colorUnderText = progressBarBackgroundColor;
+        }
+
+        textColorOnProgress =
+            ThemeData.estimateBrightnessForColor(colorUnderText) ==
+                    Brightness.dark
+                ? Colors.white
+                : Colors.black;
+
         double textPercentageToShow;
         if (learnProgress < 1.0) {
           textPercentageToShow = learnProgress;
         } else if (review1Progress < 1.0) {
-          // learnProgress is 1.0
           textPercentageToShow = review1Progress;
         } else if (review2Progress < 1.0) {
-          // learnProgress and review1Progress are 1.0
           textPercentageToShow = review2Progress;
         } else {
-          // learnProgress, review1Progress, and review2Progress are 1.0
           textPercentageToShow = review3Progress;
         }
         percentageTextForOverlay = "${(textPercentageToShow * 100).round()}%";
         statusText = _getLastPageDisplay(context);
       }
-
-      // Determine text color based on the displayed progress value
-      double displayedProgressForTextColor;
-      if (isInCompletedListContext) {
-        displayedProgressForTextColor =
-            1.0; // Completed items are always 100% for this check
-      } else {
-        // For "in progress", use the same logic as textPercentageToShow
-        final learnProgress = progressProvider.getLearnProgressPercentage(
-            categoryName, bookName, bookDetails);
-        final review1Progress = progressProvider.getReview1ProgressPercentage(
-            categoryName, bookName, bookDetails);
-        final review2Progress = progressProvider.getReview2ProgressPercentage(
-            categoryName, bookName, bookDetails);
-        // review3Progress is not needed again here if already fetched above
-
-        if (learnProgress < 1.0) {
-          displayedProgressForTextColor = learnProgress;
-        } else if (review1Progress < 1.0) {
-          displayedProgressForTextColor = review1Progress;
-        } else if (review2Progress < 1.0) {
-          displayedProgressForTextColor = review2Progress;
-        } else {
-          displayedProgressForTextColor =
-              progressProvider.getReview3ProgressPercentage(categoryName,
-                  bookName, bookDetails); // fetch if not available
-        }
-      }
-
-      final textColorOnProgress = displayedProgressForTextColor >= 0.45
-          ? Colors.white
-          : theme.colorScheme.onPrimaryContainer;
 
       return Card(
         margin: const EdgeInsets.symmetric(vertical: 5, horizontal: 4),
@@ -254,9 +243,9 @@ class BookCardWidget extends StatelessWidget {
                 Stack(
                   alignment: Alignment.center,
                   children: [
-                    progressWidget, // This is now the Stack or single LinearProgressIndicator
+                    progressWidget,
                     Text(
-                      percentageTextForOverlay, // Dynamic percentage text
+                      percentageTextForOverlay,
                       style: TextStyle(
                         color: textColorOnProgress,
                         fontWeight: FontWeight.bold,
@@ -267,7 +256,7 @@ class BookCardWidget extends StatelessWidget {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  statusText, // Dynamic status text
+                  statusText,
                   style: TextStyle(
                       fontSize: 12,
                       color: theme.colorScheme.onSurface.withOpacity(0.8)),
@@ -282,7 +271,6 @@ class BookCardWidget extends StatelessWidget {
       );
     }
 
-    // Card for BooksScreen
     final bool isCompleted =
         progressProvider.isBookCompleted(categoryName, bookName, bookDetails);
     return SizedBox(
