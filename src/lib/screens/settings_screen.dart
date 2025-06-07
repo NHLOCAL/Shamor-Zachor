@@ -236,60 +236,51 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget _buildCustomBooksManagement(DataProvider dataProvider, List<Widget> customBookWidgets) {
-    return Card(
-      margin: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 0),
-      elevation: 1.0,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
-      child: Padding(
-        padding: const EdgeInsets.all(12.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch, // Make column stretch
-          children: [
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8.0, right: 8.0), // Or center the text
-              child: Text(
-                'ניהול ספרים מותאמים אישית',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      color: Theme.of(context).colorScheme.primary,
-                      fontWeight: FontWeight.bold,
-                    ),
-                textAlign: TextAlign.center, // Center title
+    return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Padding(
+        padding: const EdgeInsets.only(top: 8.0, bottom: 12.0, right: 8.0),
+        child: Text(
+          'ניהול ספרים מותאמים אישית',
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                color: Theme.of(context).colorScheme.secondary, // Using secondary color
+                fontWeight: FontWeight.w600,
               ),
-            ),
-            const SizedBox(height: 15),
-            Center( // Center the button
-              child: ElevatedButton.icon(
-                onPressed: () => _showAddOrEditBookDialog(),
-                icon: const Icon(Icons.add),
-                label: const Text('הוסף ספר חדש'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Theme.of(context).colorScheme.primary,
-                  foregroundColor: Theme.of(context).colorScheme.onPrimary,
-                  padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 12.0),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(28.0),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-            if (customBookWidgets.isEmpty && !dataProvider.isLoading)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 20.0),
-                child: Center(
-                  child: Text(
-                    'אין ספרים מותאמים אישית עדיין.',
-                    style: Theme.of(context).textTheme.bodyMedium,
-                  ),
-                ),
-              )
-            else
-              ...customBookWidgets, // Spread the list of widgets
-          ],
         ),
       ),
-    );
-  }
+      const SizedBox(height: 15),
+      Center(
+        child: ElevatedButton.icon(
+          onPressed: () => _showAddOrEditBookDialog(),
+          icon: const Icon(Icons.add),
+          label: const Text('הוסף ספר חדש'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Theme.of(context).colorScheme.primary,
+            foregroundColor: Theme.of(context).colorScheme.onPrimary,
+            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 12.0),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(28.0),
+            ),
+          ),
+        ),
+      ),
+      const SizedBox(height: 20),
+      if (customBookWidgets.isEmpty && !dataProvider.isLoading)
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 20.0),
+          child: Center(
+            child: Text(
+              'אין ספרים מותאמים אישית עדיין.',
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+          ),
+        )
+      else
+        ...customBookWidgets,
+    ],
+  );
+}
 
   void _confirmDeleteBook(String bookId, String bookName, String categoryName) {
     final dataProvider = Provider.of<DataProvider>(context, listen: false);
@@ -348,63 +339,58 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget _buildThemeSelection(ThemeProvider themeProvider) {
-    return Card(
-      margin: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 0),
-      elevation: 1.0,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
-      child: Padding(
-        padding: const EdgeInsets.all(12.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.only(bottom:8.0, right: 8.0),
-              child: Text(
-                'ערכת נושא',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      color: Theme.of(context).colorScheme.primary,
-                      fontWeight: FontWeight.bold,
-                    ),
+    return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Padding(
+        padding: const EdgeInsets.only(top: 8.0, bottom: 12.0, right: 8.0),
+        child: Text(
+          'ערכת נושא',
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                color: Theme.of(context).colorScheme.secondary, // Using secondary color for header
+                fontWeight: FontWeight.w600,
               ),
-            ),
-            RadioListTile<ThemeModeOption>(
-              title: const Text('בהיר'),
-              value: ThemeModeOption.light,
-              groupValue: themeProvider.themeModeOption,
-              onChanged: (ThemeModeOption? value) {
-                if (value != null) {
-                  themeProvider.setThemeMode(value);
-                }
-              },
-              activeColor: Theme.of(context).colorScheme.primary,
-            ),
-            RadioListTile<ThemeModeOption>(
-              title: const Text('כהה'),
-              value: ThemeModeOption.dark,
-              groupValue: themeProvider.themeModeOption,
-              onChanged: (ThemeModeOption? value) {
-                if (value != null) {
-                  themeProvider.setThemeMode(value);
-                }
-              },
-              activeColor: Theme.of(context).colorScheme.primary,
-            ),
-            RadioListTile<ThemeModeOption>(
-              title: const Text('ברירת מחדל של המערכת'),
-              value: ThemeModeOption.system,
-              groupValue: themeProvider.themeModeOption,
-              onChanged: (ThemeModeOption? value) {
-                if (value != null) {
-                  themeProvider.setThemeMode(value);
-                }
-              },
-              activeColor: Theme.of(context).colorScheme.primary,
-            ),
-          ],
         ),
       ),
-    );
-  }
+      RadioListTile<ThemeModeOption>(
+        title: const Text('בהיר'),
+        value: ThemeModeOption.light,
+        groupValue: themeProvider.themeModeOption,
+        onChanged: (ThemeModeOption? value) {
+            if (value != null) {
+            themeProvider.setThemeMode(value);
+            }
+        },
+        activeColor: Theme.of(context).colorScheme.primary,
+        contentPadding: EdgeInsets.zero, // Adjust padding for RadioListTile
+      ),
+      RadioListTile<ThemeModeOption>(
+        title: const Text('כהה'),
+        value: ThemeModeOption.dark,
+        groupValue: themeProvider.themeModeOption,
+        onChanged: (ThemeModeOption? value) {
+            if (value != null) {
+            themeProvider.setThemeMode(value);
+            }
+        },
+        activeColor: Theme.of(context).colorScheme.primary,
+        contentPadding: EdgeInsets.zero,
+      ),
+      RadioListTile<ThemeModeOption>(
+        title: const Text('ברירת מחדל של המערכת'),
+        value: ThemeModeOption.system,
+        groupValue: themeProvider.themeModeOption,
+        onChanged: (ThemeModeOption? value) {
+            if (value != null) {
+            themeProvider.setThemeMode(value);
+            }
+        },
+        activeColor: Theme.of(context).colorScheme.primary,
+        contentPadding: EdgeInsets.zero,
+      ),
+    ],
+  );
+}
 
   @override
   Widget build(BuildContext context) {
@@ -521,7 +507,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   child: ListView(
                     children: <Widget>[
                       _buildThemeSelection(themeProvider),
-                      const SizedBox(height: 16),
+                      const Divider(height: 32, thickness: 1, indent: 16, endIndent: 16),
                       _buildCustomBooksManagement(dataProvider, customBookWidgets),
                     ],
                   ),
