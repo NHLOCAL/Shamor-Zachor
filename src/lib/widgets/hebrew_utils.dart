@@ -67,7 +67,8 @@ class HebrewUtils {
       hdf.hebrewFormat = true; // Ensure output is in Hebrew characters
 
       String monthName = hdf.formatMonth(hebrewDate);
-      String yearHebrew = hdf.formatYear(hebrewDate); // Use direct method for year
+      String yearHebrew = hdf.formatHebrewNumber(
+          hebrewDate.getJewishYear()); // Format Hebrew year correctly
 
       return '$dayGematria $monthName $yearHebrew';
     } catch (e) {
