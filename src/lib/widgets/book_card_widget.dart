@@ -5,7 +5,6 @@ import '../models/progress_model.dart';
 import '../providers/progress_provider.dart';
 import '../screens/book_detail_screen.dart';
 import './hebrew_utils.dart';
-import '../services/progress_service.dart';
 
 class BookCardWidget extends StatelessWidget {
   final String categoryName;
