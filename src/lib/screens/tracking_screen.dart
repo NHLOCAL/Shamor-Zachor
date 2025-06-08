@@ -146,6 +146,7 @@ class _TrackingScreenState extends State<TrackingScreen> {
               itemBuilder: (ctx, i) {
                 final itemData = itemsData[i]; // Renamed for clarity
                 return BookCardWidget(
+                  topLevelCategoryKey: itemData['topLevelCategoryKey'], // Added
                   categoryName: itemData['displayCategoryName'], // Use displayCategoryName
                   bookName: itemData['bookName'],
                   bookDetails: itemData['bookDetails'],
@@ -182,6 +183,7 @@ class _TrackingScreenState extends State<TrackingScreen> {
               itemBuilder: (ctx, i) {
                 final itemData = itemsData[i]; // Renamed for clarity
                 return BookCardWidget(
+                  topLevelCategoryKey: itemData['topLevelCategoryKey'], // Added
                   categoryName: itemData['displayCategoryName'], // Use displayCategoryName
                   bookName: itemData['bookName'],
                   bookDetails: itemData['bookDetails'],

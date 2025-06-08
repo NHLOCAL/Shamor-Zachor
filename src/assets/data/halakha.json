@@ -1,0 +1,112 @@
+{
+  "name": "הלכה",
+  "content_type": "סימן",
+  "columns": ["סימן"],
+  "subcategories": [
+    {
+      "name": "שולחן ערוך",
+      "content_type": "סימן",
+      "columns": ["סימן"],
+      "subcategories": [
+        {
+          "name": "אורח חיים",
+          "content_type": "סימן",
+          "columns": ["סימן"],
+          "books": { "שולחן ערוך אורח חיים": { "pages": 697 } }
+        },
+        {
+          "name": "יורה דעה",
+          "content_type": "סימן",
+          "columns": ["סימן"],
+          "books": { "שולחן ערוך יורה דעה": { "pages": 403 } }
+        },
+        {
+          "name": "אבן העזר",
+          "content_type": "סימן",
+          "columns": ["סימן"],
+          "books": { "שולחן ערוך אבן העזר": { "pages": 178 } }
+        },
+        {
+          "name": "חושן משפט",
+          "content_type": "סימן",
+          "columns": ["סימן"],
+          "books": { "שולחן ערוך חושן משפט": { "pages": 427 } }
+        }
+      ]
+    },
+    {
+      "name": "משנה ברורה",
+      "content_type": "סימן",
+      "columns": ["סימן"],
+      "subcategories": [
+        {
+          "name": "חלק א (סימנים א-קכד)",
+          "content_type": "סימן",
+          "columns": ["סימן"],
+          "books": { "משנה ברורה חלק א": { "pages": 124 } }
+        },
+        {
+          "name": "חלק ב (סימנים קכה-רמא)",
+          "content_type": "סימן",
+          "columns": ["סימן"],
+          "books": { "משנה ברורה חלק ב": { "pages": 117 } }
+        },
+        {
+          "name": "חלק ג (סימנים רמב-שמד)",
+          "content_type": "סימן",
+          "columns": ["סימן"],
+          "books": { "משנה ברורה חלק ג": { "pages": 103 } }
+        },
+        {
+          "name": "חלק ד (סימנים שמה-תכח)",
+          "content_type": "סימן",
+          "columns": ["סימן"],
+          "books": { "משנה ברורה חלק ד": { "pages": 84 } }
+        },
+        {
+          "name": "חלק ה (סימנים תכט-תקכט)",
+          "content_type": "סימן",
+          "columns": ["סימן"],
+          "books": { "משנה ברורה חלק ה": { "pages": 101 } }
+        },
+        {
+          "name": "חלק ו (סימנים תקלא-תרצז)",
+          "content_type": "סימן",
+          "columns": ["סימן"],
+          "books": { "משנה ברורה חלק ו": { "pages": 167 } }
+        }
+      ]
+    },
+    {
+      "name": "ארבעה טורים",
+      "content_type": "סימן",
+      "columns": ["סימן"],
+      "subcategories": [
+        {
+          "name": "אורח חיים",
+          "content_type": "סימן",
+          "columns": ["סימן"],
+          "books": { "טור אורח חיים": { "pages": 697 } }
+        },
+        {
+          "name": "יורה דעה",
+          "content_type": "סימן",
+          "columns": ["סימן"],
+          "books": { "טור יורה דעה": { "pages": 403 } }
+        },
+        {
+          "name": "אבן העזר",
+          "content_type": "סימן",
+          "columns": ["סימן"],
+          "books": { "טור אבן העזר": { "pages": 178 } }
+        },
+        {
+          "name": "חושן משפט",
+          "content_type": "סימן",
+          "columns": ["סימן"],
+          "books": { "טור חושן משפט": { "pages": 427 } }
+        }
+      ]
+    }
+  ]
+}

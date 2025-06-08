@@ -146,7 +146,8 @@ class _BooksScreenState extends State<BooksScreen>
             categoryName.toLowerCase().contains(searchTerm)) {
           results.add(
             SearchBookCardWidget(
-              categoryName: categoryName, // Top-level category name
+              topLevelCategoryKey: categoryName, // This is the topLevelCategoryKey
+              categoryName: categoryName, // For display, this is the top-level category name
               bookName: bookName,
               bookDetails: bookDetails,
             ),
@@ -166,7 +167,8 @@ class _BooksScreenState extends State<BooksScreen>
               // This ensures all books from a matching subcategory are shown.
               results.add(
                 SearchBookCardWidget(
-                  categoryName: subCategory.name, // Pass subCategory.name
+                  topLevelCategoryKey: categoryName, // This is the topLevelCategoryKey
+                  categoryName: subCategory.name, // For display, this is the subCategory.name
                   bookName: bookName,
                   bookDetails: bookDetails,
                 ),
@@ -409,7 +411,8 @@ class _BooksScreenState extends State<BooksScreen>
             final bookName = categoryData.books.keys.elementAt(i);
             final bookDetails = categoryData.books.values.elementAt(i);
             return BookCardWidget(
-              categoryName: categoryName, // Top-level category name
+              topLevelCategoryKey: categoryName, // This is the topLevelCategoryKey
+              categoryName: categoryName, // For display, this is the top-level category name
               bookName: bookName,
               bookDetails: bookDetails,
               bookProgressData: progressProvider.getProgressForBook(categoryName, bookName),
@@ -446,7 +449,8 @@ class _BooksScreenState extends State<BooksScreen>
                     final bookName = subCategory.books.keys.elementAt(i);
                     final bookDetails = subCategory.books.values.elementAt(i);
                     return BookCardWidget(
-                      categoryName: subCategory.name, // SubCategory name for progress tracking
+                      topLevelCategoryKey: categoryName, // This is the topLevelCategoryKey
+                      categoryName: subCategory.name, // For display, this is the subCategory.name
                       bookName: bookName,
                       bookDetails: bookDetails,
                       bookProgressData: progressProvider.getProgressForBook(subCategory.name, bookName),
