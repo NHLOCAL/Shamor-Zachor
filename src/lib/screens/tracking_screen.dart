@@ -32,6 +32,7 @@ class _TrackingScreenState extends State<TrackingScreen> {
 
     final allBookData = dataProvider.allBookData;
     final trackedItems = progressProvider.getTrackedBooks(allBookData);
+    print("[TrackingScreen] Received ${trackedItems.length} tracked items from ProgressProvider.");
 
     List<Map<String, dynamic>> inProgressItemsData = [];
     List<Map<String, dynamic>> completedItemsData = [];
@@ -41,6 +42,7 @@ class _TrackingScreenState extends State<TrackingScreen> {
       final topLevelCategoryKey = item['topLevelCategoryKey'] as String;
       final displayCategoryName = item['displayCategoryName'] as String; // For UI
       final bookName = item['bookName'] as String;
+      print("[TrackingScreen] Processing item: Book='$bookName', DisplayCat='$displayCategoryName', TopLevelKey='$topLevelCategoryKey'");
       final bookDetails = item['bookDetails'] as BookDetails;
       final bookProgressData =
           item['progressData'] as Map<String, Map<String, PageProgress>>;
@@ -96,9 +98,13 @@ class _TrackingScreenState extends State<TrackingScreen> {
     // unless we want to strictly categorize even before filtering.
     // The existing logic seems to create two lists, and then the UI picks one.
     // This is fine. The `isBookCompleted` and `isBookConsideredInProgress` flags correctly categorize them.
+    print("[TrackingScreen] inProgressItemsData count: ${inProgressItemsData.length}");
+    print("[TrackingScreen] completedItemsData count: ${completedItemsData.length}");
 
     Widget buildList(List<Map<String, dynamic>> itemsData) {
+      print("[TrackingScreen] buildList called for filter: $_selectedFilter. Item count: ${itemsData.length}");
       if (itemsData.isEmpty) {
+        print("[TrackingScreen] buildList: itemsData is empty. Displaying empty message.");
         return Center(
           child: Text(
             _selectedFilter == TrackingFilter.inProgress
@@ -106,8 +112,10 @@ class _TrackingScreenState extends State<TrackingScreen> {
                 : 'עדיין לא סיימת ספרים.',
             style: TextStyle(
                 fontStyle: FontStyle.italic,
-                color:
-                    Theme.of(context).colorScheme.onSurface.withOpacity(0.6)),
+                color: Theme.of(context)
+                    .colorScheme
+                    .onSurface
+                    .withAlpha((0.6 * 255).round())),
           ),
         );
       }
@@ -143,7 +151,7 @@ class _TrackingScreenState extends State<TrackingScreen> {
                   bookDetails: itemData['bookDetails'],
                   bookProgressData: itemData['bookProgressData'],
                   isFromTrackingScreen: true,
-                  completionDateOverride: item['completionDateOverride'],
+                  completionDateOverride: itemData['completionDateOverride'],
                   isInCompletedListContext:
                       _selectedFilter == TrackingFilter.completed,
                 );
@@ -179,7 +187,7 @@ class _TrackingScreenState extends State<TrackingScreen> {
                   bookDetails: itemData['bookDetails'],
                   bookProgressData: itemData['bookProgressData'],
                   isFromTrackingScreen: true,
-                  completionDateOverride: item['completionDateOverride'],
+                  completionDateOverride: itemData['completionDateOverride'],
                   isInCompletedListContext:
                       _selectedFilter == TrackingFilter.completed,
                 );

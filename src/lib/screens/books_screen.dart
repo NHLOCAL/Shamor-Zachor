@@ -32,6 +32,7 @@ class _BooksScreenState extends State<BooksScreen>
       // 2. שימוש במיון כאן
       final categories =
           CategorySorter.sort(dataProvider.allBookData.keys.toList());
+      print("[BooksScreen] didChangeDependencies: Categories for tabs: $categories");
       _setupTabController(categories, switchToIndex: _currentTabIndex);
     }
   }
@@ -373,12 +374,16 @@ class _BooksScreenState extends State<BooksScreen>
     List<Tab> tabs = categories.map((catName) => Tab(text: catName)).toList();
     List<Widget> tabViews = categories.map((categoryName) {
       final categoryData = dataProvider.allBookData[categoryName]!;
+      print("[BooksScreen] Building tabView for: ${categoryData.name}");
+      print("  [BooksScreen] Subcategories exist: ${categoryData.subcategories != null && categoryData.subcategories!.isNotEmpty}");
+      print("  [BooksScreen] Direct books exist: ${categoryData.books.isNotEmpty}");
       final progressProvider = Provider.of<ProgressProvider>(context, listen: true);
 
       List<Widget> children = [];
 
       // Add direct books first, if any
       if (categoryData.books.isNotEmpty) {
+        print("    [BooksScreen] Processing direct books for GridView. Count: ${categoryData.books.length}");
         children.add(
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
@@ -415,6 +420,10 @@ class _BooksScreenState extends State<BooksScreen>
 
       // Add subcategories with ExpansionTile
       if (categoryData.subcategories != null && categoryData.subcategories!.isNotEmpty) {
+        categoryData.subcategories!.forEach((subCat) {
+          print("    [BooksScreen] Processing SubCategory for ExpansionTile: ${subCat.name}");
+          print("      [BooksScreen] Books in ${subCat.name}: ${subCat.books.length}");
+        });
         for (var subCategory in categoryData.subcategories!) {
           children.add(
             ExpansionTile(
@@ -493,6 +502,13 @@ class _BooksScreenState extends State<BooksScreen>
           itemBuilder: (context, index) => _searchResults[index],
         ),
       );
+    }
+
+    print("[BooksScreen] Final TabController length: ${_tabController?.length}");
+    print("[BooksScreen] Number of generated tabs: ${tabs.length}");
+    print("[BooksScreen] Number of generated tabViews: ${tabViews.length}");
+    if (categories.isEmpty && _searchResults.isEmpty) {
+        print("[BooksScreen] No categories and no search results. Will show 'אין נתונים להצגה'.");
     }
 
     return Column(
