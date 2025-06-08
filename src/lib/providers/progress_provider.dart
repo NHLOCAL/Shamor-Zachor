@@ -134,9 +134,11 @@ class ProgressProvider with ChangeNotifier {
       int? reviewCycleNumber;
       if (columnName == 'review1') {
         reviewCycleNumber = 1;
-      } else if (columnName == 'review2')
+      } else if (columnName == 'review2') {
         reviewCycleNumber = 2;
-      else if (columnName == 'review3') reviewCycleNumber = 3;
+      } else if (columnName == 'review3') {
+        reviewCycleNumber = 3;
+      }
 
       if (reviewCycleNumber != null) {
         // Check if this specific change led to the completion of the review cycle
@@ -272,7 +274,7 @@ class ProgressProvider with ChangeNotifier {
         if (searchResult == null) {
           print("    [ProgressProvider] WARN: Book '$bookNameFromProgress' not found via findBookRecursive in '$topLevelCategoryKey'.");
         } else {
-          print("    [ProgressProvider] Found book: ID (usually bookName for non-custom) '${bookNameFromProgress}' in category '${searchResult.categoryName}'. Display name: ${searchResult.categoryName}");
+          print("    [ProgressProvider] Found book: ID (usually bookName for non-custom) '$bookNameFromProgress' in category '${searchResult.categoryName}'. Display name: ${searchResult.categoryName}");
           // Note: BookDetails doesn't have an 'id' field by default unless it's a custom book.
           // Using bookNameFromProgress for the ID-like field in the log.
           final String uniqueKey = '$topLevelCategoryKey-${searchResult.categoryName}-$bookNameFromProgress';
@@ -286,13 +288,8 @@ class ProgressProvider with ChangeNotifier {
             });
             processedBookKeys.add(uniqueKey);
           }
-        } else {
-          // This 'else' corresponds to searchResult being null, which is already logged above.
-          // The kDebugMode print was for the case where searchResult is null, so it's redundant here if we keep the new log.
-          // if (kDebugMode) {
-          //   print("Error: Book '$bookNameFromProgress' in category '$topLevelCategoryKey' not found via findBookRecursive.");
-          // }
         }
+        // Erroneous 'else' was here and is now removed.
       });
     });
 
@@ -314,7 +311,7 @@ class ProgressProvider with ChangeNotifier {
         if (searchResult == null) {
           print("    [ProgressProvider] WARN: Completed book '$bookNameFromCompletion' not found via findBookRecursive in '$topLevelCategoryKey'.");
         } else {
-          print("    [ProgressProvider] Found completed book: ID (usually bookName) '${bookNameFromCompletion}' in category '${searchResult.categoryName}'. Display name: ${searchResult.categoryName}");
+          print("    [ProgressProvider] Found completed book: ID (usually bookName) '$bookNameFromCompletion' in category '${searchResult.categoryName}'. Display name: ${searchResult.categoryName}");
           final String uniqueKey = '$topLevelCategoryKey-${searchResult.categoryName}-$bookNameFromCompletion';
           // Add only if not already processed from _fullProgress
           if (!processedBookKeys.contains(uniqueKey)) {
@@ -335,13 +332,8 @@ class ProgressProvider with ChangeNotifier {
                 item['bookName'] == bookNameFromCompletion);
             existingEntry['completionDate'] = completionDate;
           }
-        } else {
-          // This 'else' corresponds to searchResult being null for a completion date entry.
-          // The kDebugMode print was for this case.
-          // if (kDebugMode) {
-          //  print("Error: Book '$bookNameFromCompletion' in category '$topLevelCategoryKey' (from completionDates) not found via findBookRecursive.");
-          // }
         }
+        // Erroneous 'else' was here and is now removed.
       });
     });
     print("[ProgressProvider] getTrackedBooks: Returning ${tracked.length} tracked items.");
