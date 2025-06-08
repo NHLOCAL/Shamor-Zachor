@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/data_provider.dart';
 import '../providers/progress_provider.dart';
 import '../widgets/book_card_widget.dart';
+import '../utils/category_sorter.dart';
 
 class BooksScreen extends StatefulWidget {
   const BooksScreen({super.key});
@@ -28,7 +29,9 @@ class _BooksScreenState extends State<BooksScreen>
     super.didChangeDependencies();
     final dataProvider = Provider.of<DataProvider>(context, listen: false);
     if (dataProvider.allBookData.isNotEmpty && _tabController == null) {
-      final categories = dataProvider.allBookData.keys.toList();
+      // 2. שימוש במיון כאן
+      final categories =
+          CategorySorter.sort(dataProvider.allBookData.keys.toList());
       _setupTabController(categories, switchToIndex: _currentTabIndex);
     }
   }
@@ -84,7 +87,9 @@ class _BooksScreenState extends State<BooksScreen>
     _currentTabIndex = newIndex;
 
     final dataProvider = Provider.of<DataProvider>(context, listen: false);
-    final categories = dataProvider.allBookData.keys.toList();
+    // 3. שימוש במיון כאן
+    final categories =
+        CategorySorter.sort(dataProvider.allBookData.keys.toList());
     final int searchTabIndexWhenVisible = categories.length;
 
     if (_searchResults.isNotEmpty &&
@@ -103,7 +108,9 @@ class _BooksScreenState extends State<BooksScreen>
   }
 
   void _performSearch(String term, DataProvider dataProvider) {
-    final categories = dataProvider.allBookData.keys.toList();
+    // 4. שימוש במיון כאן
+    final categories =
+        CategorySorter.sort(dataProvider.allBookData.keys.toList());
 
     if (term.length < 2) {
       if (_searchResults.isNotEmpty) {
@@ -201,8 +208,7 @@ class _BooksScreenState extends State<BooksScreen>
       padding: const EdgeInsets.symmetric(vertical: 15.0),
       child: Center(
         child: Container(
-          constraints: const BoxConstraints(
-              maxWidth: 400), // הקטנת הרוחב המקסימלי של שדה החיפוש
+          constraints: const BoxConstraints(maxWidth: 400),
           child: TextField(
             controller: _searchController,
             textDirection: TextDirection.rtl,
@@ -252,7 +258,9 @@ class _BooksScreenState extends State<BooksScreen>
       return Center(child: Text('שגיאה: ${dataProvider.error}'));
     }
 
-    final categories = dataProvider.allBookData.keys.toList();
+    // 5. שימוש במיון פעם אחרונה ומרכזית כאן
+    final categories =
+        CategorySorter.sort(dataProvider.allBookData.keys.toList());
     final expectedTabLength =
         categories.length + (_searchResults.isNotEmpty ? 1 : 0);
 
@@ -344,7 +352,7 @@ class _BooksScreenState extends State<BooksScreen>
           children: [
             Icon(Icons.search, size: 20, color: theme.tabBarTheme.labelColor),
             const SizedBox(width: 6),
-            const Text("חיפוש") // הטקסט כאן יקבל את הסגנון מה-Theme
+            const Text("חיפוש")
           ],
         ),
       ));
@@ -367,8 +375,6 @@ class _BooksScreenState extends State<BooksScreen>
     return Column(
       children: [
         _buildSearchField(dataProvider),
-        // ה-Container שהיה צובע את הרקע הוסר מכאן,
-        // הרקע של ה-TabBar ייקבע על ידי ה-Theme או יהיה שקוף
         TabBar(
           controller: _tabController!,
           isScrollable: true,
