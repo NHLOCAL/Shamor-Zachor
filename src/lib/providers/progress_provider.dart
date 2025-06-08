@@ -252,39 +252,81 @@ class ProgressProvider with ChangeNotifier {
   List<Map<String, dynamic>> getTrackedBooks(
       Map<String, BookCategory> allBookData) {
     List<Map<String, dynamic>> tracked = [];
-    _fullProgress.forEach((categoryName, books) {
-      books.forEach((bookName, progressData) {
-        if (allBookData.containsKey(categoryName) &&
-            allBookData[categoryName]!.books.containsKey(bookName)) {
-          tracked.add({
-            'categoryName': categoryName,
-            'bookName': bookName,
-            'bookDetails': allBookData[categoryName]!.books[bookName]!,
-            'progressData': progressData,
-            // 'isLikelyCompleted' will be determined by isBookCompleted or completionDate presence
-          });
-        }
-      });
-    });
+    Set<String> processedBookKeys = {}; // To avoid duplicates
 
-    _completionDates.forEach((categoryName, books) {
-      books.forEach((bookName, date) {
-        if (allBookData.containsKey(categoryName) &&
-            allBookData[categoryName]!.books.containsKey(bookName)) {
-          if (!tracked.any((item) =>
-              item['categoryName'] == categoryName &&
-              item['bookName'] == bookName)) {
+    // Process books from _fullProgress
+    _fullProgress.forEach((topLevelCategoryKey, booksProgressMap) {
+      final topLevelCategoryObject = allBookData[topLevelCategoryKey];
+      if (topLevelCategoryObject == null) {
+        if (kDebugMode) {
+          print("Error: Top-level category '$topLevelCategoryKey' not found in allBookData.");
+        }
+        return; // Skip this category
+      }
+
+      booksProgressMap.forEach((bookNameFromProgress, progressDataForBook) {
+        final searchResult = topLevelCategoryObject.findBookRecursive(bookNameFromProgress);
+        if (searchResult != null) {
+          final String uniqueKey = '$topLevelCategoryKey-${searchResult.categoryName}-$bookNameFromProgress';
+          if (!processedBookKeys.contains(uniqueKey)) {
             tracked.add({
-              'categoryName': categoryName,
-              'bookName': bookName,
-              'bookDetails': allBookData[categoryName]!.books[bookName]!,
-              'progressData': getProgressForBook(categoryName, bookName),
-              // 'isLikelyCompleted': true // This flag can be inferred now
+              'topLevelCategoryKey': topLevelCategoryKey, // For progress operations
+              'displayCategoryName': searchResult.categoryName, // For UI (subCategory name)
+              'bookName': bookNameFromProgress,
+              'bookDetails': searchResult.bookDetails,
+              'progressData': progressDataForBook,
             });
+            processedBookKeys.add(uniqueKey);
+          }
+        } else {
+          if (kDebugMode) {
+            print("Error: Book '$bookNameFromProgress' in category '$topLevelCategoryKey' not found via findBookRecursive.");
           }
         }
       });
     });
+
+    // Process books from _completionDates (for books that might only have a completion date and no other progress)
+    _completionDates.forEach((topLevelCategoryKey, booksCompletionMap) {
+      final topLevelCategoryObject = allBookData[topLevelCategoryKey];
+      if (topLevelCategoryObject == null) {
+        if (kDebugMode) {
+          print("Error: Top-level category '$topLevelCategoryKey' from completionDates not found in allBookData.");
+        }
+        return; // Skip this category
+      }
+
+      booksCompletionMap.forEach((bookNameFromCompletion, completionDate) {
+        final searchResult = topLevelCategoryObject.findBookRecursive(bookNameFromCompletion);
+        if (searchResult != null) {
+          final String uniqueKey = '$topLevelCategoryKey-${searchResult.categoryName}-$bookNameFromCompletion';
+          // Add only if not already processed from _fullProgress
+          if (!processedBookKeys.contains(uniqueKey)) {
+            tracked.add({
+              'topLevelCategoryKey': topLevelCategoryKey,
+              'displayCategoryName': searchResult.categoryName,
+              'bookName': bookNameFromCompletion,
+              'bookDetails': searchResult.bookDetails,
+              'progressData': getProgressForBook(topLevelCategoryKey, bookNameFromCompletion), // Might be empty if only completion date exists
+              'completionDate': completionDate, // Include completion date
+            });
+            processedBookKeys.add(uniqueKey);
+          } else {
+            // If already added from _fullProgress, ensure completionDate is also included if it exists
+            final existingEntry = tracked.firstWhere((item) =>
+                item['topLevelCategoryKey'] == topLevelCategoryKey &&
+                item['displayCategoryName'] == searchResult.categoryName &&
+                item['bookName'] == bookNameFromCompletion);
+            existingEntry['completionDate'] = completionDate;
+          }
+        } else {
+          if (kDebugMode) {
+            print("Error: Book '$bookNameFromCompletion' in category '$topLevelCategoryKey' (from completionDates) not found via findBookRecursive.");
+          }
+        }
+      });
+    });
+
     return tracked;
   }
 
