@@ -248,7 +248,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         padding: const EdgeInsets.only(top: 8.0, bottom: 12.0, right: 8.0),
         child: Row( // Added Row for Icon and Text
           children: [
-            Icon(Icons.edit_document_outlined, color: Theme.of(context).colorScheme.secondary), // Added Icon
+            Icon(Icons.article_outlined, color: Theme.of(context).colorScheme.secondary), // Changed Icon
             const SizedBox(width: 8), // Spacing
             Text(
               'ניהול ספרים מותאמים אישית',
