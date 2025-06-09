@@ -262,4 +262,38 @@ class ProgressService {
     });
     return count;
   }
+
+  Future<String> exportProgressData() async {
+    final prefs = await _getPrefs();
+    final progressJsonString = prefs.getString(_progressDataKey);
+    final completionDatesJsonString = prefs.getString(_completionDatesKey);
+
+    final Map<String, String?> dataToExport = {
+      'progress_data': progressJsonString,
+      'completion_dates': completionDatesJsonString,
+    };
+
+    return json.encode(dataToExport);
+  }
+
+  Future<bool> importProgressData(String jsonData) async {
+    final prefs = await _getPrefs();
+    try {
+      final Map<String, dynamic> decodedData = json.decode(jsonData);
+
+      final String? progressDataString = decodedData['progress_data'] as String?;
+      final String? completionDatesString = decodedData['completion_dates'] as String?;
+
+      if (progressDataString != null) {
+        await prefs.setString(_progressDataKey, progressDataString);
+      }
+      if (completionDatesString != null) {
+        await prefs.setString(_completionDatesKey, completionDatesString);
+      }
+      return true;
+    } catch (e) {
+      print("Error importing progress data: $e");
+      return false;
+    }
+  }
 }

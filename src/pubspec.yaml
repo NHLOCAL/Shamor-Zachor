@@ -20,6 +20,7 @@ dependencies:
   kosher_dart: ^2.0.17
   confetti: ^0.7.0
   gematria: ^1.0.0+1
+  file_picker: ^5.3.0 # Added file_picker
 
 dependency_overrides:
   intl: ^0.19.0

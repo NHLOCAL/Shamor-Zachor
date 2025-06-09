@@ -3,6 +3,11 @@ import 'package:provider/provider.dart';
 import '../providers/data_provider.dart';
 import '../models/book_model.dart';
 import '../providers/theme_provider.dart'; // Import ThemeProvider
+import 'package:file_picker/file_picker.dart';
+import 'dart:io'; // For File operations
+// import 'package:path_provider/path_provider.dart'; // Not strictly needed for saveFile dialog but good for default paths
+import '../providers/progress_provider.dart';
+import 'package:intl/intl.dart'; // For date formatting in filename
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -392,6 +397,195 @@ class _SettingsScreenState extends State<SettingsScreen> {
   );
 }
 
+  Widget _buildBackupRestoreSection() {
+    // Style for section title, similar to 'ניהול ספרים מותאמים אישית'
+    final titleStyle = Theme.of(context).textTheme.titleLarge?.copyWith(
+          color: Theme.of(context).colorScheme.secondary,
+          fontWeight: FontWeight.w600,
+        );
+    // Style for buttons, ensuring they are noticeable
+    final buttonStyle = ElevatedButton.styleFrom(
+      backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+      foregroundColor: Theme.of(context).colorScheme.onPrimaryContainer,
+      padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 12.0),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16.0),
+      ),
+    );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(top: 8.0, bottom: 12.0, right: 8.0),
+          child: Text('גיבוי ושחזור נתונים', style: titleStyle),
+        ),
+        const SizedBox(height: 15),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            ElevatedButton.icon(
+              icon: const Icon(Icons.backup_outlined),
+              label: const Text('גיבוי לקובץ'),
+              onPressed: _backupToFile, // Updated onPressed
+              style: buttonStyle,
+            ),
+            ElevatedButton.icon(
+              icon: const Icon(Icons.restore_page_outlined),
+              label: const Text('שחזור מקובץ'),
+              onPressed: _restoreFromFile, // Updated onPressed
+              style: buttonStyle,
+            ),
+          ],
+        ),
+        const SizedBox(height: 20),
+        ListTile(
+          leading: Icon(Icons.cloud_upload_outlined, color: Theme.of(context).disabledColor),
+          title: Text(
+            'גיבוי לענן (בקרוב)',
+            style: TextStyle(color: Theme.of(context).disabledColor),
+          ),
+          enabled: false,
+          onTap: () {
+            // Non-functional, shown as disabled
+          },
+        ),
+      ],
+    );
+  }
+
+  Future<void> _backupToFile() async {
+    final progressProvider = Provider.of<ProgressProvider>(context, listen: false);
+    if (!mounted) return; // Check if the widget is still in the tree
+
+    try {
+      String? backupData = await progressProvider.backupProgress();
+
+      if (backupData == null || backupData.isEmpty) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('שגיאה: לא נוצרו נתוני גיבוי.')),
+        );
+        return;
+      }
+
+      // Generate a filename with the current date
+      String formattedDate = DateFormat('yyyy-MM-dd_HH-mm').format(DateTime.now());
+      String fileName = 'shamor_vezachor_backup_$formattedDate.json';
+
+      String? result = await FilePicker.platform.saveFile(
+        dialogTitle: 'אנא בחר היכן לשמור את קובץ הגיבוי:',
+        fileName: fileName,
+        allowedExtensions: ['json'],
+        type: FileType.custom,
+      );
+
+      if (result != null) {
+        final file = File(result);
+        await file.writeAsString(backupData);
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('הגיבוי נשמר בהצלחה!')),
+        );
+      } else {
+        // User canceled the picker
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('שמירת הגיבוי בוטלה.')),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('שגיאה בשמירת הגיבוי: $e')),
+      );
+    }
+  }
+
+  Future<void> _restoreFromFile() async {
+    final progressProvider = Provider.of<ProgressProvider>(context, listen: false);
+    if (!mounted) return;
+
+    try {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['json'],
+        dialogTitle: 'אנא בחר קובץ גיבוי לשחזור:',
+      );
+
+      if (result != null && result.files.single.path != null) {
+        final filePath = result.files.single.path!;
+        final file = File(filePath);
+
+        if (!mounted) return;
+        // Show confirmation dialog
+        final bool? confirmed = await showDialog<bool>(
+          context: context,
+          builder: (BuildContext dialogContext) {
+            return AlertDialog(
+              title: const Text('אישור שחזור'),
+              content: const Text('האם אתה בטוח שברצונך לשחזר את הנתונים? הפעולה תדרוס את הנתונים הנוכחיים.'),
+              actions: <Widget>[
+                TextButton(
+                  child: const Text('ביטול'),
+                  onPressed: () {
+                    Navigator.of(dialogContext).pop(false);
+                  },
+                ),
+                TextButton(
+                  child: const Text('שחזר'),
+                  onPressed: () {
+                    Navigator.of(dialogContext).pop(true);
+                  },
+                ),
+              ],
+            );
+          },
+        );
+
+        if (confirmed == true) {
+          String fileContent = await file.readAsString();
+          if (fileContent.isEmpty) {
+            if (!mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('שגיאה: קובץ הגיבוי ריק.')),
+            );
+            return;
+          }
+
+          bool success = await progressProvider.restoreProgress(fileContent);
+          if (!mounted) return;
+          if (success) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('הנתונים שוחזרו בהצלחה!')),
+            );
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('שגיאה בשחזור הנתונים. בדוק את תקינות הקובץ.')),
+            );
+          }
+        } else {
+          // User canceled the restore
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('שחזור הנתונים בוטל.')),
+          );
+        }
+      } else {
+        // User canceled the picker
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('בחירת קובץ בוטלה.')),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('שגיאה בתהליך השחזור: $e')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context); // Listen to ThemeProvider changes
@@ -509,6 +703,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       _buildThemeSelection(themeProvider),
                       const Divider(height: 32, thickness: 1, indent: 16, endIndent: 16),
                       _buildCustomBooksManagement(dataProvider, customBookWidgets),
+                      const Divider(height: 32, thickness: 1, indent: 16, endIndent: 16), // Added Divider
+                      _buildBackupRestoreSection(), // Added Backup/Restore section
                     ],
                   ),
                 ),

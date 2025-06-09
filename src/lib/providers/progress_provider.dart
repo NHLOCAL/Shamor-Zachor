@@ -57,6 +57,28 @@ class ProgressProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  Future<String?> backupProgress() async {
+    try {
+      return await _progressService.exportProgressData();
+    } catch (e) {
+      print("Error during backupProgress in Provider: $e");
+      return null; // Or rethrow, or return a specific error string
+    }
+  }
+
+  Future<bool> restoreProgress(String jsonData) async {
+    try {
+      bool success = await _progressService.importProgressData(jsonData);
+      if (success) {
+        await _loadInitialProgress(); // This will load data and notifyListeners
+      }
+      return success;
+    } catch (e) {
+      print("Error during restoreProgress in Provider: $e");
+      return false;
+    }
+  }
+
   Map<String, Map<String, PageProgress>> getProgressForBook(
       String categoryName, String bookName) {
     return _fullProgress[categoryName]?[bookName] ?? {};
