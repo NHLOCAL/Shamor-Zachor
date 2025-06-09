@@ -542,9 +542,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
         dialogTitle: 'אנא בחר קובץ גיבוי לשחזור:',
       );
 
-      if (result != null && result.files.single.path != null) {
-        final filePath = result.files.single.path!;
-        final file = File(filePath);
+      if (result != null &&
+          (result.files.single.bytes != null ||
+              result.files.single.path != null)) {
+        String? fileContent;
+        if (result.files.single.bytes != null) {
+          // אם נבחר קובץ מהענן או מקור שאינו מערכת קבצים רגילה
+          fileContent = String.fromCharCodes(result.files.single.bytes!);
+        } else if (result.files.single.path != null) {
+          final filePath = result.files.single.path!;
+          final file = File(filePath);
+          fileContent = await file.readAsString();
+        }
 
         if (!mounted) return;
 
@@ -574,8 +583,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         );
 
         if (confirmed == true) {
-          String fileContent = await file.readAsString();
-          if (fileContent.isEmpty) {
+          if (fileContent == null || fileContent.isEmpty) {
             if (!mounted) return;
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text('שגיאה: קובץ הגיבוי ריק.')),

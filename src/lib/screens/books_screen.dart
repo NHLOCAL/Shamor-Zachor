@@ -216,9 +216,10 @@ class _BooksScreenState extends State<BooksScreen>
 
         if (aBookNameMatch && !bBookNameMatch) return -1;
         if (!aBookNameMatch && bBookNameMatch) return 1;
-        if (aBookNameMatch && bBookNameMatch)
+        if (aBookNameMatch && bBookNameMatch) {
           return a.bookName
               .compareTo(b.bookName); // Sort by book name if both match
+        }
 
         if (aCategoryNameMatch && !bCategoryNameMatch) return -1;
         if (!aCategoryNameMatch && bCategoryNameMatch) return 1;
@@ -442,12 +443,12 @@ class _BooksScreenState extends State<BooksScreen>
       // Add subcategories with ExpansionTile
       if (categoryData.subcategories != null &&
           categoryData.subcategories!.isNotEmpty) {
-        categoryData.subcategories!.forEach((subCat) {
+        for (var subCat in categoryData.subcategories!) {
           print(
               "    [BooksScreen] Processing SubCategory for ExpansionTile: ${subCat.name}");
           print(
               "      [BooksScreen] Books in ${subCat.name}: ${subCat.books.length}");
-        });
+        }
         for (var subCategory in categoryData.subcategories!) {
           children.add(
             ExpansionTile(

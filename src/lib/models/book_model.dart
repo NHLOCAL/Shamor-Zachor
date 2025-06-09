@@ -15,7 +15,8 @@ Map<String, dynamic> _asMap(dynamic value) =>
 // Helper class for findBookRecursive
 class BookSearchResult {
   final BookDetails bookDetails;
-  final String categoryName; // The name of the category/subcategory containing the book
+  final String
+      categoryName; // The name of the category/subcategory containing the book
   final BookCategory category; // The actual category/subcategory object
 
   BookSearchResult(this.bookDetails, this.categoryName, this.category);
@@ -44,7 +45,8 @@ class BookCategory {
     this.parentCategoryName,
   });
 
-  factory BookCategory.fromJson(Map<String, dynamic> json, String sourceFile, { bool isCustom = false, String? parentCategoryName}) {
+  factory BookCategory.fromJson(Map<String, dynamic> json, String sourceFile,
+      {bool isCustom = false, String? parentCategoryName}) {
     // Read from 'books' first, then fallback to 'data'
     Map<String, dynamic> rawData = _asMap(json['books'] ?? json['data']);
     Map<String, BookDetails> parsedBooks = {};
@@ -102,7 +104,7 @@ class BookCategory {
   BookSearchResult? findBookRecursive(String bookNameToFind) {
     // Check direct books of the current category
     if (books.containsKey(bookNameToFind)) {
-      return BookSearchResult(books[bookNameToFind]!, this.name, this);
+      return BookSearchResult(books[bookNameToFind]!, name, this);
     }
 
     // Recursively check subcategories
