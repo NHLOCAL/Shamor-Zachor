@@ -133,4 +133,35 @@ class DataProvider with ChangeNotifier {
       _isLoading = false;
       notifyListeners();
   }
+
+  // Method to get custom books JSON for backup
+  Future<String?> getCustomBooksJsonForBackup() async {
+    _error = null;
+    try {
+      return await _customBookService.exportCustomBooksJsonString();
+    } catch (e) {
+      _error = "Error exporting custom books: ${e.toString()}";
+      notifyListeners(); // Notify if an error occurs during export
+      return null;
+    }
+  }
+
+  // Method to restore custom books from JSON backup
+  Future<void> restoreCustomBooksFromJsonBackup(String? jsonString) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners(); // Notify UI that loading has started
+
+    try {
+      await _customBookService.importCustomBooksJsonString(jsonString);
+      // After importing, reload all data to refresh the DataProvider's state
+      // loadAllData() will handle isLoading and notifyListeners internally
+      await loadAllData();
+    } catch (e) {
+      _error = "Error restoring custom books: ${e.toString()}";
+      _isLoading = false; // Ensure loading is set to false on error
+      notifyListeners(); // Notify UI about the error
+    }
+    // loadAllData() will set _isLoading to false and notifyListeners upon its completion
+  }
 }

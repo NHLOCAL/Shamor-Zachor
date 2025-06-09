@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import '../models/progress_model.dart';
 import '../models/book_model.dart';
 import '../services/progress_service.dart';
+import './data_provider.dart';
 
 enum CompletionEventType {
   bookCompleted,
@@ -11,9 +12,8 @@ enum CompletionEventType {
 
 class CompletionEvent {
   final CompletionEventType type;
-  final String? bookName; // Optional: To specify which book
-  final int?
-      reviewCycleNumber; // Optional: To specify which review cycle (1, 2, or 3)
+  final String? bookName;
+  final int? reviewCycleNumber;
 
   CompletionEvent(this.type, {this.bookName, this.reviewCycleNumber});
 }
@@ -21,9 +21,8 @@ class CompletionEvent {
 class ProgressProvider with ChangeNotifier {
   final ProgressService _progressService = ProgressService();
   FullProgressMap _fullProgress = {};
-  CompletionDatesMap _completionDates = {}; // Cache completion dates
+  CompletionDatesMap _completionDates = {};
 
-  // Column Name Constants
   static const String learnColumn = 'learn';
   static const String review1Column = 'review1';
   static const String review2Column = 'review2';
@@ -50,11 +49,42 @@ class ProgressProvider with ChangeNotifier {
   Future<void> _loadInitialProgress() async {
     _isLoading = true;
     notifyListeners();
-    // Use public methods from ProgressService
+
     _fullProgress = await _progressService.loadFullProgressData();
     _completionDates = await _progressService.loadCompletionDates();
     _isLoading = false;
     notifyListeners();
+  }
+
+  Future<String?> backupProgress() async {
+    try {
+      return await _progressService.exportProgressData();
+    } catch (e) {
+      print("Error during backupProgress in Provider: $e");
+      return null;
+    }
+  }
+
+  Future<bool> restoreProgress(
+      String jsonData, DataProvider dataProvider) async {
+    try {
+      bool importSuccess = await _progressService.importProgressData(jsonData);
+      if (importSuccess) {
+        // The service layer correctly restored all data (progress, completion, custom books)
+        // to SharedPreferences. Now we need to tell the providers to reload their state
+        // from SharedPreferences.
+
+        // 1. Reload book data (including the restored custom books) in DataProvider.
+        await dataProvider.loadAllData();
+
+        // 2. Reload progress data in this ProgressProvider.
+        await _loadInitialProgress();
+      }
+      return importSuccess;
+    } catch (e) {
+      print("Error during restoreProgress in ProgressProvider: $e");
+      return false;
+    }
   }
 
   Map<String, Map<String, PageProgress>> getProgressForBook(
@@ -71,7 +101,6 @@ class ProgressProvider with ChangeNotifier {
   Future<void> updateProgress(String categoryName, String bookName, int daf,
       String amudKey, String columnName, bool value, BookDetails bookDetails,
       {bool isBulkUpdate = false}) async {
-    // New parameter
     await _progressService.saveProgress(
         categoryName, bookName, daf, amudKey, columnName, value);
 
@@ -118,7 +147,6 @@ class ProgressProvider with ChangeNotifier {
       bool isNowComplete = isBookCompleted(categoryName, bookName, bookDetails);
 
       if (isNowComplete && !wasAlreadyCompleted && !isBulkUpdate) {
-        // Check isBulkUpdate
         await _progressService.saveCompletionDate(categoryName, bookName);
         _completionDates = await _progressService.loadCompletionDates();
         _completionEventController.add(CompletionEvent(
@@ -130,7 +158,6 @@ class ProgressProvider with ChangeNotifier {
             columnName == 'review2' ||
             columnName == 'review3') &&
         !isBulkUpdate) {
-      // Check isBulkUpdate
       int? reviewCycleNumber;
       if (columnName == 'review1') {
         reviewCycleNumber = 1;
@@ -141,23 +168,10 @@ class ProgressProvider with ChangeNotifier {
       }
 
       if (reviewCycleNumber != null) {
-        // Check if this specific change led to the completion of the review cycle
-        // We assume `updateProgress` has already updated the specific `pageProgress` object in `_fullProgress`
         bool cycleJustCompleted = _isReviewCycleCompleted(
             categoryName, bookName, reviewCycleNumber, bookDetails);
 
         if (cycleJustCompleted) {
-          // To prevent firing multiple times if already completed and another item is checked,
-          // ideally we'd check a persisted state (e.g., a completion date for this specific review cycle).
-          // For now, based on the request, if checking an item *completes* the cycle, we fire.
-          // A simple way to avoid REPEATEDLY firing for a cycle that's already complete
-          // is to check if the item *just before this update* was NOT part of a completed cycle.
-          // However, the current `_isReviewCycleCompleted` checks the current state.
-          // The prompt implies the animation happens when "משתמש מסיים בהצלחה את אחד החזרות".
-          // So, if the state *after* the update is "completed", we fire.
-          // Consider if we need to prevent firing if the book itself was just completed by 'learn' in the same action.
-          // The current structure means a 'learn' completion takes precedence if it happens.
-
           _completionEventController.add(CompletionEvent(
             CompletionEventType.reviewCycleCompleted,
             bookName: bookName,
@@ -182,12 +196,10 @@ class ProgressProvider with ChangeNotifier {
     await _loadInitialProgress();
   }
 
-  // Renamed to getCompletionDateSync to reflect its synchronous nature based on cached data
   String? getCompletionDateSync(String categoryName, String bookName) {
     return _completionDates[categoryName]?[bookName];
   }
 
-  // Kept the async version in case it's needed elsewhere, though UI might prefer sync access
   Future<String?> getCompletionDateAsync(
       String categoryName, String bookName) async {
     return _completionDates[categoryName]?[bookName] ??
@@ -209,7 +221,7 @@ class ProgressProvider with ChangeNotifier {
   bool _isReviewCycleCompleted(
     String categoryName,
     String bookName,
-    int reviewCycleNumber, // 1, 2, or 3
+    int reviewCycleNumber,
     BookDetails bookDetails,
   ) {
     final bookProgress = getProgressForBook(categoryName, bookName);
@@ -241,7 +253,7 @@ class ProgressProvider with ChangeNotifier {
             isItemCompletedInCycle = pageProgress.review3;
             break;
           default:
-            return false; // Invalid review cycle number
+            return false;
         }
         if (isItemCompletedInCycle) {
           completedItemsInCycle++;
@@ -254,34 +266,40 @@ class ProgressProvider with ChangeNotifier {
   List<Map<String, dynamic>> getTrackedBooks(
       Map<String, BookCategory> allBookData) {
     List<Map<String, dynamic>> tracked = [];
-    Set<String> processedBookKeys = {}; // To avoid duplicates
+    Set<String> processedBookKeys = {};
 
-    // Process books from _fullProgress
     _fullProgress.forEach((topLevelCategoryKey, booksProgressMap) {
-      print("[ProgressProvider] getTrackedBooks: Processing topLevelCategoryKey: $topLevelCategoryKey");
+      print(
+          "[ProgressProvider] getTrackedBooks: Processing topLevelCategoryKey: $topLevelCategoryKey");
       final topLevelCategoryObject = allBookData[topLevelCategoryKey];
       if (topLevelCategoryObject == null) {
         if (kDebugMode) {
-          print("Error: Top-level category '$topLevelCategoryKey' not found in allBookData.");
+          print(
+              "Error: Top-level category '$topLevelCategoryKey' not found in allBookData.");
         }
-        print("[ProgressProvider] WARN: Top-level category '$topLevelCategoryKey' not found in allBookData.");
-        return; // Skip this category
+        print(
+            "[ProgressProvider] WARN: Top-level category '$topLevelCategoryKey' not found in allBookData.");
+        return;
       }
 
       booksProgressMap.forEach((bookNameFromProgress, progressDataForBook) {
-        print("  [ProgressProvider] Processing book: $bookNameFromProgress under $topLevelCategoryKey");
-        final searchResult = topLevelCategoryObject.findBookRecursive(bookNameFromProgress);
+        print(
+            "  [ProgressProvider] Processing book: $bookNameFromProgress under $topLevelCategoryKey");
+        final searchResult =
+            topLevelCategoryObject.findBookRecursive(bookNameFromProgress);
         if (searchResult == null) {
-          print("    [ProgressProvider] WARN: Book '$bookNameFromProgress' not found via findBookRecursive in '$topLevelCategoryKey'.");
+          print(
+              "    [ProgressProvider] WARN: Book '$bookNameFromProgress' not found via findBookRecursive in '$topLevelCategoryKey'.");
         } else {
-          print("    [ProgressProvider] Found book: ID (usually bookName for non-custom) '$bookNameFromProgress' in category '${searchResult.categoryName}'. Display name: ${searchResult.categoryName}");
-          // Note: BookDetails doesn't have an 'id' field by default unless it's a custom book.
-          // Using bookNameFromProgress for the ID-like field in the log.
-          final String uniqueKey = '$topLevelCategoryKey-${searchResult.categoryName}-$bookNameFromProgress';
+          print(
+              "    [ProgressProvider] Found book: ID (usually bookName for non-custom) '$bookNameFromProgress' in category '${searchResult.categoryName}'. Display name: ${searchResult.categoryName}");
+
+          final String uniqueKey =
+              '$topLevelCategoryKey-${searchResult.categoryName}-$bookNameFromProgress';
           if (!processedBookKeys.contains(uniqueKey)) {
             tracked.add({
-              'topLevelCategoryKey': topLevelCategoryKey, // For progress operations
-              'displayCategoryName': searchResult.categoryName, // For UI (subCategory name)
+              'topLevelCategoryKey': topLevelCategoryKey,
+              'displayCategoryName': searchResult.categoryName,
               'bookName': bookNameFromProgress,
               'bookDetails': searchResult.bookDetails,
               'progressData': progressDataForBook,
@@ -289,43 +307,49 @@ class ProgressProvider with ChangeNotifier {
             processedBookKeys.add(uniqueKey);
           }
         }
-        // Erroneous 'else' was here and is now removed.
       });
     });
 
-    // Process books from _completionDates (for books that might only have a completion date and no other progress)
     _completionDates.forEach((topLevelCategoryKey, booksCompletionMap) {
-      print("[ProgressProvider] getTrackedBooks: Processing topLevelCategoryKey from _completionDates: $topLevelCategoryKey");
+      print(
+          "[ProgressProvider] getTrackedBooks: Processing topLevelCategoryKey from _completionDates: $topLevelCategoryKey");
       final topLevelCategoryObject = allBookData[topLevelCategoryKey];
       if (topLevelCategoryObject == null) {
-        if (kDebugMode) { // Keep kDebugMode for more detailed internal errors if desired
-          print("Error: Top-level category '$topLevelCategoryKey' from completionDates not found in allBookData.");
+        if (kDebugMode) {
+          print(
+              "Error: Top-level category '$topLevelCategoryKey' from completionDates not found in allBookData.");
         }
-        print("[ProgressProvider] WARN: Top-level category '$topLevelCategoryKey' from completionDates not found in allBookData.");
-        return; // Skip this category
+        print(
+            "[ProgressProvider] WARN: Top-level category '$topLevelCategoryKey' from completionDates not found in allBookData.");
+        return;
       }
 
       booksCompletionMap.forEach((bookNameFromCompletion, completionDate) {
-        print("  [ProgressProvider] Processing completed book: $bookNameFromCompletion under $topLevelCategoryKey");
-        final searchResult = topLevelCategoryObject.findBookRecursive(bookNameFromCompletion);
+        print(
+            "  [ProgressProvider] Processing completed book: $bookNameFromCompletion under $topLevelCategoryKey");
+        final searchResult =
+            topLevelCategoryObject.findBookRecursive(bookNameFromCompletion);
         if (searchResult == null) {
-          print("    [ProgressProvider] WARN: Completed book '$bookNameFromCompletion' not found via findBookRecursive in '$topLevelCategoryKey'.");
+          print(
+              "    [ProgressProvider] WARN: Completed book '$bookNameFromCompletion' not found via findBookRecursive in '$topLevelCategoryKey'.");
         } else {
-          print("    [ProgressProvider] Found completed book: ID (usually bookName) '$bookNameFromCompletion' in category '${searchResult.categoryName}'. Display name: ${searchResult.categoryName}");
-          final String uniqueKey = '$topLevelCategoryKey-${searchResult.categoryName}-$bookNameFromCompletion';
-          // Add only if not already processed from _fullProgress
+          print(
+              "    [ProgressProvider] Found completed book: ID (usually bookName) '$bookNameFromCompletion' in category '${searchResult.categoryName}'. Display name: ${searchResult.categoryName}");
+          final String uniqueKey =
+              '$topLevelCategoryKey-${searchResult.categoryName}-$bookNameFromCompletion';
+
           if (!processedBookKeys.contains(uniqueKey)) {
             tracked.add({
               'topLevelCategoryKey': topLevelCategoryKey,
               'displayCategoryName': searchResult.categoryName,
               'bookName': bookNameFromCompletion,
               'bookDetails': searchResult.bookDetails,
-              'progressData': getProgressForBook(topLevelCategoryKey, bookNameFromCompletion), // Might be empty if only completion date exists
-              'completionDate': completionDate, // Include completion date
+              'progressData': getProgressForBook(
+                  topLevelCategoryKey, bookNameFromCompletion),
+              'completionDate': completionDate,
             });
             processedBookKeys.add(uniqueKey);
           } else {
-            // If already added from _fullProgress, ensure completionDate is also included if it exists
             final existingEntry = tracked.firstWhere((item) =>
                 item['topLevelCategoryKey'] == topLevelCategoryKey &&
                 item['displayCategoryName'] == searchResult.categoryName &&
@@ -333,10 +357,10 @@ class ProgressProvider with ChangeNotifier {
             existingEntry['completionDate'] = completionDate;
           }
         }
-        // Erroneous 'else' was here and is now removed.
       });
     });
-    print("[ProgressProvider] getTrackedBooks: Returning ${tracked.length} tracked items.");
+    print(
+        "[ProgressProvider] getTrackedBooks: Returning ${tracked.length} tracked items.");
     return tracked;
   }
 
@@ -344,7 +368,7 @@ class ProgressProvider with ChangeNotifier {
     String categoryName,
     String bookName,
     BookDetails bookDetails,
-    String columnName, // e.g., 'learn', 'review1'
+    String columnName,
     bool select,
   ) async {
     if (!allColumnNames.contains(columnName)) {
@@ -354,7 +378,6 @@ class ProgressProvider with ChangeNotifier {
       return;
     }
 
-    // Access the current progress for the book or initialize if it doesn't exist
     _fullProgress.putIfAbsent(categoryName, () => {});
     _fullProgress[categoryName]!.putIfAbsent(bookName, () => {});
     final bookProgress = _fullProgress[categoryName]![bookName]!;
@@ -367,44 +390,27 @@ class ProgressProvider with ChangeNotifier {
       for (String amudKey in amudKeys) {
         bookProgress.putIfAbsent(pageStr, () => {});
         bookProgress[pageStr]!.putIfAbsent(amudKey, () => PageProgress());
-        // PageProgress currentAmudProgress = bookProgress[pageStr]![amudKey]!; // Not needed here anymore
 
-        // Call updateProgress for each item, marking it as a bulk update
         await updateProgress(
           categoryName,
           bookName,
           pageNumber,
           amudKey,
           columnName,
-          select, // The new value for the property
+          select,
           bookDetails,
           isBulkUpdate: true,
         );
-        // Note: The previous logic for setting other columns to false when 'select' is true
-        // has been removed in the prior step and is not re-introduced here.
-        // updateProgress will only handle the specified 'columnName'.
       }
     }
-    // No need to manually clean up bookProgress entries here, as updateProgress handles it.
-    // No need to manually trigger completion events here, as updateProgress handles it (conditionally on isBulkUpdate).
 
-    // notifyListeners() is called by the last updateProgress, but to be safe,
-    // and because multiple updateProgress calls might have occurred, one call here ensures UI updates.
-    // However, if updateProgress always calls notifyListeners, this might be redundant or cause extra builds.
-    // For now, let's rely on updateProgress's notifyListeners. If issues arise, this can be revisited.
-    // Consider if a single notifyListeners() call after the loop is better.
-    // Given that updateProgress itself calls notifyListeners(), this explicit call might be removed
-    // if performance becomes a concern due to multiple notifications.
-    // However, the current structure of updateProgress has one notifyListeners at its end.
-    // If many items are updated, many notifications fire.
-    // A possible optimization: batch notifications. But for now, keep as is.
-    notifyListeners(); // Ensure UI reflects all changes after the loop.
+    notifyListeners();
   }
 
   Map<String, bool?> getColumnSelectionStates(
     String categoryName,
     String bookName,
-    BookDetails? bookDetails, // Make bookDetails nullable
+    BookDetails? bookDetails,
   ) {
     Map<String, bool?> columnStates = {
       learnColumn: null,
@@ -414,7 +420,6 @@ class ProgressProvider with ChangeNotifier {
     };
 
     if (bookDetails == null) {
-      // If bookDetails is null, we can't determine the items, so return indeterminate for all.
       return columnStates;
     }
 
@@ -423,20 +428,16 @@ class ProgressProvider with ChangeNotifier {
         bookDetails.isDafType ? bookDetails.pages * 2 : bookDetails.pages;
 
     if (totalItems == 0) {
-      // If there are no items in the book, treat columns as unselected.
       columnStates.updateAll((key, value) => false);
       return columnStates;
     }
 
     for (String currentColumnName in allColumnNames) {
       bool allSelectedInColumn = true;
-      bool noneSelectedInColumn =
-          true; // Assume none selected until one is found
+      bool noneSelectedInColumn = true;
 
       if (bookProgress == null || bookProgress.isEmpty) {
-        // No progress data for the book
-        allSelectedInColumn = false; // Cannot be all selected if no progress
-        // noneSelectedInColumn remains true
+        allSelectedInColumn = false;
       } else {
         int itemsChecked = 0;
         for (int i = 0; i < bookDetails.pages; i++) {
@@ -451,55 +452,49 @@ class ProgressProvider with ChangeNotifier {
                 pageAmudProgress?.getProperty(currentColumnName) ?? false;
 
             if (itemSelected) {
-              noneSelectedInColumn = false; // Found at least one selected
+              noneSelectedInColumn = false;
               itemsChecked++;
             } else {
-              allSelectedInColumn = false; // Found at least one not selected
+              allSelectedInColumn = false;
             }
           }
         }
-        // Refined check after loop:
+
         if (itemsChecked == 0 && totalItems > 0) {
-          // No items were checked for this column
           noneSelectedInColumn = true;
           allSelectedInColumn = false;
         } else if (itemsChecked == totalItems) {
-          // All items were checked
           allSelectedInColumn = true;
           noneSelectedInColumn = false;
         } else {
-          // Mixed state
           allSelectedInColumn = false;
           noneSelectedInColumn = false;
         }
       }
 
       if (allSelectedInColumn && totalItems > 0) {
-        // totalItems > 0 condition added
         columnStates[currentColumnName] = true;
       } else if (noneSelectedInColumn) {
         columnStates[currentColumnName] = false;
       } else {
-        columnStates[currentColumnName] = null; // Mixed
+        columnStates[currentColumnName] = null;
       }
     }
     return columnStates;
   }
-
-  // --- Methods to be added as per Step 1 ---
 
   double getLearnProgressPercentage(
       String categoryName, String bookName, BookDetails bookDetails) {
     final bookProgress = getProgressForBook(categoryName, bookName);
     final totalTargetPages =
         bookDetails.isDafType ? bookDetails.pages * 2 : bookDetails.pages;
-    // if (totalTargetPages == 0) return 0.0; // Covered by the check below
 
     int learnedPagesCount =
         ProgressService.getCompletedPagesCount(bookProgress);
 
     print("[ProgressProvider LPP] Book: $bookName ($categoryName)");
-    print("  LPP Details: isDafType=${bookDetails.isDafType}, pages=${bookDetails.pages}, totalTargetPages=$totalTargetPages");
+    print(
+        "  LPP Details: isDafType=${bookDetails.isDafType}, pages=${bookDetails.pages}, totalTargetPages=$totalTargetPages");
     print("  LPP Progress: learnedPagesCount=$learnedPagesCount");
     if (totalTargetPages == 0) {
       print("  LPP WARN: totalTargetPages is 0, will return 0.0");
@@ -513,13 +508,13 @@ class ProgressProvider with ChangeNotifier {
     final bookProgress = getProgressForBook(categoryName, bookName);
     final totalTargetPages =
         bookDetails.isDafType ? bookDetails.pages * 2 : bookDetails.pages;
-    // if (totalTargetPages == 0) return 0.0; // Covered by the check below
 
     int review1PagesCount =
         ProgressService.getReview1CompletedPagesCount(bookProgress);
 
     print("[ProgressProvider R1PP] Book: $bookName ($categoryName)");
-    print("  R1PP Details: isDafType=${bookDetails.isDafType}, pages=${bookDetails.pages}, totalTargetPages=$totalTargetPages");
+    print(
+        "  R1PP Details: isDafType=${bookDetails.isDafType}, pages=${bookDetails.pages}, totalTargetPages=$totalTargetPages");
     print("  R1PP Progress: review1PagesCount=$review1PagesCount");
     if (totalTargetPages == 0) {
       print("  R1PP WARN: totalTargetPages is 0, will return 0.0");
@@ -581,8 +576,6 @@ class ProgressProvider with ChangeNotifier {
 
   bool isBookInActiveReview(
       String categoryName, String bookName, BookDetails bookDetails) {
-    // Check if learning is complete. If not, it cannot be in active review.
-    // Note: isBookCompleted checks if learnProgress is 1.0 or more.
     if (!isBookCompleted(categoryName, bookName, bookDetails)) {
       return false;
     }
@@ -596,14 +589,14 @@ class ProgressProvider with ChangeNotifier {
 
     bool r1Active = r1Prog > 0 && r1Prog < 1.0;
     bool r2Active = r1Prog == 1.0 && r2Prog > 0 && r2Prog < 1.0;
-    bool r3Active = r1Prog == 1.0 && r2Prog == 1.0 && r3Prog > 0 && r3Prog < 1.0;
+    bool r3Active =
+        r1Prog == 1.0 && r2Prog == 1.0 && r3Prog > 0 && r3Prog < 1.0;
 
     return r1Active || r2Active || r3Active;
   }
 
   bool isBookConsideredInProgress(
       String categoryName, String bookName, BookDetails bookDetails) {
-    // If there's no progress data at all for the book, it's not in progress.
     final bookProgressData = getProgressForBook(categoryName, bookName);
     if (bookProgressData.isEmpty) {
       return false;

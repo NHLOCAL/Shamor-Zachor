@@ -1,6 +1,7 @@
 import 'dart:convert';
-import 'dart:io';
-import 'package:path_provider/path_provider.dart';
+// import 'dart:io'; // No longer needed for file operations
+// import 'package:path_provider/path_provider.dart'; // No longer needed
+import 'package:shared_preferences/shared_preferences.dart'; // Added
 import 'package:uuid/uuid.dart'; // For generating unique IDs
 
 // Define a simple class for custom book data structure for JSON serialization
@@ -45,17 +46,13 @@ class CustomBook {
 }
 
 class CustomBookService {
-  static const String _customBooksFilename = "custom_books.json";
+  // static const String _customBooksFilename = "custom_books.json"; // No longer needed
+  static const String _appPrefix = "nhlocal.shamor_vezachor"; // Consistent prefix
+  static const String customBooksKey = "$_appPrefix.custom_books_data"; // Key for SharedPreferences - MADE PUBLIC
   final Uuid _uuid = const Uuid();
 
-  Future<String> get _localPath async {
-    final directory = await getApplicationDocumentsDirectory();
-    return directory.path;
-  }
-
-  Future<File> get _localFile async {
-    final path = await _localPath;
-    return File('$path/$_customBooksFilename');
+  Future<SharedPreferences> _getPrefs() async {
+    return SharedPreferences.getInstance();
   }
 
   String generateId() {
@@ -63,30 +60,58 @@ class CustomBookService {
   }
 
   Future<List<CustomBook>> loadCustomBooks() async {
+    final prefs = await _getPrefs();
     try {
-      final file = await _localFile;
-      if (!await file.exists()) {
+      final String? jsonString = prefs.getString(customBooksKey); // Use public key
+      if (jsonString == null || jsonString.isEmpty) {
         return [];
       }
-      final contents = await file.readAsString();
-      if (contents.isEmpty) {
-        return [];
-      }
-      final List<dynamic> jsonList = json.decode(contents);
+      final List<dynamic> jsonList = json.decode(jsonString);
       return jsonList.map((jsonItem) => CustomBook.fromJson(jsonItem as Map<String, dynamic>)).toList();
     } catch (e) {
-      print('Error loading custom books: $e');
+      print('Error loading custom books from SharedPreferences: $e');
+      // Consider clearing corrupted data or providing a default:
+      // await prefs.remove(customBooksKey);
       return []; // Return empty list on error
     }
   }
 
   Future<void> _saveCustomBooks(List<CustomBook> books) async {
+    final prefs = await _getPrefs();
     try {
-      final file = await _localFile;
       final jsonList = books.map((book) => book.toJson()).toList();
-      await file.writeAsString(json.encode(jsonList));
+      await prefs.setString(customBooksKey, json.encode(jsonList)); // Use public key
     } catch (e) {
-      print('Error saving custom books: $e');
+      print('Error saving custom books to SharedPreferences: $e');
+    }
+  }
+
+  Future<String?> exportCustomBooksJsonString() async {
+    final prefs = await _getPrefs();
+    return prefs.getString(customBooksKey); // Use public key
+  }
+
+  Future<void> importCustomBooksJsonString(String? jsonString) async {
+    final prefs = await _getPrefs();
+    if (jsonString != null && jsonString.isNotEmpty) {
+      // Basic validation: check if it's a valid JSON array (optional but good)
+      try {
+        final decoded = json.decode(jsonString);
+        if (decoded is List) {
+          await prefs.setString(customBooksKey, jsonString); // Use public key
+        } else {
+          print('Import failed: Provided string is not a valid JSON list for custom books.');
+          // Fallback to empty list if structure is wrong but it's a valid JSON
+          await prefs.setString(customBooksKey, '[]'); // Use public key
+        }
+      } catch (e) {
+        print('Import failed: Provided string is not valid JSON. Error: $e');
+        // Optionally, clear if data is malformed
+        await prefs.setString(customBooksKey, '[]'); // Use public key
+      }
+    } else {
+      // If jsonString is null or empty, effectively clear custom books
+      await prefs.setString(customBooksKey, '[]'); // Use public key
     }
   }
 
