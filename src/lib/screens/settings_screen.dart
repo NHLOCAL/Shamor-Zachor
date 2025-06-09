@@ -312,6 +312,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget _buildThemeSelection(ThemeProvider themeProvider) {
+    final theme = Theme.of(context);
+    final segmentedButtonStyle = theme.segmentedButtonTheme.style;
+
     return _buildSettingsSection(
       icon: Icons.palette_outlined,
       title: 'ערכת נושא',
@@ -320,6 +323,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 500),
             child: SegmentedButton<ThemeModeOption>(
+              style: segmentedButtonStyle?.copyWith(
+                padding: WidgetStateProperty.all(
+                    const EdgeInsets.symmetric(vertical: 18, horizontal: 10)),
+                textStyle: WidgetStateProperty.all(
+                    const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+              ),
               segments: const <ButtonSegment<ThemeModeOption>>[
                 ButtonSegment<ThemeModeOption>(
                   value: ThemeModeOption.light,
@@ -361,45 +370,39 @@ class _SettingsScreenState extends State<SettingsScreen> {
           style: Theme.of(context).textTheme.bodyMedium,
         ),
         const SizedBox(height: 20),
-        Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 500),
-            child: Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton.icon(
-                    icon: const Icon(Icons.save_alt),
-                    label: const Text('גיבוי'),
-                    onPressed: _backupToFile,
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12.0),
-                      ),
-                      textStyle: const TextStyle(
-                          fontSize: 16, fontWeight: FontWeight.bold),
-                    ),
-                  ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            ElevatedButton.icon(
+              icon: const Icon(Icons.save_alt),
+              label: const Text('גיבוי'),
+              onPressed: _backupToFile,
+              style: ElevatedButton.styleFrom(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12.0),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    icon: const Icon(Icons.restore),
-                    label: const Text('שחזור'),
-                    onPressed: _restoreFromFile,
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12.0),
-                      ),
-                      textStyle: const TextStyle(
-                          fontSize: 16, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                ),
-              ],
+                textStyle:
+                    const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
             ),
-          ),
+            const SizedBox(width: 16),
+            ElevatedButton.icon(
+              icon: const Icon(Icons.restore),
+              label: const Text('שחזור'),
+              onPressed: _restoreFromFile,
+              style: ElevatedButton.styleFrom(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12.0),
+                ),
+                textStyle:
+                    const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: 10),
         ListTile(
@@ -423,23 +426,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
       title: 'ספרים מותאמים אישית',
       children: [
         Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 500),
-            child: SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: () => _showAddOrEditBookDialog(),
-                icon: const Icon(Icons.add_circle_outline),
-                label: const Text('הוסף ספר חדש'),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 14.0),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12.0),
-                  ),
-                  textStyle: const TextStyle(
-                      fontSize: 16, fontWeight: FontWeight.bold),
-                ),
+          child: ElevatedButton.icon(
+            onPressed: () => _showAddOrEditBookDialog(),
+            icon: const Icon(Icons.add_circle_outline),
+            label: const Text('הוסף ספר חדש'),
+            style: ElevatedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12.0),
               ),
+              textStyle:
+                  const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
           ),
         ),
