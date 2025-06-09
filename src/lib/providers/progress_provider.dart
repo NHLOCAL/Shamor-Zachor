@@ -493,10 +493,18 @@ class ProgressProvider with ChangeNotifier {
     final bookProgress = getProgressForBook(categoryName, bookName);
     final totalTargetPages =
         bookDetails.isDafType ? bookDetails.pages * 2 : bookDetails.pages;
-    if (totalTargetPages == 0) return 0.0;
+    // if (totalTargetPages == 0) return 0.0; // Covered by the check below
 
     int learnedPagesCount =
         ProgressService.getCompletedPagesCount(bookProgress);
+
+    print("[ProgressProvider LPP] Book: $bookName ($categoryName)");
+    print("  LPP Details: isDafType=${bookDetails.isDafType}, pages=${bookDetails.pages}, totalTargetPages=$totalTargetPages");
+    print("  LPP Progress: learnedPagesCount=$learnedPagesCount");
+    if (totalTargetPages == 0) {
+      print("  LPP WARN: totalTargetPages is 0, will return 0.0");
+      return 0.0;
+    }
     return learnedPagesCount / totalTargetPages;
   }
 
@@ -505,10 +513,18 @@ class ProgressProvider with ChangeNotifier {
     final bookProgress = getProgressForBook(categoryName, bookName);
     final totalTargetPages =
         bookDetails.isDafType ? bookDetails.pages * 2 : bookDetails.pages;
-    if (totalTargetPages == 0) return 0.0;
+    // if (totalTargetPages == 0) return 0.0; // Covered by the check below
 
     int review1PagesCount =
         ProgressService.getReview1CompletedPagesCount(bookProgress);
+
+    print("[ProgressProvider R1PP] Book: $bookName ($categoryName)");
+    print("  R1PP Details: isDafType=${bookDetails.isDafType}, pages=${bookDetails.pages}, totalTargetPages=$totalTargetPages");
+    print("  R1PP Progress: review1PagesCount=$review1PagesCount");
+    if (totalTargetPages == 0) {
+      print("  R1PP WARN: totalTargetPages is 0, will return 0.0");
+      return 0.0;
+    }
     return review1PagesCount / totalTargetPages;
   }
 

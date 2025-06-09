@@ -134,15 +134,22 @@ class BookCardWidget extends StatelessWidget {
         }
       } else {
         final learnProgress = progressProvider.getLearnProgressPercentage(
-            categoryName, bookName, bookDetails);
+            widget.topLevelCategoryKey, widget.bookName, widget.bookDetails);
         final review1Progress = progressProvider.getReview1ProgressPercentage(
-            categoryName, bookName, bookDetails);
+            widget.topLevelCategoryKey, widget.bookName, widget.bookDetails);
         final review2Progress = progressProvider.getReview2ProgressPercentage(
-            categoryName, bookName, bookDetails);
+            widget.topLevelCategoryKey, widget.bookName, widget.bookDetails);
         final review3Progress = progressProvider.getReview3ProgressPercentage(
-            categoryName, bookName, bookDetails);
+            widget.topLevelCategoryKey, widget.bookName, widget.bookDetails);
+
+        print("[BookCardWidget Tracking] Book: ${widget.bookName} (TopLevelKey: ${widget.topLevelCategoryKey})");
+        print("  BCW Details: contentType=${widget.bookDetails.contentType}, pages=${widget.bookDetails.pages}, isDafType=${widget.bookDetails.isDafType}");
+        print("  BCW Progress%: Learn=$learnProgress, R1=$review1Progress, R2=$review2Progress, R3=$review3Progress");
 
         final progressBarBackgroundColor = theme.primaryColor.withAlpha((0.15 * 255).round());
+
+        print("  BCW ProgressBar Stack: LearnValue=$learnProgress, R1Value=$review1Progress, R2Value=$review2Progress, R3Value=$review3Progress");
+        // print("    LearnIndicator: value=$learnProgress, minHeight=24, bgColor=${progressBarBackgroundColor}, valueColor=${theme.primaryColor.withAlpha((0.3 * 255).round())}");
 
         progressWidget = Stack(
           children: [
@@ -211,6 +218,7 @@ class BookCardWidget extends StatelessWidget {
           textPercentageToShow = review3Progress;
         }
         percentageTextForOverlay = "${(textPercentageToShow * 100).round()}%";
+        print("  BCW OverlayText: textPercentageToShow=$textPercentageToShow, final percentageTextForOverlay='$percentageTextForOverlay'");
         // _getLastPageDisplay uses bookProgressData which is passed in, so it's context-agnostic.
         // However, if it were to make direct provider calls, it would need topLevelCategoryKey.
         // For now, it seems okay as it operates on provided data.
