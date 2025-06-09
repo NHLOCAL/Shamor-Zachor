@@ -168,7 +168,7 @@ class _BooksScreenState extends State<BooksScreen>
               results.add(
                 SearchBookCardWidget(
                   topLevelCategoryKey: categoryName, // This is the topLevelCategoryKey
-                  categoryName: subCategory.name, // For display, this is the subCategory.name
+                  categoryName: categoryName, // For display, use the top-level category name
                   bookName: bookName,
                   bookDetails: bookDetails,
                 ),

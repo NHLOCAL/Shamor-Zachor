@@ -5,8 +5,8 @@
   "subcategories": [
     {
       "name": "משנה תורה",
-      "content_type": "פרק",
-      "columns": ["פרק"],
+      "content_type": "ספר",
+      "columns": ["ספר"],
       "books": {
         "ספר המדע": { "pages": 46 },
         "ספר אהבה": { "pages": 47 },
