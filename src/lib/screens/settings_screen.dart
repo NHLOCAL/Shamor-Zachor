@@ -246,12 +246,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
     children: [
       Padding(
         padding: const EdgeInsets.only(top: 8.0, bottom: 12.0, right: 8.0),
-        child: Text(
-          'ניהול ספרים מותאמים אישית',
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                color: Theme.of(context).colorScheme.secondary, // Using secondary color
-                fontWeight: FontWeight.w600,
-              ),
+        child: Row( // Added Row for Icon and Text
+          children: [
+            Icon(Icons.edit_document_outlined, color: Theme.of(context).colorScheme.secondary), // Added Icon
+            const SizedBox(width: 8), // Spacing
+            Text(
+              'ניהול ספרים מותאמים אישית',
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    color: Theme.of(context).colorScheme.secondary, // Using secondary color
+                    fontWeight: FontWeight.w600,
+                  ),
+            ),
+          ],
         ),
       ),
       const SizedBox(height: 15),
@@ -349,12 +355,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
     children: [
       Padding(
         padding: const EdgeInsets.only(top: 8.0, bottom: 12.0, right: 8.0),
-        child: Text(
-          'ערכת נושא',
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                color: Theme.of(context).colorScheme.secondary, // Using secondary color for header
-                fontWeight: FontWeight.w600,
-              ),
+        child: Row( // Added Row for Icon and Text
+          children: [
+            Icon(Icons.palette_outlined, color: Theme.of(context).colorScheme.secondary), // Added Icon
+            const SizedBox(width: 8), // Spacing
+            Text(
+              'ערכת נושא',
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    color: Theme.of(context).colorScheme.secondary, // Using secondary color for header
+                    fontWeight: FontWeight.w600,
+                  ),
+            ),
+          ],
         ),
       ),
       RadioListTile<ThemeModeOption>(
@@ -418,29 +430,35 @@ class _SettingsScreenState extends State<SettingsScreen> {
       children: [
         Padding(
           padding: const EdgeInsets.only(top: 8.0, bottom: 12.0, right: 8.0),
-          child: Text('גיבוי ושחזור נתונים', style: titleStyle),
+          child: Row( // Added Row for Icon and Text
+            children: [
+              Icon(Icons.storage_outlined, color: Theme.of(context).colorScheme.secondary), // Added Icon
+              const SizedBox(width: 8), // Spacing
+              Text('גיבוי ושחזור נתונים', style: titleStyle),
+            ],
+          ),
         ),
         const SizedBox(height: 15),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
             ElevatedButton.icon(
-              icon: const Icon(Icons.backup_outlined),
+              icon: const Icon(Icons.save_alt_outlined), // Changed Icon
               label: const Text('גיבוי לקובץ'),
-              onPressed: _backupToFile, // Updated onPressed
+              onPressed: _backupToFile,
               style: buttonStyle,
             ),
             ElevatedButton.icon(
-              icon: const Icon(Icons.restore_page_outlined),
+              icon: const Icon(Icons.restore_page_outlined), // Icon confirmed
               label: const Text('שחזור מקובץ'),
-              onPressed: _restoreFromFile, // Updated onPressed
+              onPressed: _restoreFromFile,
               style: buttonStyle,
             ),
           ],
         ),
         const SizedBox(height: 20),
         ListTile(
-          leading: Icon(Icons.cloud_upload_outlined, color: Theme.of(context).disabledColor),
+          leading: Icon(Icons.cloud_upload_outlined, color: Theme.of(context).disabledColor), // Icon confirmed
           title: Text(
             'גיבוי לענן (בקרוב)',
             style: TextStyle(color: Theme.of(context).disabledColor),
@@ -504,6 +522,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _restoreFromFile() async {
     final progressProvider = Provider.of<ProgressProvider>(context, listen: false);
+    final dataProvider = Provider.of<DataProvider>(context, listen: false); // Get DataProvider
     if (!mounted) return;
 
     try {
@@ -553,7 +572,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
             return;
           }
 
-          bool success = await progressProvider.restoreProgress(fileContent);
+          // Pass DataProvider to restoreProgress
+          bool success = await progressProvider.restoreProgress(fileContent, dataProvider);
           if (!mounted) return;
           if (success) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -650,7 +670,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       subtitle: Text(
                         'קטגוריה: $categoryName\nסוג: ${bookDetails.contentType} (${bookDetails.pages} ${bookDetails.contentType == "דף" ? "דפים" : bookDetails.contentType})',
                         style: TextStyle(
-                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.8), // Improved readability for subtitle
+                          color: Theme.of(context).colorScheme.onSurface.withAlpha((0.8 * 255).round()), // Improved readability for subtitle
                         ),
                       ),
                       trailing: Row(

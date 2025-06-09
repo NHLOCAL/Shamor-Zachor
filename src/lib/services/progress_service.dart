@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/progress_model.dart';
 import '../models/book_model.dart';
 import 'package:intl/intl.dart';
+import './custom_book_service.dart'; // Added import
 
 class ProgressService {
   static const String _appPrefix = "nhlocal.shamor_vezachor";
@@ -267,10 +268,13 @@ class ProgressService {
     final prefs = await _getPrefs();
     final progressJsonString = prefs.getString(_progressDataKey);
     final completionDatesJsonString = prefs.getString(_completionDatesKey);
+    // Fetch custom books data string
+    final customBooksJsonString = prefs.getString(CustomBookService.customBooksKey);
 
     final Map<String, String?> dataToExport = {
       'progress_data': progressJsonString,
       'completion_dates': completionDatesJsonString,
+      'custom_books_data': customBooksJsonString, // Added custom books data
     };
 
     return json.encode(dataToExport);
@@ -283,16 +287,70 @@ class ProgressService {
 
       final String? progressDataString = decodedData['progress_data'] as String?;
       final String? completionDatesString = decodedData['completion_dates'] as String?;
+      final String? customBooksDataString = decodedData['custom_books_data'] as String?;
 
-      if (progressDataString != null) {
-        await prefs.setString(_progressDataKey, progressDataString);
+      // Save progress data
+      if (progressDataString != null && progressDataString.isNotEmpty) {
+        // Basic validation: check if it's valid JSON object (optional)
+        try {
+          final decodedProgress = json.decode(progressDataString);
+          if (decodedProgress is Map) {
+            await prefs.setString(_progressDataKey, progressDataString);
+          } else {
+             print('Import warning: progress_data is not a valid JSON object. Clearing.');
+            await prefs.setString(_progressDataKey, '{}');
+          }
+        } catch(e){
+          print('Import warning: progress_data is not valid JSON. Clearing. Error: $e');
+          await prefs.setString(_progressDataKey, '{}');
+        }
+      } else {
+        await prefs.setString(_progressDataKey, '{}'); // Clear if null or empty
       }
-      if (completionDatesString != null) {
-        await prefs.setString(_completionDatesKey, completionDatesString);
+
+      // Save completion dates
+      if (completionDatesString != null && completionDatesString.isNotEmpty) {
+         try {
+          final decodedDates = json.decode(completionDatesString);
+          if (decodedDates is Map) {
+            await prefs.setString(_completionDatesKey, completionDatesString);
+          } else {
+            print('Import warning: completion_dates is not a valid JSON object. Clearing.');
+            await prefs.setString(_completionDatesKey, '{}');
+          }
+        } catch(e){
+          print('Import warning: completion_dates is not valid JSON. Clearing. Error: $e');
+          await prefs.setString(_completionDatesKey, '{}');
+        }
+      } else {
+        await prefs.setString(_completionDatesKey, '{}'); // Clear if null or empty
       }
+
+      // Save custom books data
+      if (customBooksDataString != null && customBooksDataString.isNotEmpty) {
+        try {
+          final decodedCustomBooks = json.decode(customBooksDataString);
+          if (decodedCustomBooks is List) {
+            await prefs.setString(CustomBookService.customBooksKey, customBooksDataString);
+          } else {
+            print('Import warning: custom_books_data is not a valid JSON list. Clearing.');
+            await prefs.setString(CustomBookService.customBooksKey, '[]');
+          }
+        } catch (e) {
+          print('Import warning: custom_books_data is not valid JSON. Clearing. Error: $e');
+          await prefs.setString(CustomBookService.customBooksKey, '[]');
+        }
+      } else {
+        await prefs.setString(CustomBookService.customBooksKey, '[]'); // Clear if null or empty
+      }
+
       return true;
     } catch (e) {
-      print("Error importing progress data: $e");
+      print("Error importing combined data: $e");
+      // Attempt to clear all keys on catastrophic JSON failure to prevent partial corrupted state
+      await prefs.setString(_progressDataKey, '{}');
+      await prefs.setString(_completionDatesKey, '{}');
+      await prefs.setString(CustomBookService.customBooksKey, '[]');
       return false;
     }
   }

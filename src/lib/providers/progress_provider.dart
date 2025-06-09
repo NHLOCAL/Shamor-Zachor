@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import '../models/progress_model.dart';
 import '../models/book_model.dart';
 import '../services/progress_service.dart';
+import './data_provider.dart'; // Added import
 
 enum CompletionEventType {
   bookCompleted,
@@ -66,15 +67,23 @@ class ProgressProvider with ChangeNotifier {
     }
   }
 
-  Future<bool> restoreProgress(String jsonData) async {
+  Future<bool> restoreProgress(String jsonData, DataProvider dataProvider) async {
     try {
-      bool success = await _progressService.importProgressData(jsonData);
-      if (success) {
-        await _loadInitialProgress(); // This will load data and notifyListeners
+      bool importSuccess = await _progressService.importProgressData(jsonData);
+      if (importSuccess) {
+        // After ProgressService has updated SharedPreferences (including custom_books_data key),
+        // tell DataProvider to reload its data.
+        // Passing null to restoreCustomBooksFromJsonBackup signals it to load from SharedPreferences
+        // which ProgressService just updated.
+        // DataProvider's loadAllData (called by restoreCustomBooksFromJsonBackup) will handle notifying its listeners.
+        await dataProvider.restoreCustomBooksFromJsonBackup(null);
+
+        // Then, reload ProgressProvider's specific data (progress and completion dates)
+        await _loadInitialProgress(); // This will load data and notifyListeners for ProgressProvider
       }
-      return success;
+      return importSuccess;
     } catch (e) {
-      print("Error during restoreProgress in Provider: $e");
+      print("Error during restoreProgress in ProgressProvider: $e");
       return false;
     }
   }
