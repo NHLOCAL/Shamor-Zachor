@@ -319,42 +319,60 @@ class _SettingsScreenState extends State<SettingsScreen> {
       icon: Icons.palette_outlined,
       title: 'ערכת נושא',
       children: [
-        Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 500),
-            child: SegmentedButton<ThemeModeOption>(
-              style: segmentedButtonStyle?.copyWith(
-                padding: WidgetStateProperty.all(
-                    const EdgeInsets.symmetric(vertical: 18, horizontal: 10)),
-                textStyle: WidgetStateProperty.all(
-                    const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final bool useCompactLayout = constraints.maxWidth < 360;
+
+            return Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 500),
+                child: SegmentedButton<ThemeModeOption>(
+                  style: segmentedButtonStyle?.copyWith(
+                    padding: WidgetStateProperty.all(
+                      const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+                    ),
+                    textStyle: WidgetStateProperty.all(
+                      const TextStyle(
+                          fontSize: 15, fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                  segments: <ButtonSegment<ThemeModeOption>>[
+                    ButtonSegment<ThemeModeOption>(
+                      value: ThemeModeOption.light,
+                      label: useCompactLayout ? null : const Text('בהיר'),
+                      icon: const Tooltip(
+                        message: 'בהיר',
+                        child: Icon(Icons.light_mode_outlined),
+                      ),
+                    ),
+                    ButtonSegment<ThemeModeOption>(
+                      value: ThemeModeOption.dark,
+                      label: useCompactLayout ? null : const Text('כהה'),
+                      icon: const Tooltip(
+                        message: 'כהה',
+                        child: Icon(Icons.dark_mode_outlined),
+                      ),
+                    ),
+                    ButtonSegment<ThemeModeOption>(
+                      value: ThemeModeOption.system,
+                      label: useCompactLayout ? null : const Text('מערכת'),
+                      icon: const Tooltip(
+                        message: 'ברירת מחדל של המערכת',
+                        child: Icon(Icons.settings_system_daydream_outlined),
+                      ),
+                    ),
+                  ],
+                  selected: <ThemeModeOption>{themeProvider.themeModeOption},
+                  onSelectionChanged: (Set<ThemeModeOption> newSelection) {
+                    if (newSelection.isNotEmpty) {
+                      themeProvider.setThemeMode(newSelection.first);
+                    }
+                  },
+                  showSelectedIcon: false,
+                ),
               ),
-              segments: const <ButtonSegment<ThemeModeOption>>[
-                ButtonSegment<ThemeModeOption>(
-                  value: ThemeModeOption.light,
-                  label: Text('בהיר'),
-                  icon: Icon(Icons.light_mode_outlined),
-                ),
-                ButtonSegment<ThemeModeOption>(
-                  value: ThemeModeOption.dark,
-                  label: Text('כהה'),
-                  icon: Icon(Icons.dark_mode_outlined),
-                ),
-                ButtonSegment<ThemeModeOption>(
-                  value: ThemeModeOption.system,
-                  label: Text('מערכת'),
-                  icon: Icon(Icons.settings_system_daydream_outlined),
-                ),
-              ],
-              selected: <ThemeModeOption>{themeProvider.themeModeOption},
-              onSelectionChanged: (Set<ThemeModeOption> newSelection) {
-                if (newSelection.isNotEmpty) {
-                  themeProvider.setThemeMode(newSelection.first);
-                }
-              },
-              showSelectedIcon: false,
-            ),
-          ),
+            );
+          },
         ),
       ],
     );
@@ -370,8 +388,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
           style: Theme.of(context).textTheme.bodyMedium,
         ),
         const SizedBox(height: 20),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
+        Wrap(
+          alignment: WrapAlignment.center,
+          spacing: 16,
+          runSpacing: 12,
           children: [
             ElevatedButton.icon(
               icon: const Icon(Icons.save_alt),
@@ -387,7 +407,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
             ),
-            const SizedBox(width: 16),
             ElevatedButton.icon(
               icon: const Icon(Icons.restore),
               label: const Text('שחזור'),
