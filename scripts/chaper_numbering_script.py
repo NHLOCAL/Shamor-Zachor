@@ -5,6 +5,7 @@
 Analyses Hebrew religious texts (HTML-like TXT files) to determine their
 hierarchical structure (Parts, Sub-Parts, Divisions) and count the divisions.
 Performs Gematria validation on the last identifier found in each section.
+If validation fails, it identifies and lists all missing division numbers.
 Outputs the results to a structured JSON file.
 """
 
@@ -105,9 +106,9 @@ class TextAnalyzer:
         self.book_name: str = os.path.splitext(self.filename)[0] # Default
         self.dominant_div_level: Optional[int] = None
         self.dominant_div_keyword: Optional[str] = None
-        # Raw hierarchical data: {part: {subpart: {count, last_id}}}
+        # Raw hierarchical data: {part: {subpart: {count, last_id, all_ids}}}
         self.hierarchy_data: Dict[str, Dict[str, Dict[str, Any]]] = defaultdict(
-            lambda: defaultdict(lambda: {"count": 0, "last_identifier": None})
+            lambda: defaultdict(lambda: {"count": 0, "last_identifier": None, "all_identifiers": []})
         )
         self._compile_regexes()
 
@@ -210,8 +211,8 @@ class TextAnalyzer:
 
         current_part_name = DEFAULT_PART_NAME
         current_subpart_name = DEFAULT_SUBPART_NAME
-        # Initialize default structure ensure it exists even if no divisions are found later
-        self.hierarchy_data[current_part_name][current_subpart_name] = {"count": 0, "last_identifier": None}
+        # Initialize default structure to ensure it exists, now with all_identifiers list
+        self.hierarchy_data[current_part_name][current_subpart_name] = {"count": 0, "last_identifier": None, "all_identifiers": []}
 
         unnamed_part_counter = 1
         unnamed_subpart_counter = 1
@@ -241,10 +242,9 @@ class TextAnalyzer:
                     # Reset sub-part context
                     current_subpart_name = DEFAULT_SUBPART_NAME
                     unnamed_subpart_counter = 1
-                    # Ensure part exists in hierarchy data
-                    self.hierarchy_data.setdefault(current_part_name, defaultdict(lambda: {"count": 0, "last_identifier": None}))
-                    # Ensure default subpart exists for the new part
-                    self.hierarchy_data[current_part_name].setdefault(current_subpart_name, {"count": 0, "last_identifier": None})
+                    # Ensure part/subpart exist in hierarchy data with the new structure
+                    self.hierarchy_data.setdefault(current_part_name, defaultdict(lambda: {"count": 0, "last_identifier": None, "all_identifiers": []}))
+                    self.hierarchy_data[current_part_name].setdefault(current_subpart_name, {"count": 0, "last_identifier": None, "all_identifiers": []})
 
 
             # 2. Check for Sub-Part Divider (H3) - only if H4 is dominant division
@@ -263,8 +263,8 @@ class TextAnalyzer:
                             current_subpart_name = f"תת-חלק לא מוגדר {unnamed_subpart_counter}"
                             unnamed_subpart_counter += 1
                         logging.debug(f"'{self.book_name}': Sub-Part Divider (H3): '{current_subpart_name}' in Part '{current_part_name}' @ L{line_num+1}")
-                        # Ensure subpart exists in hierarchy data for the current part
-                        self.hierarchy_data[current_part_name].setdefault(current_subpart_name, {"count": 0, "last_identifier": None})
+                        # Ensure subpart exists in hierarchy data for the current part with the new structure
+                        self.hierarchy_data[current_part_name].setdefault(current_subpart_name, {"count": 0, "last_identifier": None, "all_identifiers": []})
 
 
             # 3. Check for Dominant Division
@@ -278,12 +278,13 @@ class TextAnalyzer:
                     target_subpart_key = current_subpart_name if self.dominant_div_level == 4 else LEVEL3_DEFAULT_KEY
 
                     # Get the data dict for the target part/subpart, ensuring defaults exist
-                    part_dict = self.hierarchy_data.setdefault(current_part_name, defaultdict(lambda: {"count": 0, "last_identifier": None}))
-                    division_data = part_dict.setdefault(target_subpart_key, {"count": 0, "last_identifier": None})
+                    part_dict = self.hierarchy_data.setdefault(current_part_name, defaultdict(lambda: {"count": 0, "last_identifier": None, "all_identifiers": []}))
+                    division_data = part_dict.setdefault(target_subpart_key, {"count": 0, "last_identifier": None, "all_identifiers": []})
 
-                    # Update count and last identifier
+                    # Update count, last identifier, and the list of all identifiers
                     division_data["count"] += 1
                     division_data["last_identifier"] = identifier_clean
+                    division_data["all_identifiers"].append(identifier_clean)
 
 
     def _assemble_and_simplify_result(self) -> Dict[str, Any]:
@@ -333,7 +334,8 @@ class TextAnalyzer:
                     "division_type": self.dominant_div_keyword,
                     "count": single_subpart_details["count"],
                     "heading_level": f"h{self.dominant_div_level}",
-                    "last_identifier_found": single_subpart_details["last_identifier"]
+                    "last_identifier_found": single_subpart_details["last_identifier"],
+                    "all_identifiers_found": single_subpart_details["all_identifiers"] # Intermediate field
                 }
                 logging.debug(f"'{self.book_name}': Simplified Part '{part_label_final}' (1 sub-part).")
 
@@ -345,7 +347,8 @@ class TextAnalyzer:
                         "division_type": self.dominant_div_keyword,
                         "count": subpart_details["count"],
                         "heading_level": f"h{self.dominant_div_level}",
-                        "last_identifier_found": subpart_details["last_identifier"]
+                        "last_identifier_found": subpart_details["last_identifier"],
+                        "all_identifiers_found": subpart_details["all_identifiers"] # Intermediate field
                     }
                 final_result_assembly[part_label_final] = part_data_nested
                 logging.debug(f"'{self.book_name}': Kept Sub-Part structure for Part '{part_label_final}' ({num_valid_subparts} sub-parts).")
@@ -422,6 +425,40 @@ class AnalysisRunner:
                 self._apply_gematria_check_recursive(value, new_context)
         # else: It's not a dict or not the data node we're looking for, stop recursion
 
+    def _find_missing_divisions(self, data_node: Dict[str, Any]) -> List[int]:
+        """
+        Identifies missing sequential division numbers based on the list of all
+        identifiers found.
+        """
+        last_id = data_node.get('last_identifier_found')
+        all_ids = data_node.get('all_identifiers_found', [])
+        
+        if not last_id or not all_ids:
+            return [] # Cannot determine missing numbers without data
+
+        # The expected maximum number is the Gematria of the last identifier.
+        expected_max = hebrew_numeral_to_int(last_id)
+        if expected_max <= 0:
+            logging.debug(f"Cannot find missing divisions; last ID '{last_id}' is not a valid positive number.")
+            return []
+            
+        # Convert all found identifiers to their integer values.
+        # Use a set for efficient lookup and to handle duplicates.
+        found_numbers = {hebrew_numeral_to_int(id_str) for id_str in all_ids}
+        found_numbers.discard(0) # Remove non-numeric entries like 'הקדמה'
+
+        if not found_numbers:
+            return []
+
+        # Create the full expected set of numbers from 1 to the max.
+        expected_set = set(range(1, expected_max + 1))
+        
+        # The missing numbers are the difference between the sets.
+        missing_numbers = sorted(list(expected_set - found_numbers))
+        
+        return missing_numbers
+
+
     def _perform_single_gematria_check(self, data_node: Dict[str, Any], context_name: str):
         """Performs Gematria check on a single data node and updates it."""
         logging.info(f"  -> Checking: {context_name} | Count: {data_node.get('count', 'N/A')} | Last ID: '{data_node.get('last_identifier_found', 'N/A')}'")
@@ -431,6 +468,11 @@ class AnalysisRunner:
 
         if last_id and count is not None and count > 0:
             gematria_value = hebrew_numeral_to_int(last_id)
+            
+            ### MODIFIED ###
+            # Add the calculated Gematria value to the node for output.
+            data_node["last_identifier_gematria"] = gematria_value
+            
             if gematria_value > 0:
                 if gematria_value == count:
                     logging.info(f"     -> Gematria ('{context_name}'): Match! ('{last_id}' = {gematria_value})")
@@ -448,6 +490,17 @@ class AnalysisRunner:
             check_result = "N/A (No Count/ID)"
 
         data_node["gematria_check"] = check_result
+        
+        # If the check did not result in a perfect match, find missing divisions.
+        # We also check for "N/A" to avoid running on empty sections.
+        if check_result not in ["Match", "N/A", "N/A (No Count/ID)"]:
+            missing = self._find_missing_divisions(data_node)
+            if missing:
+                logging.warning(f"     -> Missing divisions found for '{context_name}': {len(missing)} items. Example: {missing[:10]}")
+                data_node["missing_divisions"] = missing
+
+        # Remove the intermediate list of all identifiers from the final output.
+        data_node.pop("all_identifiers_found", None)
 
 
     def run_analysis(self):
