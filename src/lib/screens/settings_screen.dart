@@ -6,9 +6,11 @@ import '../models/book_model.dart';
 import '../providers/theme_provider.dart';
 import 'package:file_picker/file_picker.dart';
 import 'dart:io';
+import 'dart:typed_data';
 
 import '../providers/progress_provider.dart';
 import 'package:intl/intl.dart';
+import 'dart:convert';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -482,49 +484,57 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _backupToFile() async {
-    final progressProvider =
-        Provider.of<ProgressProvider>(context, listen: false);
+    // ודא שה-context עדיין קיים
     if (!mounted) return;
 
+    final progressProvider =
+        Provider.of<ProgressProvider>(context, listen: false);
+
     try {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('יוצר נתוני גיבוי...')),
+      );
+
       String? backupData = await progressProvider.backupProgress();
 
       if (backupData == null || backupData.isEmpty) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('שגיאה: לא נוצרו נתוני גיבוי.')),
+          const SnackBar(
+              content: Text('שגיאה: לא נוצרו נתוני גיבוי.'),
+              backgroundColor: Colors.red),
         );
         return;
       }
+
+      // המרת מחרוזת הגיבוי ל-bytes (Uint8List)
+      final Uint8List fileBytes = utf8.encode(backupData);
 
       String formattedDate =
           DateFormat('yyyy-MM-dd_HH-mm').format(DateTime.now());
       String fileName = 'shamor_vezachor_backup_$formattedDate.json';
 
-      String? result = await FilePicker.platform.saveFile(
+      // קריאה ל-saveFile עם ה-bytes. זה עובד על כל הפלטפורמות.
+      await FilePicker.platform.saveFile(
         dialogTitle: 'אנא בחר היכן לשמור את קובץ הגיבוי:',
         fileName: fileName,
-        allowedExtensions: ['json'],
+        bytes: fileBytes, // הפרמטר החשוב שנוסף
         type: FileType.custom,
+        allowedExtensions: ['json'],
       );
 
-      if (result != null) {
-        final file = File(result);
-        await file.writeAsString(backupData);
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('הגיבוי נשמר בהצלחה!')),
-        );
-      } else {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('שמירת הגיבוי בוטלה.')),
-        );
-      }
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('תהליך שמירת הגיבוי הסתיים.')),
+      );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('שגיאה בשמירת הגיבוי: $e')),
+        SnackBar(
+            content: Text('שגיאה בשמירת הגיבוי: $e'),
+            backgroundColor: Colors.red),
       );
     }
   }

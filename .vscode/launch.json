@@ -7,6 +7,16 @@
       "type": "dart",
       "program": "lib/main.dart",
       "cwd": "${workspaceFolder}/src"
+    },
+    {
+        "name": "שמור וזכור (Android)",
+        "request": "launch",
+        "type": "dart",
+        "program": "lib/main.dart",
+        "cwd": "${workspaceFolder}/src",
+        "env": {
+            "JAVA_HOME": "C:\\Users\\me\\AppData\\Local\\Programs\\Eclipse Adoptium\\jdk-17.0.15.6-hotspot"
+        }
     }
   ]
 }
