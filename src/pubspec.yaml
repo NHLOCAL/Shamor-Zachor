@@ -1,7 +1,7 @@
 name: shamor_vezachor
 description: "שמור וזכור: כלי יעיל ללומדי תורה למעקב מסודר אחר לימוד ספרי יסוד וניהול חזרות"
 publish_to: 'none'
-version: 0.7.0+3
+version: 0.8.0+1
 
 environment:
   sdk: ^3.5.4
