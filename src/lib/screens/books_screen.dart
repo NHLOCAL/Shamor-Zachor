@@ -32,7 +32,8 @@ class _BooksScreenState extends State<BooksScreen>
       // 2. שימוש במיון כאן
       final categories =
           CategorySorter.sort(dataProvider.allBookData.keys.toList());
-      print("[BooksScreen] didChangeDependencies: Categories for tabs: $categories");
+      print(
+          "[BooksScreen] didChangeDependencies: Categories for tabs: $categories");
       _setupTabController(categories, switchToIndex: _currentTabIndex);
     }
   }
@@ -146,8 +147,10 @@ class _BooksScreenState extends State<BooksScreen>
             categoryName.toLowerCase().contains(searchTerm)) {
           results.add(
             SearchBookCardWidget(
-              topLevelCategoryKey: categoryName, // This is the topLevelCategoryKey
-              categoryName: categoryName, // For display, this is the top-level category name
+              topLevelCategoryKey:
+                  categoryName, // This is the topLevelCategoryKey
+              categoryName:
+                  categoryName, // For display, this is the top-level category name
               bookName: bookName,
               bookDetails: bookDetails,
             ),
@@ -159,16 +162,20 @@ class _BooksScreenState extends State<BooksScreen>
       if (categoryData.subcategories != null) {
         for (var subCategory in categoryData.subcategories!) {
           // Check if subcategory name matches
-          bool subCategoryNameMatches = subCategory.name.toLowerCase().contains(searchTerm);
+          bool subCategoryNameMatches =
+              subCategory.name.toLowerCase().contains(searchTerm);
 
           subCategory.books.forEach((bookName, bookDetails) {
-            if (bookName.toLowerCase().contains(searchTerm) || subCategoryNameMatches) {
+            if (bookName.toLowerCase().contains(searchTerm) ||
+                subCategoryNameMatches) {
               // If the book name matches OR the subcategory name matches, add the book.
               // This ensures all books from a matching subcategory are shown.
               results.add(
                 SearchBookCardWidget(
-                  topLevelCategoryKey: categoryName, // This is the topLevelCategoryKey
-                  categoryName: categoryName, // For display, use the top-level category name
+                  topLevelCategoryKey:
+                      categoryName, // This is the topLevelCategoryKey
+                  categoryName:
+                      categoryName, // For display, use the top-level category name
                   bookName: bookName,
                   bookDetails: bookDetails,
                 ),
@@ -202,12 +209,16 @@ class _BooksScreenState extends State<BooksScreen>
         // Prioritize matches in book names, then subcategory names, then category names
         bool aBookNameMatch = a.bookName.toLowerCase().contains(searchTerm);
         bool bBookNameMatch = b.bookName.toLowerCase().contains(searchTerm);
-        bool aCategoryNameMatch = a.categoryName.toLowerCase().contains(searchTerm);
-        bool bCategoryNameMatch = b.categoryName.toLowerCase().contains(searchTerm);
+        bool aCategoryNameMatch =
+            a.categoryName.toLowerCase().contains(searchTerm);
+        bool bCategoryNameMatch =
+            b.categoryName.toLowerCase().contains(searchTerm);
 
         if (aBookNameMatch && !bBookNameMatch) return -1;
         if (!aBookNameMatch && bBookNameMatch) return 1;
-        if (aBookNameMatch && bBookNameMatch) return a.bookName.compareTo(b.bookName); // Sort by book name if both match
+        if (aBookNameMatch && bBookNameMatch)
+          return a.bookName
+              .compareTo(b.bookName); // Sort by book name if both match
 
         if (aCategoryNameMatch && !bCategoryNameMatch) return -1;
         if (!aCategoryNameMatch && bCategoryNameMatch) return 1;
@@ -261,7 +272,8 @@ class _BooksScreenState extends State<BooksScreen>
   Widget _buildSearchField(DataProvider dataProvider) {
     final theme = Theme.of(context);
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 15.0),
+      padding: const EdgeInsets.symmetric(
+          vertical: 15.0, horizontal: 15.0), // הוסף שוליים אופקיים קבועים
       child: Center(
         child: Container(
           constraints: const BoxConstraints(maxWidth: 400),
@@ -377,27 +389,30 @@ class _BooksScreenState extends State<BooksScreen>
     List<Widget> tabViews = categories.map((categoryName) {
       final categoryData = dataProvider.allBookData[categoryName]!;
       print("[BooksScreen] Building tabView for: ${categoryData.name}");
-      print("  [BooksScreen] Subcategories exist: ${categoryData.subcategories != null && categoryData.subcategories!.isNotEmpty}");
-      print("  [BooksScreen] Direct books exist: ${categoryData.books.isNotEmpty}");
-      final progressProvider = Provider.of<ProgressProvider>(context, listen: true);
+      print(
+          "  [BooksScreen] Subcategories exist: ${categoryData.subcategories != null && categoryData.subcategories!.isNotEmpty}");
+      print(
+          "  [BooksScreen] Direct books exist: ${categoryData.books.isNotEmpty}");
+      final progressProvider =
+          Provider.of<ProgressProvider>(context, listen: true);
 
       List<Widget> children = [];
 
       // Add direct books first, if any
       if (categoryData.books.isNotEmpty) {
-        print("    [BooksScreen] Processing direct books for GridView. Count: ${categoryData.books.length}");
-        children.add(
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-            child: Text(
-              categoryData.name, // Or a generic title like "ספרים כלליים"
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-          )
-        );
+        print(
+            "    [BooksScreen] Processing direct books for GridView. Count: ${categoryData.books.length}");
+        children.add(Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+          child: Text(
+            categoryData.name, // Or a generic title like "ספרים כלליים"
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
+        ));
         children.add(GridView.builder(
           shrinkWrap: true, // Important for GridView inside ListView
-          physics: const NeverScrollableScrollPhysics(), // Disable GridView's own scrolling
+          physics:
+              const NeverScrollableScrollPhysics(), // Disable GridView's own scrolling
           key: PageStorageKey<String>('${categoryName}_direct_books'),
           padding: const EdgeInsets.all(15),
           gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
@@ -411,32 +426,40 @@ class _BooksScreenState extends State<BooksScreen>
             final bookName = categoryData.books.keys.elementAt(i);
             final bookDetails = categoryData.books.values.elementAt(i);
             return BookCardWidget(
-              topLevelCategoryKey: categoryName, // This is the topLevelCategoryKey
-              categoryName: categoryName, // For display, this is the top-level category name
+              topLevelCategoryKey:
+                  categoryName, // This is the topLevelCategoryKey
+              categoryName:
+                  categoryName, // For display, this is the top-level category name
               bookName: bookName,
               bookDetails: bookDetails,
-              bookProgressData: progressProvider.getProgressForBook(categoryName, bookName),
+              bookProgressData:
+                  progressProvider.getProgressForBook(categoryName, bookName),
             );
           },
         ));
       }
 
       // Add subcategories with ExpansionTile
-      if (categoryData.subcategories != null && categoryData.subcategories!.isNotEmpty) {
+      if (categoryData.subcategories != null &&
+          categoryData.subcategories!.isNotEmpty) {
         categoryData.subcategories!.forEach((subCat) {
-          print("    [BooksScreen] Processing SubCategory for ExpansionTile: ${subCat.name}");
-          print("      [BooksScreen] Books in ${subCat.name}: ${subCat.books.length}");
+          print(
+              "    [BooksScreen] Processing SubCategory for ExpansionTile: ${subCat.name}");
+          print(
+              "      [BooksScreen] Books in ${subCat.name}: ${subCat.books.length}");
         });
         for (var subCategory in categoryData.subcategories!) {
           children.add(
             ExpansionTile(
-              key: PageStorageKey<String>('${categoryName}_${subCategory.name}'),
+              key:
+                  PageStorageKey<String>('${categoryName}_${subCategory.name}'),
               title: Text(subCategory.name),
               children: <Widget>[
                 GridView.builder(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
-                  key: PageStorageKey<String>('${categoryName}_${subCategory.name}_grid'),
+                  key: PageStorageKey<String>(
+                      '${categoryName}_${subCategory.name}_grid'),
                   padding: const EdgeInsets.all(15),
                   gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
                     maxCrossAxisExtent: 170,
@@ -449,11 +472,14 @@ class _BooksScreenState extends State<BooksScreen>
                     final bookName = subCategory.books.keys.elementAt(i);
                     final bookDetails = subCategory.books.values.elementAt(i);
                     return BookCardWidget(
-                      topLevelCategoryKey: categoryName, // This is the topLevelCategoryKey
-                      categoryName: subCategory.name, // For display, this is the subCategory.name
+                      topLevelCategoryKey:
+                          categoryName, // This is the topLevelCategoryKey
+                      categoryName: subCategory
+                          .name, // For display, this is the subCategory.name
                       bookName: bookName,
                       bookDetails: bookDetails,
-                      bookProgressData: progressProvider.getProgressForBook(subCategory.name, bookName),
+                      bookProgressData: progressProvider.getProgressForBook(
+                          subCategory.name, bookName),
                     );
                   },
                 ),
@@ -470,7 +496,9 @@ class _BooksScreenState extends State<BooksScreen>
         return Center(
           child: Text(
             'אין ספרים בקטגוריה זו: ${categoryData.name}',
-            style: TextStyle(fontStyle: FontStyle.italic, color: theme.colorScheme.onSurface.withOpacity(0.6)),
+            style: TextStyle(
+                fontStyle: FontStyle.italic,
+                color: theme.colorScheme.onSurface.withOpacity(0.6)),
           ),
         );
       }
@@ -508,11 +536,13 @@ class _BooksScreenState extends State<BooksScreen>
       );
     }
 
-    print("[BooksScreen] Final TabController length: ${_tabController?.length}");
+    print(
+        "[BooksScreen] Final TabController length: ${_tabController?.length}");
     print("[BooksScreen] Number of generated tabs: ${tabs.length}");
     print("[BooksScreen] Number of generated tabViews: ${tabViews.length}");
     if (categories.isEmpty && _searchResults.isEmpty) {
-        print("[BooksScreen] No categories and no search results. Will show 'אין נתונים להצגה'.");
+      print(
+          "[BooksScreen] No categories and no search results. Will show 'אין נתונים להצגה'.");
     }
 
     return Column(
