@@ -9,11 +9,13 @@ import '../widgets/completion_animation_overlay.dart';
 class BookDetailScreen extends StatefulWidget {
   static const routeName = '/book-detail';
 
-  final String categoryName;
+  final String topLevelCategoryKey;
+  final String categoryName; // This is the display name (e.g., subcategory name)
   final String bookName;
 
   const BookDetailScreen({
     super.key,
+    required this.topLevelCategoryKey,
     required this.categoryName,
     required this.bookName,
   });
@@ -106,25 +108,29 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final dataProvider = Provider.of<DataProvider>(context);
+    final dataProvider = Provider.of<DataProvider>(context, listen: false);
     final progressProvider = Provider.of<ProgressProvider>(context);
     final theme = Theme.of(context);
 
-    final bookDetails =
-        dataProvider.getBookDetails(widget.categoryName, widget.bookName);
+    // Fetch BookDetails using topLevelCategoryKey and findBookRecursive
+    final topLevelCategory = dataProvider.allBookData[widget.topLevelCategoryKey];
+    final bookSearchResult = topLevelCategory?.findBookRecursive(widget.bookName);
+    final bookDetails = bookSearchResult?.bookDetails;
+    // widget.categoryName is the display name (passed as argument)
+    // bookSearchResult?.categoryName is the actual category name from the data structure
 
     if (bookDetails == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('שגיאה')),
-        body: const Center(child: Text('פרטי הספר לא נמצאו.')),
+        appBar: AppBar(title: Text('שגיאה: ${widget.bookName}')), // Show book name in error title
+        body: Center(child: Text('פרטי הספר \'${widget.bookName}\' לא נמצאו תחת הקטגוריה הראשית \'${widget.topLevelCategoryKey}\'. Display Category: \'${widget.categoryName}\'')),
       );
     }
 
     final columnSelectionStates = progressProvider.getColumnSelectionStates(
-        widget.categoryName, widget.bookName, bookDetails);
+        widget.topLevelCategoryKey, widget.bookName, bookDetails);
 
     final currentCompletionStatus = progressProvider.isBookCompleted(
-        widget.categoryName, widget.bookName, bookDetails);
+        widget.topLevelCategoryKey, widget.bookName, bookDetails);
 
     final isBookCompleteIcon = currentCompletionStatus
         ? Icon(Icons.check_circle, color: theme.colorScheme.primary)
@@ -243,7 +249,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                                                 context,
                                                 listen: false)
                                             .toggleSelectAllForColumn(
-                                          widget.categoryName,
+                                          widget.topLevelCategoryKey,
                                           widget.bookName,
                                           bookDetails, // bookDetails is already confirmed not null
                                           columnId,
@@ -302,7 +308,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
 
                       final pageProgress =
                           progressProvider.getProgressForPageAmud(
-                              widget.categoryName,
+                              widget.topLevelCategoryKey,
                               widget.bookName,
                               pageNumber.toString(),
                               amudKey);
@@ -345,7 +351,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                                             value: pageProgress.learn,
                                             onChanged: (val) =>
                                                 progressProvider.updateProgress(
-                                                    widget.categoryName,
+                                                    widget.topLevelCategoryKey, // Corrected: Only one instance
                                                     widget.bookName,
                                                     pageNumber,
                                                     amudKey,
@@ -364,7 +370,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                                             value: pageProgress.review1,
                                             onChanged: (val) =>
                                                 progressProvider.updateProgress(
-                                                    widget.categoryName,
+                                                    widget.topLevelCategoryKey, // Corrected
                                                     widget.bookName,
                                                     pageNumber,
                                                     amudKey,
@@ -383,7 +389,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                                             value: pageProgress.review2,
                                             onChanged: (val) =>
                                                 progressProvider.updateProgress(
-                                                    widget.categoryName,
+                                                    widget.topLevelCategoryKey, // Corrected
                                                     widget.bookName,
                                                     pageNumber,
                                                     amudKey,
@@ -402,7 +408,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                                             value: pageProgress.review3,
                                             onChanged: (val) =>
                                                 progressProvider.updateProgress(
-                                                    widget.categoryName,
+                                                    widget.topLevelCategoryKey, // Corrected
                                                     widget.bookName,
                                                     pageNumber,
                                                     amudKey,

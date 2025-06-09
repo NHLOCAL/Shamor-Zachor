@@ -12,6 +12,15 @@ List<String> _asListString(dynamic value) =>
 Map<String, dynamic> _asMap(dynamic value) =>
     value is Map ? Map<String, dynamic>.from(value) : {};
 
+// Helper class for findBookRecursive
+class BookSearchResult {
+  final BookDetails bookDetails;
+  final String categoryName; // The name of the category/subcategory containing the book
+  final BookCategory category; // The actual category/subcategory object
+
+  BookSearchResult(this.bookDetails, this.categoryName, this.category);
+}
+
 class BookCategory {
   final String name;
   final String contentType;
@@ -20,6 +29,8 @@ class BookCategory {
   final int defaultStartPage;
   final bool isCustom;
   final String sourceFile;
+  final List<BookCategory>? subcategories;
+  final String? parentCategoryName;
 
   BookCategory({
     required this.name,
@@ -29,10 +40,13 @@ class BookCategory {
     required this.defaultStartPage,
     required this.isCustom,
     required this.sourceFile,
+    this.subcategories,
+    this.parentCategoryName,
   });
 
-  factory BookCategory.fromJson(Map<String, dynamic> json, String sourceFile, { bool isCustom = false}) {
-    Map<String, dynamic> rawData = _asMap(json['data']);
+  factory BookCategory.fromJson(Map<String, dynamic> json, String sourceFile, { bool isCustom = false, String? parentCategoryName}) {
+    // Read from 'books' first, then fallback to 'data'
+    Map<String, dynamic> rawData = _asMap(json['books'] ?? json['data']);
     Map<String, BookDetails> parsedBooks = {};
 
     // Adjust defaultStartPage logic
@@ -44,20 +58,34 @@ class BookCategory {
           value,
           contentType: _asString(json['content_type']),
           columns: _asListString(json['columns']),
-          startPage: defaultStartPage, // Use the new defaultStartPage logic
-          isCustom: isCustom, // Pass isCustom
+          startPage: defaultStartPage,
+          isCustom: isCustom,
         );
       }
     });
+
+    List<BookCategory>? subcategories;
+    if (json['subcategories'] is List) {
+      subcategories = (json['subcategories'] as List)
+          .map((subJson) => BookCategory.fromJson(
+                _asMap(subJson),
+                sourceFile,
+                isCustom: isCustom,
+                parentCategoryName: _asString(json['name']),
+              ))
+          .toList();
+    }
 
     return BookCategory(
       name: _asString(json['name']),
       contentType: _asString(json['content_type']),
       columns: _asListString(json['columns']),
       books: parsedBooks,
-      defaultStartPage: defaultStartPage, // Use the new defaultStartPage logic
-      isCustom: isCustom, // Pass isCustom
-      sourceFile: sourceFile, // Pass sourceFile
+      defaultStartPage: defaultStartPage,
+      isCustom: isCustom,
+      sourceFile: sourceFile,
+      subcategories: subcategories,
+      parentCategoryName: parentCategoryName,
     );
   }
 
@@ -69,6 +97,24 @@ class BookCategory {
       return 2 * book.pages;
     }
     return book.pages;
+  }
+
+  BookSearchResult? findBookRecursive(String bookNameToFind) {
+    // Check direct books of the current category
+    if (books.containsKey(bookNameToFind)) {
+      return BookSearchResult(books[bookNameToFind]!, this.name, this);
+    }
+
+    // Recursively check subcategories
+    if (subcategories != null) {
+      for (final subCategory in subcategories!) {
+        final result = subCategory.findBookRecursive(bookNameToFind);
+        if (result != null) {
+          return result; // Book found in a subcategory
+        }
+      }
+    }
+    return null; // Book not found in this branch
   }
 }
 

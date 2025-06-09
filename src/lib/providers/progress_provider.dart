@@ -134,9 +134,11 @@ class ProgressProvider with ChangeNotifier {
       int? reviewCycleNumber;
       if (columnName == 'review1') {
         reviewCycleNumber = 1;
-      } else if (columnName == 'review2')
+      } else if (columnName == 'review2') {
         reviewCycleNumber = 2;
-      else if (columnName == 'review3') reviewCycleNumber = 3;
+      } else if (columnName == 'review3') {
+        reviewCycleNumber = 3;
+      }
 
       if (reviewCycleNumber != null) {
         // Check if this specific change led to the completion of the review cycle
@@ -252,39 +254,89 @@ class ProgressProvider with ChangeNotifier {
   List<Map<String, dynamic>> getTrackedBooks(
       Map<String, BookCategory> allBookData) {
     List<Map<String, dynamic>> tracked = [];
-    _fullProgress.forEach((categoryName, books) {
-      books.forEach((bookName, progressData) {
-        if (allBookData.containsKey(categoryName) &&
-            allBookData[categoryName]!.books.containsKey(bookName)) {
-          tracked.add({
-            'categoryName': categoryName,
-            'bookName': bookName,
-            'bookDetails': allBookData[categoryName]!.books[bookName]!,
-            'progressData': progressData,
-            // 'isLikelyCompleted' will be determined by isBookCompleted or completionDate presence
-          });
+    Set<String> processedBookKeys = {}; // To avoid duplicates
+
+    // Process books from _fullProgress
+    _fullProgress.forEach((topLevelCategoryKey, booksProgressMap) {
+      print("[ProgressProvider] getTrackedBooks: Processing topLevelCategoryKey: $topLevelCategoryKey");
+      final topLevelCategoryObject = allBookData[topLevelCategoryKey];
+      if (topLevelCategoryObject == null) {
+        if (kDebugMode) {
+          print("Error: Top-level category '$topLevelCategoryKey' not found in allBookData.");
         }
+        print("[ProgressProvider] WARN: Top-level category '$topLevelCategoryKey' not found in allBookData.");
+        return; // Skip this category
+      }
+
+      booksProgressMap.forEach((bookNameFromProgress, progressDataForBook) {
+        print("  [ProgressProvider] Processing book: $bookNameFromProgress under $topLevelCategoryKey");
+        final searchResult = topLevelCategoryObject.findBookRecursive(bookNameFromProgress);
+        if (searchResult == null) {
+          print("    [ProgressProvider] WARN: Book '$bookNameFromProgress' not found via findBookRecursive in '$topLevelCategoryKey'.");
+        } else {
+          print("    [ProgressProvider] Found book: ID (usually bookName for non-custom) '$bookNameFromProgress' in category '${searchResult.categoryName}'. Display name: ${searchResult.categoryName}");
+          // Note: BookDetails doesn't have an 'id' field by default unless it's a custom book.
+          // Using bookNameFromProgress for the ID-like field in the log.
+          final String uniqueKey = '$topLevelCategoryKey-${searchResult.categoryName}-$bookNameFromProgress';
+          if (!processedBookKeys.contains(uniqueKey)) {
+            tracked.add({
+              'topLevelCategoryKey': topLevelCategoryKey, // For progress operations
+              'displayCategoryName': searchResult.categoryName, // For UI (subCategory name)
+              'bookName': bookNameFromProgress,
+              'bookDetails': searchResult.bookDetails,
+              'progressData': progressDataForBook,
+            });
+            processedBookKeys.add(uniqueKey);
+          }
+        }
+        // Erroneous 'else' was here and is now removed.
       });
     });
 
-    _completionDates.forEach((categoryName, books) {
-      books.forEach((bookName, date) {
-        if (allBookData.containsKey(categoryName) &&
-            allBookData[categoryName]!.books.containsKey(bookName)) {
-          if (!tracked.any((item) =>
-              item['categoryName'] == categoryName &&
-              item['bookName'] == bookName)) {
+    // Process books from _completionDates (for books that might only have a completion date and no other progress)
+    _completionDates.forEach((topLevelCategoryKey, booksCompletionMap) {
+      print("[ProgressProvider] getTrackedBooks: Processing topLevelCategoryKey from _completionDates: $topLevelCategoryKey");
+      final topLevelCategoryObject = allBookData[topLevelCategoryKey];
+      if (topLevelCategoryObject == null) {
+        if (kDebugMode) { // Keep kDebugMode for more detailed internal errors if desired
+          print("Error: Top-level category '$topLevelCategoryKey' from completionDates not found in allBookData.");
+        }
+        print("[ProgressProvider] WARN: Top-level category '$topLevelCategoryKey' from completionDates not found in allBookData.");
+        return; // Skip this category
+      }
+
+      booksCompletionMap.forEach((bookNameFromCompletion, completionDate) {
+        print("  [ProgressProvider] Processing completed book: $bookNameFromCompletion under $topLevelCategoryKey");
+        final searchResult = topLevelCategoryObject.findBookRecursive(bookNameFromCompletion);
+        if (searchResult == null) {
+          print("    [ProgressProvider] WARN: Completed book '$bookNameFromCompletion' not found via findBookRecursive in '$topLevelCategoryKey'.");
+        } else {
+          print("    [ProgressProvider] Found completed book: ID (usually bookName) '$bookNameFromCompletion' in category '${searchResult.categoryName}'. Display name: ${searchResult.categoryName}");
+          final String uniqueKey = '$topLevelCategoryKey-${searchResult.categoryName}-$bookNameFromCompletion';
+          // Add only if not already processed from _fullProgress
+          if (!processedBookKeys.contains(uniqueKey)) {
             tracked.add({
-              'categoryName': categoryName,
-              'bookName': bookName,
-              'bookDetails': allBookData[categoryName]!.books[bookName]!,
-              'progressData': getProgressForBook(categoryName, bookName),
-              // 'isLikelyCompleted': true // This flag can be inferred now
+              'topLevelCategoryKey': topLevelCategoryKey,
+              'displayCategoryName': searchResult.categoryName,
+              'bookName': bookNameFromCompletion,
+              'bookDetails': searchResult.bookDetails,
+              'progressData': getProgressForBook(topLevelCategoryKey, bookNameFromCompletion), // Might be empty if only completion date exists
+              'completionDate': completionDate, // Include completion date
             });
+            processedBookKeys.add(uniqueKey);
+          } else {
+            // If already added from _fullProgress, ensure completionDate is also included if it exists
+            final existingEntry = tracked.firstWhere((item) =>
+                item['topLevelCategoryKey'] == topLevelCategoryKey &&
+                item['displayCategoryName'] == searchResult.categoryName &&
+                item['bookName'] == bookNameFromCompletion);
+            existingEntry['completionDate'] = completionDate;
           }
         }
+        // Erroneous 'else' was here and is now removed.
       });
     });
+    print("[ProgressProvider] getTrackedBooks: Returning ${tracked.length} tracked items.");
     return tracked;
   }
 
@@ -441,10 +493,18 @@ class ProgressProvider with ChangeNotifier {
     final bookProgress = getProgressForBook(categoryName, bookName);
     final totalTargetPages =
         bookDetails.isDafType ? bookDetails.pages * 2 : bookDetails.pages;
-    if (totalTargetPages == 0) return 0.0;
+    // if (totalTargetPages == 0) return 0.0; // Covered by the check below
 
     int learnedPagesCount =
         ProgressService.getCompletedPagesCount(bookProgress);
+
+    print("[ProgressProvider LPP] Book: $bookName ($categoryName)");
+    print("  LPP Details: isDafType=${bookDetails.isDafType}, pages=${bookDetails.pages}, totalTargetPages=$totalTargetPages");
+    print("  LPP Progress: learnedPagesCount=$learnedPagesCount");
+    if (totalTargetPages == 0) {
+      print("  LPP WARN: totalTargetPages is 0, will return 0.0");
+      return 0.0;
+    }
     return learnedPagesCount / totalTargetPages;
   }
 
@@ -453,10 +513,18 @@ class ProgressProvider with ChangeNotifier {
     final bookProgress = getProgressForBook(categoryName, bookName);
     final totalTargetPages =
         bookDetails.isDafType ? bookDetails.pages * 2 : bookDetails.pages;
-    if (totalTargetPages == 0) return 0.0;
+    // if (totalTargetPages == 0) return 0.0; // Covered by the check below
 
     int review1PagesCount =
         ProgressService.getReview1CompletedPagesCount(bookProgress);
+
+    print("[ProgressProvider R1PP] Book: $bookName ($categoryName)");
+    print("  R1PP Details: isDafType=${bookDetails.isDafType}, pages=${bookDetails.pages}, totalTargetPages=$totalTargetPages");
+    print("  R1PP Progress: review1PagesCount=$review1PagesCount");
+    if (totalTargetPages == 0) {
+      print("  R1PP WARN: totalTargetPages is 0, will return 0.0");
+      return 0.0;
+    }
     return review1PagesCount / totalTargetPages;
   }
 

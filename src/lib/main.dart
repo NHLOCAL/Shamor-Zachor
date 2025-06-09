@@ -361,11 +361,13 @@ class MyApp extends StatelessWidget {
             onGenerateRoute: (settings) {
               if (settings.name == BookDetailScreen.routeName) {
                 final args = settings.arguments as Map<String, String>;
-                final categoryName = args['categoryName']!;
+                final topLevelCategoryKey = args['topLevelCategoryKey']!;
+                final categoryName = args['categoryName']!; // This is the display name
                 final bookName = args['bookName']!;
                 return MaterialPageRoute(
                   builder: (context) {
                     return BookDetailScreen(
+                      topLevelCategoryKey: topLevelCategoryKey,
                       categoryName: categoryName,
                       bookName: bookName,
                     );

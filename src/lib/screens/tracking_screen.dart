@@ -32,83 +32,79 @@ class _TrackingScreenState extends State<TrackingScreen> {
 
     final allBookData = dataProvider.allBookData;
     final trackedItems = progressProvider.getTrackedBooks(allBookData);
+    print("[TrackingScreen] Received ${trackedItems.length} tracked items from ProgressProvider.");
 
     List<Map<String, dynamic>> inProgressItemsData = [];
     List<Map<String, dynamic>> completedItemsData = [];
 
     for (var item in trackedItems) {
-      final categoryName = item['categoryName'] as String;
+      // Correctly extract keys based on the updated ProgressProvider.getTrackedBooks
+      final topLevelCategoryKey = item['topLevelCategoryKey'] as String;
+      final displayCategoryName = item['displayCategoryName'] as String; // For UI
       final bookName = item['bookName'] as String;
+      print("[TrackingScreen] Processing item: Book='$bookName', DisplayCat='$displayCategoryName', TopLevelKey='$topLevelCategoryKey'");
       final bookDetails = item['bookDetails'] as BookDetails;
       final bookProgressData =
           item['progressData'] as Map<String, Map<String, PageProgress>>;
+      // item['completionDate'] is also available if needed directly, but getCompletionDateSync is fine
 
+      // Use topLevelCategoryKey for progress provider calls
       final String? completionDateForCard =
-          progressProvider.getCompletionDateSync(categoryName, bookName);
+          progressProvider.getCompletionDateSync(topLevelCategoryKey, bookName);
 
       final cardData = {
-        'categoryName': categoryName,
+        'topLevelCategoryKey': topLevelCategoryKey, // Store for potential future use or checks
+        'displayCategoryName': displayCategoryName, // Use this for display
         'bookName': bookName,
         'bookDetails': bookDetails,
         'bookProgressData': bookProgressData,
-        'completionDateOverride': completionDateForCard, // Pass it consistently
+        'completionDateOverride': completionDateForCard,
       };
 
-      // Use new provider methods to determine list placement
-      if (progressProvider.isBookCompleted(
-          categoryName, bookName, bookDetails)) {
-        // Check if it's already added to avoid duplicates if getTrackedBooks could somehow return duplicates
-        // (though it shouldn't based on its current logic)
-        if (!completedItemsData.any((c) =>
-            c['categoryName'] == categoryName && c['bookName'] == bookName)) {
-          completedItemsData.add(cardData);
-        }
-      }
-
-      // A book can be completed AND in progress (e.g. learning done, but reviews in progress)
-      // The current UI shows them in "completed" once learning is done.
-      // If we want books that are also in active review to appear in "in progress",
-      // we would add them here as well or instead.
-      // Based on the new definition, `isBookConsideredInProgress` handles this.
-      // If a book is 100% learned AND 100% all reviews, `isBookConsideredInProgress` will be false.
-      // If a book is 100% learned but reviews are ongoing, it will be true.
-      // If a book is completed (learning done) and also in progress (reviews ongoing),
-      // it will appear in BOTH lists if we simply do:
-      //
-      // if (progressProvider.isBookConsideredInProgress(categoryName, bookName, bookDetails)) {
-      //   if (!inProgressItemsData.any((c) => c['categoryName'] == categoryName && c['bookName'] == bookName)) {
-      //     inProgressItemsData.add(cardData);
-      //   }
-      // }
-      //
-      // The original logic implicitly prioritized "completed" if a completion date existed.
-      // Let's maintain that: if it's in `completedItemsData`, it shouldn't also be in `inProgressItemsData`
-      // for the purpose of these two distinct lists in the UI.
       // Determine if the book is completed (learn cycle done)
+      // Use topLevelCategoryKey for progress provider calls
       if (progressProvider.isBookCompleted(
-          categoryName, bookName, bookDetails)) {
+          topLevelCategoryKey, bookName, bookDetails)) {
+        // Ensure checks for adding to lists use a consistent key, e.g., bookName + topLevelCategoryKey
+        // or rely on the fact that getTrackedBooks should ideally not produce functional duplicates
+        // if a book is uniquely identified by its original category and name.
+        // For simplicity, assuming bookName + topLevelCategoryKey is unique enough for list membership here.
         if (!completedItemsData.any((c) =>
-            c['categoryName'] == categoryName && c['bookName'] == bookName)) {
+            c['topLevelCategoryKey'] == topLevelCategoryKey && c['bookName'] == bookName)) {
           completedItemsData.add(cardData);
         }
       }
 
       // Determine if the book is considered in progress (active learning or review)
-      // This is independent of whether it's "completed" in terms of the learn cycle.
-      // A book can be completed (learning done) and still be in progress (reviews ongoing).
+      // Use topLevelCategoryKey for progress provider calls
       if (progressProvider.isBookConsideredInProgress(
-              categoryName, bookName, bookDetails)) {
+              topLevelCategoryKey, bookName, bookDetails)) {
         if (!inProgressItemsData.any((c) =>
-            c['categoryName'] == categoryName && c['bookName'] == bookName)) {
+            c['topLevelCategoryKey'] == topLevelCategoryKey && c['bookName'] == bookName)) {
           inProgressItemsData.add(cardData);
         }
       }
     }
 
-    // The removeWhere block is no longer needed as the new provider methods handle the logic.
+    // This logic ensures a book doesn't appear in "In Progress" if it's fully completed (all review cycles done).
+    // However, if a book is completed (learning cycle) but has ongoing reviews, it will be in "In Progress".
+    // If such a book should *also* be in "Completed", the above logic handles it.
+    // If it should *only* be in "Completed" once the learning cycle is done,
+    // then items added to completedItemsData should be removed from inProgressItemsData.
+    // The current logic allows a book completed (learning) but with ongoing reviews to appear in BOTH lists
+    // if not filtered. Let's refine to ensure a book in completedItemsData is not in inProgressItemsData
+    // if that's the desired distinct view.
+    // The current filter _selectedFilter handles which list is shown, so overlap in underlying data is fine
+    // unless we want to strictly categorize even before filtering.
+    // The existing logic seems to create two lists, and then the UI picks one.
+    // This is fine. The `isBookCompleted` and `isBookConsideredInProgress` flags correctly categorize them.
+    print("[TrackingScreen] inProgressItemsData count: ${inProgressItemsData.length}");
+    print("[TrackingScreen] completedItemsData count: ${completedItemsData.length}");
 
     Widget buildList(List<Map<String, dynamic>> itemsData) {
+      print("[TrackingScreen] buildList called for filter: $_selectedFilter. Item count: ${itemsData.length}");
       if (itemsData.isEmpty) {
+        print("[TrackingScreen] buildList: itemsData is empty. Displaying empty message.");
         return Center(
           child: Text(
             _selectedFilter == TrackingFilter.inProgress
@@ -116,8 +112,10 @@ class _TrackingScreenState extends State<TrackingScreen> {
                 : 'עדיין לא סיימת ספרים.',
             style: TextStyle(
                 fontStyle: FontStyle.italic,
-                color:
-                    Theme.of(context).colorScheme.onSurface.withOpacity(0.6)),
+                color: Theme.of(context)
+                    .colorScheme
+                    .onSurface
+                    .withAlpha((0.6 * 255).round())),
           ),
         );
       }
@@ -146,14 +144,15 @@ class _TrackingScreenState extends State<TrackingScreen> {
                   horizontal: 10.0, vertical: 6.0), // הקטנת Padding
               itemCount: itemsData.length,
               itemBuilder: (ctx, i) {
-                final item = itemsData[i];
+                final itemData = itemsData[i]; // Renamed for clarity
                 return BookCardWidget(
-                  categoryName: item['categoryName'],
-                  bookName: item['bookName'],
-                  bookDetails: item['bookDetails'],
-                  bookProgressData: item['bookProgressData'],
+                  topLevelCategoryKey: itemData['topLevelCategoryKey'], // Added
+                  categoryName: itemData['topLevelCategoryKey'], // Changed to use topLevelCategoryKey
+                  bookName: itemData['bookName'],
+                  bookDetails: itemData['bookDetails'],
+                  bookProgressData: itemData['bookProgressData'],
                   isFromTrackingScreen: true,
-                  completionDateOverride: item['completionDateOverride'],
+                  completionDateOverride: itemData['completionDateOverride'],
                   isInCompletedListContext:
                       _selectedFilter == TrackingFilter.completed,
                 );
@@ -182,14 +181,15 @@ class _TrackingScreenState extends State<TrackingScreen> {
               ),
               itemCount: itemsData.length,
               itemBuilder: (ctx, i) {
-                final item = itemsData[i];
+                final itemData = itemsData[i]; // Renamed for clarity
                 return BookCardWidget(
-                  categoryName: item['categoryName'],
-                  bookName: item['bookName'],
-                  bookDetails: item['bookDetails'],
-                  bookProgressData: item['bookProgressData'],
+                  topLevelCategoryKey: itemData['topLevelCategoryKey'], // Added
+                  categoryName: itemData['topLevelCategoryKey'], // Changed to use topLevelCategoryKey
+                  bookName: itemData['bookName'],
+                  bookDetails: itemData['bookDetails'],
+                  bookProgressData: itemData['bookProgressData'],
                   isFromTrackingScreen: true,
-                  completionDateOverride: item['completionDateOverride'],
+                  completionDateOverride: itemData['completionDateOverride'],
                   isInCompletedListContext:
                       _selectedFilter == TrackingFilter.completed,
                 );

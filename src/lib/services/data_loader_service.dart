@@ -41,9 +41,11 @@ class DataLoaderService {
             jsonData['content_type'] is! String ||
             jsonData['columns'] == null ||
             jsonData['columns'] is! List ||
-            jsonData['data'] == null ||
-            jsonData['data'] is! Map) {
-          print("Skipping invalid JSON file: $path");
+            (jsonData['data'] == null && jsonData['books'] == null && jsonData['subcategories'] == null) || // Check for 'data' or 'books' or 'subcategories'
+            (jsonData['data'] != null && jsonData['data'] is! Map) ||   // Validate 'data' if it exists
+            (jsonData['books'] != null && jsonData['books'] is! Map) || // Validate 'books' if it exists
+            (jsonData['subcategories'] != null && jsonData['subcategories'] is! List)) {  // Validate 'subcategories' if it exists
+          print("Skipping invalid JSON file (missing name, content_type, columns, or any data/books/subcategories, or invalid types): $path");
           continue;
         }
 
