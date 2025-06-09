@@ -134,16 +134,16 @@ class BookCardWidget extends StatelessWidget {
         }
       } else {
         final learnProgress = progressProvider.getLearnProgressPercentage(
-            widget.topLevelCategoryKey, widget.bookName, widget.bookDetails);
+            topLevelCategoryKey, bookName, bookDetails);
         final review1Progress = progressProvider.getReview1ProgressPercentage(
-            widget.topLevelCategoryKey, widget.bookName, widget.bookDetails);
+            topLevelCategoryKey, bookName, bookDetails);
         final review2Progress = progressProvider.getReview2ProgressPercentage(
-            widget.topLevelCategoryKey, widget.bookName, widget.bookDetails);
+            topLevelCategoryKey, bookName, bookDetails);
         final review3Progress = progressProvider.getReview3ProgressPercentage(
-            widget.topLevelCategoryKey, widget.bookName, widget.bookDetails);
+            topLevelCategoryKey, bookName, bookDetails);
 
-        print("[BookCardWidget Tracking] Book: ${widget.bookName} (TopLevelKey: ${widget.topLevelCategoryKey})");
-        print("  BCW Details: contentType=${widget.bookDetails.contentType}, pages=${widget.bookDetails.pages}, isDafType=${widget.bookDetails.isDafType}");
+        print("[BookCardWidget Tracking] Book: $bookName (TopLevelKey: $topLevelCategoryKey)");
+        print("  BCW Details: contentType=${bookDetails.contentType}, pages=${bookDetails.pages}, isDafType=${bookDetails.isDafType}");
         print("  BCW Progress%: Learn=$learnProgress, R1=$review1Progress, R2=$review2Progress, R3=$review3Progress");
 
         final progressBarBackgroundColor = theme.primaryColor.withAlpha((0.15 * 255).round());
