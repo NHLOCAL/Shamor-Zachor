@@ -360,24 +360,36 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
         const SizedBox(height: 20),
         Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
-            ElevatedButton.icon(
-              icon: const Icon(Icons.save_alt),
-              label: const Text('גיבוי'),
-              onPressed: _backupToFile,
-              style: ElevatedButton.styleFrom(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            Expanded(
+              child: ElevatedButton.icon(
+                icon: const Icon(Icons.save_alt),
+                label: const Text('גיבוי'),
+                onPressed: _backupToFile,
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12.0),
+                  ),
+                  textStyle: const TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.bold),
+                ),
               ),
             ),
-            ElevatedButton.icon(
-              icon: const Icon(Icons.restore),
-              label: const Text('שחזור'),
-              onPressed: _restoreFromFile,
-              style: ElevatedButton.styleFrom(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            const SizedBox(width: 12),
+            Expanded(
+              child: ElevatedButton.icon(
+                icon: const Icon(Icons.restore),
+                label: const Text('שחזור'),
+                onPressed: _restoreFromFile,
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12.0),
+                  ),
+                  textStyle: const TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.bold),
+                ),
               ),
             ),
           ],
@@ -403,14 +415,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
       icon: Icons.article_outlined,
       title: 'ספרים מותאמים אישית',
       children: [
-        Center(
+        SizedBox(
+          width: double.infinity,
           child: ElevatedButton.icon(
             onPressed: () => _showAddOrEditBookDialog(),
             icon: const Icon(Icons.add_circle_outline),
             label: const Text('הוסף ספר חדש'),
             style: ElevatedButton.styleFrom(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 24.0, vertical: 12.0),
+              padding: const EdgeInsets.symmetric(vertical: 14.0),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12.0),
+              ),
+              textStyle:
+                  const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
           ),
         ),
@@ -633,6 +650,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
               final bookDetails = bookData['bookDetails'] as BookDetails;
 
               customBookWidgets.add(ListTile(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8.0),
+                ),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 leading: Icon(Icons.menu_book,
                     color: Theme.of(context).colorScheme.primary),
                 title: Text(bookName,
