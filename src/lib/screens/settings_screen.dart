@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'dart:ui' as ui; // Added import alias for dart:ui
 import '../providers/data_provider.dart';
 import '../models/book_model.dart';
 import '../providers/theme_provider.dart'; // Import ThemeProvider
@@ -78,7 +79,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               .surfaceContainerHighest
                               .withAlpha(77), // Corrected: single withAlpha
                         ),
-                        textDirection: TextDirection.rtl,
+                        textDirection: ui.TextDirection.rtl, // Qualified with ui.
                         validator: (value) => (value == null || value.isEmpty)
                             ? 'נא להזין שם קטגוריה'
                             : null,
@@ -96,7 +97,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               .surfaceContainerHighest
                               .withAlpha(77), // Corrected: .withValues to .withAlpha
                         ),
-                        textDirection: TextDirection.rtl,
+                        textDirection: ui.TextDirection.rtl, // Qualified with ui.
                         validator: (value) => (value == null || value.isEmpty)
                             ? 'נא להזין שם ספר'
                             : null,
@@ -144,7 +145,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 .surfaceContainerHighest
                                 .withAlpha(77), // Adjusted alpha directly
                           ),
-                          textDirection: TextDirection.rtl,
+                          textDirection: ui.TextDirection.rtl, // Qualified with ui.
                           validator: (value) {
                             if (isCustomType &&
                                 (value == null || value.isEmpty)) {
@@ -611,7 +612,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final themeProvider = Provider.of<ThemeProvider>(context); // Listen to ThemeProvider changes
 
     return Directionality(
-      textDirection: TextDirection.rtl,
+      textDirection: ui.TextDirection.rtl, // Qualified with ui.
       child: Scaffold(
         appBar: AppBar(
           centerTitle: true,
