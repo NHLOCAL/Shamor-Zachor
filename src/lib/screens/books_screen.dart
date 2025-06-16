@@ -421,7 +421,15 @@ class _BooksScreenState extends State<BooksScreen>
     return Column(
       children: [
         _buildSearchField(dataProvider),
-        TabBar(controller: _tabController!, isScrollable: true, tabs: tabs),
+        TabBar(
+          controller: _tabController!,
+          isScrollable: true,
+          tabs: tabs,
+          // FIX: Explicitly set alignment to start (right in RTL) to prevent centering.
+          tabAlignment: TabAlignment.start,
+          // FIX: Set minimal horizontal padding to remove unwanted large gaps.
+          padding: const EdgeInsets.symmetric(horizontal: 12.0),
+        ),
         Expanded(
             child: TabBarView(controller: _tabController!, children: tabViews)),
       ],
