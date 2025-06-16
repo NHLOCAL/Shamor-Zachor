@@ -11,7 +11,7 @@ class BookCardWidget extends StatelessWidget {
   final String categoryName;
   final String bookName;
   final BookDetails bookDetails;
-  // THIS IS THE FIX: Changed the type of this property.
+
   final Map<String, PageProgress> bookProgressData;
   final bool isFromTrackingScreen;
   final String? completionDateOverride;
@@ -232,7 +232,7 @@ class BookCardWidget extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  '$bookName ($categoryName)',
+                  '$bookName ($topLevelCategoryKey)',
                   style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -404,7 +404,7 @@ class SearchBookCardWidget extends StatelessWidget {
             ),
             const SizedBox(height: 2),
             Text(
-              categoryName,
+              topLevelCategoryKey,
               style: TextStyle(
                   fontSize: 13,
                   color: theme.colorScheme.onSurface
