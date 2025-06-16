@@ -1,4 +1,4 @@
-# קובץ: .github/workflows/build.yml
+# קובץ: .github/workflows/flutter-build.yml
 name: Build Flutter APK + EXE & Create Release
 
 on:
@@ -8,7 +8,7 @@ on:
       - dev
       - release/*
     tags: # הפעל על כל תג (למשל, 0.6.0, 1.0.0, v1.0.1)
-      - '*' # ניתן לצמצם לתבנית ספציפית כמו 'v*' או '[0-9]+.[0-9]+.[0-9]+'
+      - '*'
   workflow_dispatch:
 
 jobs:
@@ -28,26 +28,45 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.32.1' # או הגרסה היציבה העדכנית ביותר/הגרסה שלך
+          flutter-version: '3.32.1'
           channel: 'stable'
 
       - name: Install Dependencies
         working-directory: src
         run: flutter pub get
 
-      # אופציונלי: הרצת טסטים
-      # - name: Run Flutter Tests
-      #   working-directory: src
-      #   run: flutter test
+      # === שלב מאובטח ליצירת קבצי חתימה ===
+      # שלב זה משתמש בסודות מ-GitHub כדי ליצור את קובץ המפתח ואת קובץ ההגדרות
+      # הקבצים נוצרים רק עבור הריצה הנוכחית ונמחקים בסיומה.
+      - name: Decode Keystore and Create Properties File
+        # ה-working-directory חשוב כדי שהקבצים ייווצרו במיקום ש-Gradle מצפה לו
+        working-directory: src/android 
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
+        run: |
+          echo "Creating keystore and properties files..."
+          echo "$KEYSTORE_BASE64" | base64 --decode > app/upload-keystore.jks
+          
+          echo "storePassword=$STORE_PASSWORD" > key.properties
+          echo "keyPassword=$KEY_PASSWORD" >> key.properties
+          echo "keyAlias=$KEY_ALIAS" >> key.properties
+          # הנתיב כאן (storeFile) תואם למיקום שיצרנו את הקובץ (app/upload-keystore.jks)
+          # והוא יחסי לקובץ key.properties שנוצר בתיקיית android
+          echo "storeFile=app/upload-keystore.jks" >> key.properties
+          echo "Keystore and properties files created successfully."
 
-      - name: Build Android APK
+      - name: Build Signed Android APK
         working-directory: src
+        # פקודה זו תשתמש אוטומטית בקבצי החתימה שיצרנו בשלב הקודם
         run: flutter build apk --release
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: android-apk-artifact # שם ייחודי לארטיפקט
+          name: android-apk-artifact
           path: src/build/app/outputs/flutter-apk/app-release.apk
 
   windows:
@@ -67,89 +86,70 @@ jobs:
         working-directory: src
         run: flutter pub get
 
-      # אופציונלי: הרצת טסטים
-      # - name: Run Flutter Tests
-      #   working-directory: src
-      #   run: flutter test
-
       - name: Build Windows EXE
         working-directory: src
         run: flutter build windows --release
 
       - name: Zip Windows Release
-        working-directory: src # קובץ ה-ZIP ייווצר ב-src/windows-release.zip
-        run: |
-          Compress-Archive -Path build/windows/x64/runner/Release/* -DestinationPath windows-release.zip
+        # עבודה ישירות מתיקיית ה-Release כדי שה-ZIP לא יכיל את כל מבנה התיקיות
+        working-directory: src/build/windows/x64/runner/Release 
+        run: Compress-Archive -Path * -DestinationPath ../../../../../../windows-release.zip
 
       - name: Upload Windows ZIP Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: windows-zip-artifact # שם ייחודי לארטיפקט
+          name: windows-zip-artifact
           path: src/windows-release.zip
 
   publish-release:
     name: Publish GitHub Release
     if: startsWith(github.ref, 'refs/tags/') # הרץ רק כאשר נוצר תג
-    needs: [android, windows] # הרץ רק לאחר ששני ה-jobs הקודמים הסתיימו בהצלחה
+    needs: [android, windows]
     runs-on: ubuntu-latest
     permissions:
-      contents: write # הרשאה נדרשת ליצירת Release
+      contents: write
 
     steps:
       - name: Download Android APK artifact
         uses: actions/download-artifact@v4
         with:
           name: android-apk-artifact
-          path: artifacts/android # הורד לתיקייה זמנית
+          path: artifacts/android
 
       - name: Download Windows ZIP artifact
         uses: actions/download-artifact@v4
         with:
           name: windows-zip-artifact
-          path: artifacts/windows # הורד לתיקייה זמנית
+          path: artifacts/windows
 
       - name: Prepare Release Assets and Rename
-        id: prepare_assets # נותן ID לשלב כדי שנוכל להתייחס ל-outputs שלו אם נרצה
+        id: prepare_assets
         env:
-          # github.ref_name יכיל את שם התג, לדוגמה "0.6.0" או "v0.6.0"
-          # אם התג הוא "v0.6.0" ואתה רוצה "0.6.0", תצטרך עיבוד נוסף.
-          # כרגע נשתמש בשם התג כפי שהוא.
           TAG_VERSION: ${{ github.ref_name }}
         run: |
           APK_ORIGINAL_PATH="artifacts/android/app-release.apk"
           APK_NEW_NAME="shamor-vezachor-${TAG_VERSION}.apk"
-          APK_NEW_PATH="artifacts/android/${APK_NEW_NAME}"
+          mv "${APK_ORIGINAL_PATH}" "artifacts/android/${APK_NEW_NAME}"
 
           ZIP_ORIGINAL_PATH="artifacts/windows/windows-release.zip"
-          ZIP_NEW_NAME="shamor-vezachor-${TAG_VERSION}.zip"
-          ZIP_NEW_PATH="artifacts/windows/${ZIP_NEW_NAME}"
-
-          echo "Renaming APK: ${APK_ORIGINAL_PATH} -> ${APK_NEW_PATH}"
-          mv "${APK_ORIGINAL_PATH}" "${APK_NEW_PATH}"
-
-          echo "Renaming ZIP: ${ZIP_ORIGINAL_PATH} -> ${ZIP_NEW_PATH}"
-          mv "${ZIP_ORIGINAL_PATH}" "${ZIP_NEW_PATH}"
+          ZIP_NEW_NAME="shamor-vezachor-${TAG_VERSION}-windows.zip"
+          mv "${ZIP_ORIGINAL_PATH}" "artifacts/windows/${ZIP_NEW_NAME}"
 
           echo "Final files for release:"
           ls -R artifacts/
-
-          # אם תרצה להשתמש בשמות החדשים כ-outputs (לא חובה כאן כי אנו בונים אותם מחדש ב-softprops)
-          # echo "apk_path=${APK_NEW_PATH}" >> $GITHUB_OUTPUT
-          # echo "zip_path=${ZIP_NEW_PATH}" >> $GITHUB_OUTPUT
-
+          
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          # הנתיבים כאן צריכים להתאים לשמות החדשים שנוצרו בשלב הקודם
           files: |
             artifacts/android/shamor-vezachor-${{ github.ref_name }}.apk
-            artifacts/windows/shamor-vezachor-${{ github.ref_name }}.zip
-          tag_name: ${{ github.ref_name }} # השתמש בשם התג המקורי
-          name: Release ${{ github.ref_name }} # שם ה-Release (למשל "Release 0.6.0")
-          body: | # תיאור אופציונלי ל-Release
+            artifacts/windows/shamor-vezachor-${{ github.ref_name }}-windows.zip
+          tag_name: ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
+          body: |
             גרסה ${{ github.ref_name }} של שמור וזכור.
             קבצים מצורפים:
             - `shamor-vezachor-${{ github.ref_name }}.apk` (אנדרואיד)
-            - `shamor-vezachor-${{ github.ref_name }}.zip` (חלונות)
-          draft: true # <-- ה-Release ייווצר כטיוטה
-          prerelease: false # הגדר כ-true אם זו גרסת טרום-שחרור
+            - `shamor-vezachor-${{ github.ref_name }}-windows.zip` (חלונות)
+          draft: true
+          prerelease: false
