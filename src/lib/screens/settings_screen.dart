@@ -30,8 +30,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final categoryNameController =
         TextEditingController(text: categoryOfBook ?? '');
     final bookNameController = TextEditingController(text: bookNameKey ?? '');
-    final pagesController =
-        TextEditingController(text: existingBook?.pages.toString() ?? '');
+    // UPDATED: Use the new pageCountForDisplay getter
+    final pagesController = TextEditingController(
+        text: existingBook?.pageCountForDisplay.toString() ?? '');
 
     final List<String> contentTypes = ['פרק', 'דף', 'סימן', 'אחר...'];
     String? selectedContentType = existingBook?.contentType;
@@ -469,10 +470,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
               child: Text(
                 'אין ספרים מותאמים אישית עדיין.',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      // UPDATED: Fixed deprecated withOpacity
                       color: Theme.of(context)
                           .colorScheme
                           .onSurface
-                          .withOpacity(0.6),
+                          .withAlpha((0.6 * 255).round()),
                     ),
               ),
             ),
@@ -484,9 +486,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _backupToFile() async {
-    // ודא שה-context עדיין קיים
     if (!mounted) return;
-
     final progressProvider =
         Provider.of<ProgressProvider>(context, listen: false);
 
@@ -507,18 +507,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
         return;
       }
 
-      // המרת מחרוזת הגיבוי ל-bytes (Uint8List)
       final Uint8List fileBytes = utf8.encode(backupData);
-
       String formattedDate =
           DateFormat('yyyy-MM-dd_HH-mm').format(DateTime.now());
       String fileName = 'shamor_vezachor_backup_$formattedDate.json';
 
-      // קריאה ל-saveFile עם ה-bytes. זה עובד על כל הפלטפורמות.
       await FilePicker.platform.saveFile(
         dialogTitle: 'אנא בחר היכן לשמור את קובץ הגיבוי:',
         fileName: fileName,
-        bytes: fileBytes, // הפרמטר החשוב שנוסף
+        bytes: fileBytes,
         type: FileType.custom,
         allowedExtensions: ['json'],
       );
@@ -557,7 +554,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
               result.files.single.path != null)) {
         String? fileContent;
         if (result.files.single.bytes != null) {
-          // אם נבחר קובץ מהענן או מקור שאינו מערכת קבצים רגילה
           fileContent = String.fromCharCodes(result.files.single.bytes!);
         } else if (result.files.single.path != null) {
           final filePath = result.files.single.path!;
@@ -577,15 +573,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
               actions: <Widget>[
                 TextButton(
                   child: const Text('ביטול'),
-                  onPressed: () {
-                    Navigator.of(dialogContext).pop(false);
-                  },
+                  onPressed: () => Navigator.of(dialogContext).pop(false),
                 ),
                 TextButton(
                   child: const Text('שחזר'),
-                  onPressed: () {
-                    Navigator.of(dialogContext).pop(true);
-                  },
+                  onPressed: () => Navigator.of(dialogContext).pop(true),
                 ),
               ],
             );
@@ -705,8 +697,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     color: Theme.of(context).colorScheme.primary),
                 title: Text(bookName,
                     style: const TextStyle(fontWeight: FontWeight.w600)),
+                // UPDATED: Use the new pageCountForDisplay getter
                 subtitle: Text(
-                    'קטגוריה: $categoryName | ${bookDetails.pages} ${bookDetails.contentType}'),
+                    'קטגוריה: $categoryName | ${bookDetails.pageCountForDisplay} ${bookDetails.contentType}'),
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [

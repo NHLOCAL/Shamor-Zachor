@@ -1,11 +1,10 @@
 import 'dart:convert';
 import 'package:flutter/services.dart' show rootBundle;
-import 'package:path/path.dart' as p; // For basename
+import 'package:path/path.dart' as p;
 import '../models/book_model.dart';
 import './custom_book_service.dart';
 
 class DataLoaderService {
-  // Cache to prevent repeated loading, similar to lru_cache
   Map<String, BookCategory>? _cachedData;
 
   void clearCache() {
@@ -13,7 +12,7 @@ class DataLoaderService {
   }
 
   Future<Map<String, BookCategory>> loadData() async {
-    final customBookService = CustomBookService(); // Added
+    final customBookService = CustomBookService();
     if (_cachedData != null) {
       return _cachedData!;
     }
@@ -21,7 +20,6 @@ class DataLoaderService {
     final manifestContent = await rootBundle.loadString('AssetManifest.json');
     final Map<String, dynamic> manifestMap = json.decode(manifestContent);
 
-    // Filter keys to get only JSON files from assets/data/
     final List<String> jsonFilesPaths = manifestMap.keys
         .where((String key) =>
             key.startsWith('assets/data/') && key.endsWith('.json'))
@@ -34,23 +32,25 @@ class DataLoaderService {
         final String jsonString = await rootBundle.loadString(path);
         final Map<String, dynamic> jsonData = json.decode(jsonString);
 
-        // Basic validation (can be expanded)
         if (jsonData['name'] == null ||
             jsonData['name'] is! String ||
             jsonData['content_type'] == null ||
             jsonData['content_type'] is! String ||
             jsonData['columns'] == null ||
             jsonData['columns'] is! List ||
-            (jsonData['data'] == null && jsonData['books'] == null && jsonData['subcategories'] == null) || // Check for 'data' or 'books' or 'subcategories'
-            (jsonData['data'] != null && jsonData['data'] is! Map) ||   // Validate 'data' if it exists
-            (jsonData['books'] != null && jsonData['books'] is! Map) || // Validate 'books' if it exists
-            (jsonData['subcategories'] != null && jsonData['subcategories'] is! List)) {  // Validate 'subcategories' if it exists
-          print("Skipping invalid JSON file (missing name, content_type, columns, or any data/books/subcategories, or invalid types): $path");
+            (jsonData['data'] == null &&
+                jsonData['books'] == null &&
+                jsonData['subcategories'] == null) ||
+            (jsonData['data'] != null && jsonData['data'] is! Map) ||
+            (jsonData['books'] != null && jsonData['books'] is! Map) ||
+            (jsonData['subcategories'] != null &&
+                jsonData['subcategories'] is! List)) {
+          print(
+              "Skipping invalid JSON file (missing name, content_type, columns, or any data/books/subcategories, or invalid types): $path");
           continue;
         }
 
-        String fileName =
-            p.basename(path); // Gets "shas.json" from "assets/data/shas.json"
+        String fileName = p.basename(path);
         BookCategory category = BookCategory.fromJson(jsonData, fileName);
         combinedData[category.name] = category;
       } catch (e) {
@@ -58,33 +58,46 @@ class DataLoaderService {
       }
     }
 
-    // Load and merge custom books
-    final List<CustomBook> customBooksList = await customBookService.loadCustomBooks();
+    final List<CustomBook> customBooksList =
+        await customBookService.loadCustomBooks();
     for (final customBook in customBooksList) {
-        int startPageForCustomBook = (customBook.contentType == "דף") ? 2 : 1;
-        final bookDetails = BookDetails(
-            pages: customBook.pages,
-            contentType: customBook.contentType,
-            columns: customBook.columns.isNotEmpty ? customBook.columns : [customBook.contentType],
-            startPage: startPageForCustomBook,
-            isCustom: true,
-            id: customBook.id, // <<< Add this line
+      // This part needs updating if custom books are to support the new structure.
+      // For now, we'll create a single-part book.
+      // A full implementation would require changing the CustomBook model and UI.
+      final bookDetails = BookDetails(
+          contentType: customBook.contentType,
+          columns: customBook.columns.isNotEmpty
+              ? customBook.columns
+              : [customBook.contentType],
+          isCustom: true,
+          id: customBook.id,
+          parts: [
+            BookPart(
+              name: customBook.bookName, // Or a default name like "Main"
+              startPage: customBook.contentType == "דף" ? 2 : 1,
+              endPage:
+                  (customBook.contentType == "דף" ? 1 : 0) + customBook.pages,
+              excludedPages: [], // Custom books UI needs to be updated to support this
+            )
+          ]);
+
+      if (combinedData.containsKey(customBook.categoryName)) {
+        combinedData[customBook.categoryName]!.books[customBook.bookName] =
+            bookDetails;
+      } else {
+        combinedData[customBook.categoryName] = BookCategory(
+          name: customBook.categoryName,
+          contentType: customBook.contentType,
+          columns: customBook.columns.isNotEmpty
+              ? customBook.columns
+              : [customBook.contentType],
+          books: {customBook.bookName: bookDetails},
+          defaultStartPage: customBook.contentType == "דף" ? 2 : 1,
+          isCustom: true,
+          sourceFile: "custom_books.json",
         );
-        if (combinedData.containsKey(customBook.categoryName)) {
-            combinedData[customBook.categoryName]!.books[customBook.bookName] = bookDetails;
-        } else {
-            combinedData[customBook.categoryName] = BookCategory(
-                name: customBook.categoryName,
-                contentType: customBook.contentType,
-                columns: customBook.columns.isNotEmpty ? customBook.columns : [customBook.contentType],
-                books: {customBook.bookName: bookDetails},
-                defaultStartPage: startPageForCustomBook,
-                isCustom: true,
-                sourceFile: "custom_books.json",
-            );
-        }
+      }
     }
-    // End of custom book loading
 
     _cachedData = combinedData;
     return combinedData;

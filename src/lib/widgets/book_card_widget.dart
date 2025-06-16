@@ -7,8 +7,8 @@ import '../screens/book_detail_screen.dart';
 import './hebrew_utils.dart';
 
 class BookCardWidget extends StatelessWidget {
-  final String topLevelCategoryKey; // Added
-  final String categoryName; // This is the display name (e.g., subcategory name)
+  final String topLevelCategoryKey;
+  final String categoryName;
   final String bookName;
   final BookDetails bookDetails;
   final Map<String, Map<String, PageProgress>> bookProgressData;
@@ -18,7 +18,7 @@ class BookCardWidget extends StatelessWidget {
 
   const BookCardWidget({
     super.key,
-    required this.topLevelCategoryKey, // Added
+    required this.topLevelCategoryKey,
     required this.categoryName,
     required this.bookName,
     required this.bookDetails,
@@ -90,8 +90,6 @@ class BookCardWidget extends StatelessWidget {
     final theme = Theme.of(context);
 
     if (isFromTrackingScreen) {
-      // When from TrackingScreen, categoryName is displayCategoryName.
-      // Progress operations must use topLevelCategoryKey.
       Widget progressWidget;
       String statusText;
       String percentageTextForOverlay;
@@ -99,11 +97,15 @@ class BookCardWidget extends StatelessWidget {
 
       if (isInCompletedListContext) {
         final numCompletedCycles = progressProvider.getNumberOfCompletedCycles(
-            topLevelCategoryKey, bookName, bookDetails); // Use topLevelCategoryKey
+            topLevelCategoryKey, bookName, bookDetails);
 
         Color displayColor = theme.primaryColor.withAlpha((0.4 * 255).round());
-        if (numCompletedCycles == 2) displayColor = theme.primaryColor.withAlpha((0.6 * 255).round());
-        if (numCompletedCycles == 3) displayColor = theme.primaryColor.withAlpha((0.8 * 255).round());
+        if (numCompletedCycles == 2) {
+          displayColor = theme.primaryColor.withAlpha((0.6 * 255).round());
+        }
+        if (numCompletedCycles == 3) {
+          displayColor = theme.primaryColor.withAlpha((0.8 * 255).round());
+        }
         if (numCompletedCycles >= 4) displayColor = theme.primaryColor;
 
         progressWidget = LinearProgressIndicator(
@@ -142,14 +144,8 @@ class BookCardWidget extends StatelessWidget {
         final review3Progress = progressProvider.getReview3ProgressPercentage(
             topLevelCategoryKey, bookName, bookDetails);
 
-        print("[BookCardWidget Tracking] Book: $bookName (TopLevelKey: $topLevelCategoryKey)");
-        print("  BCW Details: contentType=${bookDetails.contentType}, pages=${bookDetails.pages}, isDafType=${bookDetails.isDafType}");
-        print("  BCW Progress%: Learn=$learnProgress, R1=$review1Progress, R2=$review2Progress, R3=$review3Progress");
-
-        final progressBarBackgroundColor = theme.primaryColor.withAlpha((0.15 * 255).round());
-
-        print("  BCW ProgressBar Stack: LearnValue=$learnProgress, R1Value=$review1Progress, R2Value=$review2Progress, R3Value=$review3Progress");
-        // print("    LearnIndicator: value=$learnProgress, minHeight=24, bgColor=${progressBarBackgroundColor}, valueColor=${theme.primaryColor.withAlpha((0.3 * 255).round())}");
+        final progressBarBackgroundColor =
+            theme.primaryColor.withAlpha((0.15 * 255).round());
 
         progressWidget = Stack(
           children: [
@@ -218,10 +214,7 @@ class BookCardWidget extends StatelessWidget {
           textPercentageToShow = review3Progress;
         }
         percentageTextForOverlay = "${(textPercentageToShow * 100).round()}%";
-        print("  BCW OverlayText: textPercentageToShow=$textPercentageToShow, final percentageTextForOverlay='$percentageTextForOverlay'");
-        // _getLastPageDisplay uses bookProgressData which is passed in, so it's context-agnostic.
-        // However, if it were to make direct provider calls, it would need topLevelCategoryKey.
-        // For now, it seems okay as it operates on provided data.
+
         statusText = _getLastPageDisplay(context);
       }
 
@@ -233,7 +226,7 @@ class BookCardWidget extends StatelessWidget {
               BookDetailScreen.routeName,
               arguments: {
                 'topLevelCategoryKey': topLevelCategoryKey,
-                'categoryName': categoryName, // This is displayCategoryName
+                'categoryName': categoryName,
                 'bookName': bookName,
               },
             );
@@ -248,7 +241,6 @@ class BookCardWidget extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  // Displaying categoryName (which is displayCategoryName) is correct for UI.
                   '$bookName ($categoryName)',
                   style: TextStyle(
                       fontSize: 16,
@@ -278,7 +270,8 @@ class BookCardWidget extends StatelessWidget {
                   statusText,
                   style: TextStyle(
                       fontSize: 12,
-                      color: theme.colorScheme.onSurface.withAlpha((0.8 * 255).round())),
+                      color: theme.colorScheme.onSurface
+                          .withAlpha((0.8 * 255).round())),
                   textAlign: TextAlign.center,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -290,10 +283,8 @@ class BookCardWidget extends StatelessWidget {
       );
     }
 
-    // When not from TrackingScreen (i.e., from BooksScreen), categoryName might be
-    // a top-level name or a sub-category name. Progress operations here should use topLevelCategoryKey.
-    final bool isCompleted =
-        progressProvider.isBookCompleted(topLevelCategoryKey, bookName, bookDetails); // Use topLevelCategoryKey
+    final bool isCompleted = progressProvider.isBookCompleted(
+        topLevelCategoryKey, bookName, bookDetails);
     return SizedBox(
       height: 70,
       child: ElevatedButton(
@@ -310,7 +301,7 @@ class BookCardWidget extends StatelessWidget {
             BookDetailScreen.routeName,
             arguments: {
               'topLevelCategoryKey': topLevelCategoryKey,
-              'categoryName': categoryName, // This is displayCategoryName
+              'categoryName': categoryName,
               'bookName': bookName,
             },
           );
@@ -327,7 +318,8 @@ class BookCardWidget extends StatelessWidget {
                 if (isCompleted)
                   Padding(
                     padding: const EdgeInsets.only(left: 4.0),
-                    child: Icon(Icons.check_circle, size: 18, color: theme.colorScheme.primary),
+                    child: Icon(Icons.check_circle,
+                        size: 18, color: theme.colorScheme.primary),
                   ),
                 Flexible(
                   child: Text(
@@ -349,14 +341,14 @@ class BookCardWidget extends StatelessWidget {
 }
 
 class SearchBookCardWidget extends StatelessWidget {
-  final String topLevelCategoryKey; // Added
-  final String categoryName; // This is the display name (e.g., subcategory name)
+  final String topLevelCategoryKey;
+  final String categoryName;
   final String bookName;
   final BookDetails bookDetails;
 
   const SearchBookCardWidget({
     super.key,
-    required this.topLevelCategoryKey, // Added
+    required this.topLevelCategoryKey,
     required this.categoryName,
     required this.bookName,
     required this.bookDetails,
@@ -367,9 +359,9 @@ class SearchBookCardWidget extends StatelessWidget {
     final progressProvider =
         Provider.of<ProgressProvider>(context, listen: false);
     final theme = Theme.of(context);
-    // categoryName here is displayCategoryName. Progress ops need topLevelCategoryKey.
-    final bool isCompleted =
-        progressProvider.isBookCompleted(topLevelCategoryKey, bookName, bookDetails); // Use topLevelCategoryKey
+
+    final bool isCompleted = progressProvider.isBookCompleted(
+        topLevelCategoryKey, bookName, bookDetails);
 
     return SizedBox(
       height: 85,
@@ -387,7 +379,7 @@ class SearchBookCardWidget extends StatelessWidget {
             BookDetailScreen.routeName,
             arguments: {
               'topLevelCategoryKey': topLevelCategoryKey,
-              'categoryName': categoryName, // This is displayCategoryName
+              'categoryName': categoryName,
               'bookName': bookName,
             },
           );
@@ -404,7 +396,8 @@ class SearchBookCardWidget extends StatelessWidget {
                 if (isCompleted)
                   Padding(
                     padding: const EdgeInsets.only(left: 4.0),
-                    child: Icon(Icons.check_circle, size: 18, color: theme.colorScheme.primary),
+                    child: Icon(Icons.check_circle,
+                        size: 18, color: theme.colorScheme.primary),
                   ),
                 Flexible(
                   child: Text(
@@ -419,11 +412,12 @@ class SearchBookCardWidget extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 2),
-            Text( // Displaying categoryName (which is displayCategoryName) is correct for UI.
+            Text(
               categoryName,
               style: TextStyle(
                   fontSize: 13,
-                  color: theme.colorScheme.onSurface.withAlpha((0.7 * 255).round())),
+                  color: theme.colorScheme.onSurface
+                      .withAlpha((0.7 * 255).round())),
               textAlign: TextAlign.center,
               overflow: TextOverflow.ellipsis,
               maxLines: 1,

@@ -1,23 +1,15 @@
-// import 'dart:convert'; // Unused import removed
-
-// Helper to safely get string
 String _asString(dynamic value) => value is String ? value : '';
-// Helper to safely get int
 int _asInt(dynamic value) =>
     value is int ? value : (value is String ? (int.tryParse(value) ?? 0) : 0);
-// Helper to safely get list of strings
 List<String> _asListString(dynamic value) =>
     value is List ? List<String>.from(value.map((e) => e.toString())) : [];
-// Helper to safely get map
 Map<String, dynamic> _asMap(dynamic value) =>
     value is Map ? Map<String, dynamic>.from(value) : {};
 
-// Helper class for findBookRecursive
 class BookSearchResult {
   final BookDetails bookDetails;
-  final String
-      categoryName; // The name of the category/subcategory containing the book
-  final BookCategory category; // The actual category/subcategory object
+  final String categoryName;
+  final BookCategory category;
 
   BookSearchResult(this.bookDetails, this.categoryName, this.category);
 }
@@ -47,11 +39,9 @@ class BookCategory {
 
   factory BookCategory.fromJson(Map<String, dynamic> json, String sourceFile,
       {bool isCustom = false, String? parentCategoryName}) {
-    // Read from 'books' first, then fallback to 'data'
     Map<String, dynamic> rawData = _asMap(json['books'] ?? json['data']);
     Map<String, BookDetails> parsedBooks = {};
 
-    // Adjust defaultStartPage logic
     int defaultStartPage = _asString(json['content_type']) == "דף" ? 2 : 1;
 
     rawData.forEach((key, value) {
@@ -60,7 +50,6 @@ class BookCategory {
           value,
           contentType: _asString(json['content_type']),
           columns: _asListString(json['columns']),
-          startPage: defaultStartPage,
           isCustom: isCustom,
         );
       }
@@ -91,69 +80,146 @@ class BookCategory {
     );
   }
 
-  int getTotalPagesForBook(String bookName) {
-    final book = books[bookName];
-    if (book == null) return 0;
-    if (book.columns.contains("עמוד א") && book.columns.contains("עמוד ב") ||
-        book.columns.contains("עמוד א'") && book.columns.contains("עמוד ב'")) {
-      return 2 * book.pages;
-    }
-    return book.pages;
-  }
-
   BookSearchResult? findBookRecursive(String bookNameToFind) {
-    // Check direct books of the current category
     if (books.containsKey(bookNameToFind)) {
       return BookSearchResult(books[bookNameToFind]!, name, this);
     }
-
-    // Recursively check subcategories
     if (subcategories != null) {
       for (final subCategory in subcategories!) {
         final result = subCategory.findBookRecursive(bookNameToFind);
         if (result != null) {
-          return result; // Book found in a subcategory
+          return result;
         }
       }
     }
-    return null; // Book not found in this branch
+    return null;
+  }
+}
+
+// NEW: Helper class for a learnable item (page, amud, etc.)
+class LearnableItem {
+  final String partName;
+  final int pageNumber;
+  final String amudKey; // 'a' for regular pages/chapters, 'a' or 'b' for daf
+
+  LearnableItem({
+    required this.partName,
+    required this.pageNumber,
+    required this.amudKey,
+  });
+}
+
+// NEW: Represents a section of a book (e.g., "Hilchos Tefillah")
+class BookPart {
+  final String name;
+  final int startPage;
+  final int endPage;
+  final List<int> excludedPages;
+
+  BookPart({
+    required this.name,
+    required this.startPage,
+    required this.endPage,
+    this.excludedPages = const [],
+  });
+
+  factory BookPart.fromJson(Map<String, dynamic> json) {
+    return BookPart(
+      name: _asString(json['name']),
+      startPage: _asInt(json['start']),
+      endPage: _asInt(json['end']),
+      excludedPages:
+          (json['exclude'] as List<dynamic>?)?.map((e) => _asInt(e)).toList() ??
+              [],
+    );
   }
 }
 
 class BookDetails {
-  final int pages;
   final String contentType;
   final List<String> columns;
-  final int startPage;
   final bool isCustom;
-  final String? id; // Added id field
+  final String? id;
+  final List<BookPart> parts;
+
+  List<LearnableItem>? _learnableItemsCache;
 
   BookDetails({
-    required this.pages,
     required this.contentType,
     required this.columns,
-    required this.startPage,
-    this.isCustom = false, // Default value for isCustom
-    this.id, // Added id to constructor
+    required this.parts,
+    this.isCustom = false,
+    this.id,
   });
 
   factory BookDetails.fromJson(
     Map<String, dynamic> json, {
     required String contentType,
     required List<String> columns,
-    required int startPage,
     bool isCustom = false,
-    String? id, // Added id to factory parameters
+    String? id,
   }) {
+    List<BookPart> parts = [];
+    if (json['parts'] is List) {
+      parts = (json['parts'] as List)
+          .map((partJson) => BookPart.fromJson(_asMap(partJson)))
+          .toList();
+    } else if (json.containsKey('pages')) {
+      int startPage =
+          _asInt(json['startPage'] ?? (contentType == "דף" ? 2 : 1));
+      parts.add(BookPart(
+        name: "ראשי",
+        startPage: startPage,
+        endPage: _asInt(json['pages']) + startPage - 1,
+      ));
+    }
+
     return BookDetails(
-      pages: _asInt(json['pages']),
       contentType: contentType,
       columns: columns,
-      startPage: startPage,
+      parts: parts,
       isCustom: isCustom,
-      id: id, // Passed id to constructor
+      id: id,
     );
   }
 
+  // NEW GETTER to solve UI issues
+  int get pageCountForDisplay {
+    if (parts.isEmpty) return 0;
+    // Sums the number of pages (end - start + 1) across all parts.
+    return parts
+        .map((p) => p.endPage - p.startPage + 1)
+        .reduce((a, b) => a + b);
+  }
+
   bool get isDafType => contentType == "דף";
+
+  List<LearnableItem> get learnableItems {
+    if (_learnableItemsCache != null) return _learnableItemsCache!;
+
+    final List<LearnableItem> items = [];
+    for (final part in parts) {
+      for (int i = part.startPage; i <= part.endPage; i++) {
+        if (part.excludedPages.contains(i)) {
+          continue;
+        }
+
+        if (isDafType) {
+          items.add(
+              LearnableItem(partName: part.name, pageNumber: i, amudKey: 'a'));
+          items.add(
+              LearnableItem(partName: part.name, pageNumber: i, amudKey: 'b'));
+        } else {
+          items.add(
+              LearnableItem(partName: part.name, pageNumber: i, amudKey: 'a'));
+        }
+      }
+    }
+    _learnableItemsCache = items;
+    return items;
+  }
+
+  int get totalLearnableItems => learnableItems.length;
+
+  bool get hasMultipleParts => parts.length > 1;
 }

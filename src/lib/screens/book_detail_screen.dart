@@ -10,7 +10,7 @@ class BookDetailScreen extends StatefulWidget {
   static const routeName = '/book-detail';
 
   final String topLevelCategoryKey;
-  final String categoryName; // This is the display name (e.g., subcategory name)
+  final String categoryName;
   final String bookName;
 
   const BookDetailScreen({
@@ -37,39 +37,18 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
   @override
   void initState() {
     super.initState();
-
     final progressProvider =
         Provider.of<ProgressProvider>(context, listen: false);
     _completionSubscription = progressProvider.completionEvents.listen((event) {
-      if (!mounted) return; // Ensure widget is still in the tree
-
+      if (!mounted) return;
       if (event.type == CompletionEventType.bookCompleted) {
         CompletionAnimationOverlay.show(
-          context,
-          "אשריך! תזכה ללמוד ספרים אחרים ולסיימם!",
-        );
+            context, "אשריך! תזכה ללמוד ספרים אחרים ולסיימם!");
       } else if (event.type == CompletionEventType.reviewCycleCompleted) {
         CompletionAnimationOverlay.show(
-          context,
-          "מזל טוב! הלומד וחוזר כזורע וקוצר!",
-        );
+            context, "מזל טוב! הלומד וחוזר כזורע וקוצר!");
       }
     });
-
-    // WidgetsBinding.instance.addPostFrameCallback((_) { // This logic for _isSelectAllChecked is no longer needed
-    //   if (!mounted) return;
-    //   final dataProvider = Provider.of<DataProvider>(context, listen: false);
-    //   final bookDetails =
-    //       dataProvider.getBookDetails(widget.categoryName, widget.bookName);
-    //   if (bookDetails != null) {
-    //     if (mounted) {
-    //       // setState(() {
-    //       //   _isSelectAllChecked = progressProvider.isBookCompleted(
-    //       //       widget.categoryName, widget.bookName, bookDetails);
-    //       // });
-    //     }
-    //   }
-    // });
   }
 
   @override
@@ -88,22 +67,16 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
               const Text("פעולה זו תשנה את כל הסימונים בעמודה זו. האם להמשיך?"),
           actions: <Widget>[
             TextButton(
-              child: const Text("לא"),
-              onPressed: () {
-                Navigator.of(context).pop(false);
-              },
-            ),
+                child: const Text("לא"),
+                onPressed: () => Navigator.of(context).pop(false)),
             TextButton(
-              child: const Text("כן"),
-              onPressed: () {
-                Navigator.of(context).pop(true);
-              },
-            ),
+                child: const Text("כן"),
+                onPressed: () => Navigator.of(context).pop(true)),
           ],
         );
       },
     );
-    return result ?? false; // Return false if dialog is dismissed
+    return result ?? false;
   }
 
   @override
@@ -112,17 +85,16 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
     final progressProvider = Provider.of<ProgressProvider>(context);
     final theme = Theme.of(context);
 
-    // Fetch BookDetails using topLevelCategoryKey and findBookRecursive
-    final topLevelCategory = dataProvider.allBookData[widget.topLevelCategoryKey];
-    final bookSearchResult = topLevelCategory?.findBookRecursive(widget.bookName);
+    final topLevelCategory =
+        dataProvider.allBookData[widget.topLevelCategoryKey];
+    final bookSearchResult =
+        topLevelCategory?.findBookRecursive(widget.bookName);
     final bookDetails = bookSearchResult?.bookDetails;
-    // widget.categoryName is the display name (passed as argument)
-    // bookSearchResult?.categoryName is the actual category name from the data structure
 
     if (bookDetails == null) {
       return Scaffold(
-        appBar: AppBar(title: Text('שגיאה: ${widget.bookName}')), // Show book name in error title
-        body: Center(child: Text('פרטי הספר \'${widget.bookName}\' לא נמצאו תחת הקטגוריה הראשית \'${widget.topLevelCategoryKey}\'. Display Category: \'${widget.categoryName}\'')),
+        appBar: AppBar(title: Text('שגיאה: ${widget.bookName}')),
+        body: Center(child: Text('פרטי הספר \'${widget.bookName}\' לא נמצאו.')),
       );
     }
 
@@ -137,6 +109,9 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
         : Icon(Icons.circle_outlined,
             color: theme.colorScheme.onSurface.withOpacity(0.5));
 
+    // NEW: Get the list of learnable items from the model
+    final learnableItems = bookDetails.learnableItems;
+
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
@@ -144,43 +119,22 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
           title: Text(widget.bookName),
           actions: [
             Padding(
-              padding: const EdgeInsets.all(12.0), // הגדלתי Padding
-              child: isBookCompleteIcon,
-            ),
+                padding: const EdgeInsets.all(12.0), child: isBookCompleteIcon)
           ],
         ),
         body: Card(
-          margin: const EdgeInsets.all(12), // מרווח סביב הכרטיס
-          elevation: 2, // הצללה קלה
-          color: theme.colorScheme.surface, // צבע רקע לכרטיס
+          margin: const EdgeInsets.all(12),
+          elevation: 2,
+          color: theme.colorScheme.surface,
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           child: Padding(
             padding: const EdgeInsets.all(15.0),
             child: Column(
               children: [
-                // Padding( // Global "Select All" checkbox removed
-                //   padding: const EdgeInsets.only(bottom: 10.0),
-                //   child: Row(
-                //     mainAxisAlignment: MainAxisAlignment.end,
-                //     children: [
-                //       Text('סמן הכל כנלמד',
-                //           style: TextStyle(
-                //               fontSize: 16,
-                //               color: theme.colorScheme.onSurface)),
-                //       const SizedBox(width: 8),
-                //       Checkbox(
-                //         value: _isSelectAllChecked,
-                //         onChanged: (val) => _toggleSelectAll(
-                //             val, progressProvider, bookDetails),
-                //         activeColor: theme.primaryColor,
-                //       ),
-                //     ],
-                //   ),
-                // ),
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                      vertical: 8, horizontal: 8), // Adjusted padding
+                  padding:
+                      const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
                   decoration: BoxDecoration(
                       border: Border(
                           bottom: BorderSide(
@@ -193,7 +147,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                           bookDetails.contentType,
                           style: TextStyle(
                               fontWeight: FontWeight.bold,
-                              fontSize: 14, // Adjusted font size
+                              fontSize: 14,
                               color: theme.colorScheme.onSurface),
                           textAlign: TextAlign.right,
                         ),
@@ -209,49 +163,25 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                                 columnSelectionStates[columnId];
 
                             return Expanded(
-                              flex:
-                                  1, // Explicitly set flex: 1 for header columns
                               child: Column(
                                 mainAxisSize: MainAxisSize.min,
-                                mainAxisAlignment: MainAxisAlignment
-                                    .center, // Center content vertically
-                                crossAxisAlignment: CrossAxisAlignment
-                                    .center, // Center content horizontally
                                 children: [
                                   Checkbox(
                                     visualDensity: VisualDensity.compact,
                                     value: checkboxValue,
                                     onChanged: (bool? newValue) async {
-                                      // Determine the intended 'select' action for toggleSelectAllForColumn
-                                      // If newValue is true, user wants to select all.
-                                      // If newValue is false or null (when tristate cycles), user wants to deselect all for that column.
                                       final bool selectAction =
                                           newValue == true;
-
-                                      // Only show warning if attempting to check (select) or if it's mixed and becoming unchecked
-                                      // Or, more simply, always show if there's an actual change intended by user click
-                                      // The current logic in _showWarningDialog is generic enough.
-                                      // Let's refine: warning is about RESETTING data.
-                                      // Selecting a column resets other columns. Deselecting just deselects.
-                                      // So, warning is most critical when selectAction is true.
-                                      // However, the prompt implies the warning is for *any* such bulk action.
-
-                                      // If current state is already what newValue suggests (e.g. already true, newValue is true), do nothing.
-                                      // This can happen if the state update from provider is faster than expected.
-                                      // However, `onChanged` for a checkbox usually fires only on actual user interaction that changes the state.
-                                      // Let's assume `newValue` represents a state the user *wants* to transition to.
-
                                       final confirmed =
                                           await _showWarningDialog();
                                       if (confirmed && mounted) {
-                                        // Use listen:false for actions
                                         await Provider.of<ProgressProvider>(
                                                 context,
                                                 listen: false)
                                             .toggleSelectAllForColumn(
                                           widget.topLevelCategoryKey,
                                           widget.bookName,
-                                          bookDetails, // bookDetails is already confirmed not null
+                                          bookDetails,
                                           columnId,
                                           selectAction,
                                         );
@@ -261,16 +191,12 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                                     activeColor: theme.primaryColor,
                                   ),
                                   FittedBox(
-                                    // Ensure text fits, especially for longer labels if any
                                     fit: BoxFit.scaleDown,
-                                    child: Text(
-                                      columnLabel,
-                                      style: TextStyle(
-                                          fontSize: 11,
-                                          color: theme.colorScheme.onSurface),
-                                      overflow: TextOverflow
-                                          .ellipsis, // Prevent overflow with ellipsis
-                                    ),
+                                    child: Text(columnLabel,
+                                        style: TextStyle(
+                                            fontSize: 11,
+                                            color: theme.colorScheme.onSurface),
+                                        overflow: TextOverflow.ellipsis),
                                   ),
                                 ],
                               ),
@@ -281,28 +207,27 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                     ],
                   ),
                 ),
+                // NEW: ListView.builder based on learnableItems
                 Expanded(
-                  child: ListView.separated(
-                    itemCount:
-                        bookDetails.pages * (bookDetails.isDafType ? 2 : 1),
-                    separatorBuilder: (context, index) => Divider(
-                        height: 1,
-                        thickness: 0.5,
-                        color: theme.dividerColor.withOpacity(0.2)),
+                  child: ListView.builder(
+                    itemCount: learnableItems.length,
                     itemBuilder: (ctx, index) {
-                      int pageNumber;
-                      String amudKey;
-                      String rowLabel;
+                      final item = learnableItems[index];
+                      final pageNumber = item.pageNumber;
+                      final amudKey = item.amudKey;
+                      final partName = item.partName;
 
+                      // Check if a header for a new part is needed
+                      bool showHeader = bookDetails.hasMultipleParts &&
+                          (index == 0 ||
+                              partName != learnableItems[index - 1].partName);
+
+                      String rowLabel;
                       if (bookDetails.isDafType) {
-                        pageNumber = bookDetails.startPage + (index ~/ 2);
-                        amudKey = (index % 2 == 0) ? "a" : "b";
                         final amudSymbol = (amudKey == "b") ? ":" : ".";
                         rowLabel =
                             "${HebrewUtils.intToGematria(pageNumber)}$amudSymbol";
                       } else {
-                        pageNumber = bookDetails.startPage + index;
-                        amudKey = "a";
                         rowLabel = HebrewUtils.intToGematria(pageNumber);
                       }
 
@@ -313,7 +238,6 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                               pageNumber.toString(),
                               amudKey);
 
-                      // רקע מתחלף לשורות
                       final rowBackgroundColor =
                           index % (bookDetails.isDafType ? 4 : 2) <
                                   (bookDetails.isDafType ? 2 : 1)
@@ -321,107 +245,69 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                               : theme.colorScheme.primaryContainer
                                   .withOpacity(0.15);
 
-                      return Container(
-                        color: rowBackgroundColor,
-                        padding: const EdgeInsets.symmetric(
-                            vertical: 2, horizontal: 8), // הקטנתי Padding אנכי
-                        child: Row(
-                          children: [
-                            Expanded(
-                              flex: 2,
-                              child: Text(rowLabel,
-                                  textAlign: TextAlign.right,
-                                  style: TextStyle(
-                                      fontFamily: 'Heebo',
-                                      color: theme.colorScheme.onSurface)),
-                            ),
-                            Expanded(
-                              flex: 10,
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment
-                                    .spaceEvenly, // This might not be strictly necessary if all children are Expanded
-                                children: [
-                                  Expanded(
-                                    flex: 1,
-                                    child: Tooltip(
-                                        message: "לימוד",
-                                        child: Checkbox(
-                                            visualDensity:
-                                                VisualDensity.compact,
-                                            value: pageProgress.learn,
-                                            onChanged: (val) =>
-                                                progressProvider.updateProgress(
-                                                    widget.topLevelCategoryKey, // Corrected: Only one instance
-                                                    widget.bookName,
-                                                    pageNumber,
-                                                    amudKey,
-                                                    ProgressProvider
-                                                        .learnColumn, // Use constant
-                                                    val ?? false,
-                                                    bookDetails))),
-                                  ),
-                                  Expanded(
-                                    flex: 1,
-                                    child: Tooltip(
-                                        message: "חזרה 1",
-                                        child: Checkbox(
-                                            visualDensity:
-                                                VisualDensity.compact,
-                                            value: pageProgress.review1,
-                                            onChanged: (val) =>
-                                                progressProvider.updateProgress(
-                                                    widget.topLevelCategoryKey, // Corrected
-                                                    widget.bookName,
-                                                    pageNumber,
-                                                    amudKey,
-                                                    ProgressProvider
-                                                        .review1Column, // Use constant
-                                                    val ?? false,
-                                                    bookDetails))),
-                                  ),
-                                  Expanded(
-                                    flex: 1,
-                                    child: Tooltip(
-                                        message: "חזרה 2",
-                                        child: Checkbox(
-                                            visualDensity:
-                                                VisualDensity.compact,
-                                            value: pageProgress.review2,
-                                            onChanged: (val) =>
-                                                progressProvider.updateProgress(
-                                                    widget.topLevelCategoryKey, // Corrected
-                                                    widget.bookName,
-                                                    pageNumber,
-                                                    amudKey,
-                                                    ProgressProvider
-                                                        .review2Column, // Use constant
-                                                    val ?? false,
-                                                    bookDetails))),
-                                  ),
-                                  Expanded(
-                                    flex: 1,
-                                    child: Tooltip(
-                                        message: "חזרה 3",
-                                        child: Checkbox(
-                                            visualDensity:
-                                                VisualDensity.compact,
-                                            value: pageProgress.review3,
-                                            onChanged: (val) =>
-                                                progressProvider.updateProgress(
-                                                    widget.topLevelCategoryKey, // Corrected
-                                                    widget.bookName,
-                                                    pageNumber,
-                                                    amudKey,
-                                                    ProgressProvider
-                                                        .review3Column, // Use constant
-                                                    val ?? false,
-                                                    bookDetails))),
-                                  ),
-                                ],
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (showHeader)
+                            Padding(
+                              padding: const EdgeInsets.only(
+                                  top: 16.0, right: 8.0, bottom: 4.0),
+                              child: Text(
+                                partName,
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                  color: theme.colorScheme.primary,
+                                ),
                               ),
                             ),
-                          ],
-                        ),
+                          if (showHeader) const Divider(height: 1),
+                          Container(
+                            color: rowBackgroundColor,
+                            padding: const EdgeInsets.symmetric(
+                                vertical: 2, horizontal: 8),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  flex: 2,
+                                  child: Text(rowLabel,
+                                      textAlign: TextAlign.right,
+                                      style: TextStyle(
+                                          fontFamily: 'Heebo',
+                                          color: theme.colorScheme.onSurface)),
+                                ),
+                                Expanded(
+                                  flex: 10,
+                                  child: Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceEvenly,
+                                    children: _columnData.map((col) {
+                                      final columnName = col['id']!;
+                                      return Expanded(
+                                        child: Tooltip(
+                                          message: col['label']!,
+                                          child: Checkbox(
+                                            visualDensity:
+                                                VisualDensity.compact,
+                                            value: pageProgress
+                                                .getProperty(columnName),
+                                            onChanged: (val) =>
+                                                progressProvider.updateProgress(
+                                                    widget.topLevelCategoryKey,
+                                                    widget.bookName,
+                                                    pageNumber,
+                                                    amudKey,
+                                                    columnName,
+                                                    val ?? false,
+                                                    bookDetails),
+                                          ),
+                                        ),
+                                      );
+                                    }).toList(),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       );
                     },
                   ),
