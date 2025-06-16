@@ -57,27 +57,29 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
           index: _selectedIndex,
           children: _widgetOptions,
         ),
-        bottomNavigationBar: NavigationBar(
-          selectedIndex: _selectedIndex,
-          onDestinationSelected: _onItemTapped,
-          destinations: const <NavigationDestination>[
-            NavigationDestination(
-              icon: Icon(Icons.timeline_outlined),
-              selectedIcon: Icon(Icons.timeline),
-              label: 'מעקב',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.menu_book_outlined),
-              selectedIcon: Icon(Icons.menu_book),
-              label: 'ספרים',
-            ),
-            NavigationDestination(
-              // New destination added
-              icon: Icon(Icons.settings_outlined),
-              selectedIcon: Icon(Icons.settings),
-              label: 'הגדרות',
-            ),
-          ],
+        bottomNavigationBar: Material(
+          child: NavigationBar(
+            selectedIndex: _selectedIndex,
+            onDestinationSelected: _onItemTapped,
+            destinations: const <NavigationDestination>[
+              NavigationDestination(
+                icon: Icon(Icons.timeline_outlined),
+                selectedIcon: Icon(Icons.timeline),
+                label: 'מעקב',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.menu_book_outlined),
+                selectedIcon: Icon(Icons.menu_book),
+                label: 'ספרים',
+              ),
+              NavigationDestination(
+                // New destination added
+                icon: Icon(Icons.settings_outlined),
+                selectedIcon: Icon(Icons.settings),
+                label: 'הגדרות',
+              ),
+            ],
+          ),
         ),
       ),
     );

@@ -32,79 +32,52 @@ class _TrackingScreenState extends State<TrackingScreen> {
 
     final allBookData = dataProvider.allBookData;
     final trackedItems = progressProvider.getTrackedBooks(allBookData);
-    print("[TrackingScreen] Received ${trackedItems.length} tracked items from ProgressProvider.");
 
     List<Map<String, dynamic>> inProgressItemsData = [];
     List<Map<String, dynamic>> completedItemsData = [];
 
     for (var item in trackedItems) {
-      // Correctly extract keys based on the updated ProgressProvider.getTrackedBooks
       final topLevelCategoryKey = item['topLevelCategoryKey'] as String;
-      final displayCategoryName = item['displayCategoryName'] as String; // For UI
       final bookName = item['bookName'] as String;
-      print("[TrackingScreen] Processing item: Book='$bookName', DisplayCat='$displayCategoryName', TopLevelKey='$topLevelCategoryKey'");
       final bookDetails = item['bookDetails'] as BookDetails;
-      final bookProgressData =
-          item['progressData'] as Map<String, Map<String, PageProgress>>;
-      // item['completionDate'] is also available if needed directly, but getCompletionDateSync is fine
 
-      // Use topLevelCategoryKey for progress provider calls
+      // THIS IS THE FIX: Changed the cast to the correct, flat map type.
+      final bookProgressData =
+          item['progressData'] as Map<String, PageProgress>;
+
       final String? completionDateForCard =
           progressProvider.getCompletionDateSync(topLevelCategoryKey, bookName);
 
       final cardData = {
-        'topLevelCategoryKey': topLevelCategoryKey, // Store for potential future use or checks
-        'displayCategoryName': displayCategoryName, // Use this for display
+        'topLevelCategoryKey': item['topLevelCategoryKey'],
+        'displayCategoryName': item['displayCategoryName'],
         'bookName': bookName,
         'bookDetails': bookDetails,
         'bookProgressData': bookProgressData,
         'completionDateOverride': completionDateForCard,
       };
 
-      // Determine if the book is completed (learn cycle done)
-      // Use topLevelCategoryKey for progress provider calls
       if (progressProvider.isBookCompleted(
           topLevelCategoryKey, bookName, bookDetails)) {
-        // Ensure checks for adding to lists use a consistent key, e.g., bookName + topLevelCategoryKey
-        // or rely on the fact that getTrackedBooks should ideally not produce functional duplicates
-        // if a book is uniquely identified by its original category and name.
-        // For simplicity, assuming bookName + topLevelCategoryKey is unique enough for list membership here.
         if (!completedItemsData.any((c) =>
-            c['topLevelCategoryKey'] == topLevelCategoryKey && c['bookName'] == bookName)) {
+            c['topLevelCategoryKey'] == topLevelCategoryKey &&
+            c['bookName'] == bookName)) {
           completedItemsData.add(cardData);
         }
       }
 
-      // Determine if the book is considered in progress (active learning or review)
-      // Use topLevelCategoryKey for progress provider calls
       if (progressProvider.isBookConsideredInProgress(
-              topLevelCategoryKey, bookName, bookDetails)) {
+          topLevelCategoryKey, bookName, bookDetails)) {
         if (!inProgressItemsData.any((c) =>
-            c['topLevelCategoryKey'] == topLevelCategoryKey && c['bookName'] == bookName)) {
+            c['topLevelCategoryKey'] == topLevelCategoryKey &&
+            c['bookName'] == bookName)) {
           inProgressItemsData.add(cardData);
         }
       }
     }
 
-    // This logic ensures a book doesn't appear in "In Progress" if it's fully completed (all review cycles done).
-    // However, if a book is completed (learning cycle) but has ongoing reviews, it will be in "In Progress".
-    // If such a book should *also* be in "Completed", the above logic handles it.
-    // If it should *only* be in "Completed" once the learning cycle is done,
-    // then items added to completedItemsData should be removed from inProgressItemsData.
-    // The current logic allows a book completed (learning) but with ongoing reviews to appear in BOTH lists
-    // if not filtered. Let's refine to ensure a book in completedItemsData is not in inProgressItemsData
-    // if that's the desired distinct view.
-    // The current filter _selectedFilter handles which list is shown, so overlap in underlying data is fine
-    // unless we want to strictly categorize even before filtering.
-    // The existing logic seems to create two lists, and then the UI picks one.
-    // This is fine. The `isBookCompleted` and `isBookConsideredInProgress` flags correctly categorize them.
-    print("[TrackingScreen] inProgressItemsData count: ${inProgressItemsData.length}");
-    print("[TrackingScreen] completedItemsData count: ${completedItemsData.length}");
-
     Widget buildList(List<Map<String, dynamic>> itemsData) {
-      print("[TrackingScreen] buildList called for filter: $_selectedFilter. Item count: ${itemsData.length}");
       if (itemsData.isEmpty) {
-        print("[TrackingScreen] buildList: itemsData is empty. Displaying empty message.");
         return Center(
           child: Text(
             _selectedFilter == TrackingFilter.inProgress
@@ -121,33 +94,26 @@ class _TrackingScreenState extends State<TrackingScreen> {
       }
       return LayoutBuilder(
         builder: (context, constraints) {
-          // הגדרות לרוחב כרטיס וגובה מינימלי רצוי
-          const double desiredCardWidth =
-              350; // רוחב רצוי/מינימלי לכרטיס לפני שהוא נדחס מדי
-          const double minCardHeightForGridView =
-              120; // גובה מינימלי שאנחנו רוצים לכרטיס ב-GridView
-
+          const double desiredCardWidth = 350;
+          const double minCardHeightForGridView = 120;
           int crossAxisCount =
               (constraints.maxWidth / desiredCardWidth).floor();
           if (crossAxisCount < 1) crossAxisCount = 1;
-
-          // אם הרוחב הכולל קטן מדי, או אם החישוב נותן רק עמודה אחת, נעבור ל-ListView
-          // או אם הרוחב המוקצה לכל כרטיס קטן מדי
           if (constraints.maxWidth < 500 || crossAxisCount == 1) {
-            // הוגדל הערך ל-500
-            crossAxisCount = 1; // כפה ListView
+            crossAxisCount = 1;
           }
 
           if (crossAxisCount == 1) {
             return ListView.builder(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 10.0, vertical: 6.0), // הקטנת Padding
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 10.0, vertical: 6.0),
               itemCount: itemsData.length,
               itemBuilder: (ctx, i) {
-                final itemData = itemsData[i]; // Renamed for clarity
+                final itemData = itemsData[i];
                 return BookCardWidget(
-                  topLevelCategoryKey: itemData['topLevelCategoryKey'], // Added
-                  categoryName: itemData['topLevelCategoryKey'], // Changed to use topLevelCategoryKey
+                  topLevelCategoryKey: itemData['topLevelCategoryKey'],
+                  // Pass the display name for the card
+                  categoryName: itemData['displayCategoryName'],
                   bookName: itemData['bookName'],
                   bookDetails: itemData['bookDetails'],
                   bookProgressData: itemData['bookProgressData'],
@@ -159,32 +125,26 @@ class _TrackingScreenState extends State<TrackingScreen> {
               },
             );
           } else {
-            // חישוב childAspectRatio כדי לנסות לשמור על גובה מינימלי
             double childWidth =
                 (constraints.maxWidth - (10 * (crossAxisCount + 1))) /
                     crossAxisCount;
             double aspectRatio = childWidth / minCardHeightForGridView;
-            if (childWidth < desiredCardWidth * 0.8) {
-              // אם הרוחב קטן מדי, אולי עדיף פחות עמודות
-              // אפשר לשקול היגיון נוסף כאן, למשל להקטין crossAxisCount
-            }
 
             return GridView.builder(
-              padding: const EdgeInsets.all(10.0), // הקטנת Padding
+              padding: const EdgeInsets.all(10.0),
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: crossAxisCount,
-                crossAxisSpacing: 10, // הקטנת מרווח
-                mainAxisSpacing: 10, // הקטנת מרווח
-                childAspectRatio: aspectRatio > 1.8
-                    ? aspectRatio
-                    : 1.8, //  הבטחת יחס מינימלי כדי לתת גובה
+                crossAxisSpacing: 10,
+                mainAxisSpacing: 10,
+                childAspectRatio: aspectRatio > 1.8 ? aspectRatio : 1.8,
               ),
               itemCount: itemsData.length,
               itemBuilder: (ctx, i) {
-                final itemData = itemsData[i]; // Renamed for clarity
+                final itemData = itemsData[i];
                 return BookCardWidget(
-                  topLevelCategoryKey: itemData['topLevelCategoryKey'], // Added
-                  categoryName: itemData['topLevelCategoryKey'], // Changed to use topLevelCategoryKey
+                  topLevelCategoryKey: itemData['topLevelCategoryKey'],
+                  // Pass the display name for the card
+                  categoryName: itemData['displayCategoryName'],
                   bookName: itemData['bookName'],
                   bookDetails: itemData['bookDetails'],
                   bookProgressData: itemData['bookProgressData'],

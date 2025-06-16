@@ -11,6 +11,7 @@ class BookCardWidget extends StatelessWidget {
   final String categoryName;
   final String bookName;
   final BookDetails bookDetails;
+  // THIS IS THE FIX: Changed the type of this property.
   final Map<String, PageProgress> bookProgressData;
   final bool isFromTrackingScreen;
   final String? completionDateOverride;
@@ -48,8 +49,10 @@ class BookCardWidget extends StatelessWidget {
     final learnableItems = bookDetails.learnableItems;
     if (learnableItems.isEmpty) return "";
 
+    // Find the learnable item corresponding to the highest learned index
     final lastLearnedItem = learnableItems.firstWhere(
       (item) => item.absoluteIndex == maxLearnedIndex,
+      // Fallback in case of data inconsistency
       orElse: () => learnableItems.last,
     );
 

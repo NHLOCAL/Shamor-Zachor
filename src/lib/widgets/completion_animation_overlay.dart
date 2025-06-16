@@ -4,25 +4,32 @@ import 'package:confetti/confetti.dart';
 
 class CompletionAnimationOverlay extends StatefulWidget {
   final String message;
+  final VoidCallback onDismiss;
 
   const CompletionAnimationOverlay({
     super.key,
     required this.message,
+    required this.onDismiss,
   });
 
   static void show(BuildContext context, String message) {
     OverlayEntry? overlayEntry;
-    overlayEntry = OverlayEntry(
-      builder: (context) => CompletionAnimationOverlay(message: message),
-    );
-    Overlay.of(context).insert(overlayEntry);
 
-    // Auto-dismiss after a delay
-    Future.delayed(const Duration(seconds: 7), () {
+    void removeOverlay() {
       if (overlayEntry != null) {
-        overlayEntry.remove();
+        overlayEntry!.remove();
+        overlayEntry = null;
       }
-    });
+    }
+
+    overlayEntry = OverlayEntry(
+      builder: (context) => CompletionAnimationOverlay(
+        message: message,
+        onDismiss: removeOverlay,
+      ),
+    );
+    // The fix is here: using the '!' operator to assert that overlayEntry is not null.
+    Overlay.of(context).insert(overlayEntry!);
   }
 
   @override
@@ -42,11 +49,9 @@ class _CompletionAnimationOverlayState
         ConfettiController(duration: const Duration(seconds: 5));
     _confettiController.play();
 
-    // Fallback dismiss timer in case the one in `show` has issues with context
     _dismissTimer = Timer(const Duration(seconds: 7), () {
-      if (mounted && Navigator.of(context).canPop()) {
-        // This check is more for dialogs; for overlays, direct removal is typical.
-        // The primary removal is handled by the OverlayEntry itself.
+      if (mounted) {
+        widget.onDismiss();
       }
     });
   }
@@ -62,7 +67,7 @@ class _CompletionAnimationOverlayState
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Material(
-      color: theme.colorScheme.scrim, // Semi-transparent background
+      color: theme.colorScheme.scrim.withOpacity(0.5),
       child: Stack(
         alignment: Alignment.center,
         children: [
@@ -82,8 +87,6 @@ class _CompletionAnimationOverlayState
                 theme.colorScheme.error,
                 theme.colorScheme.primaryContainer
               ],
-              // particleDrag: 0.05, // apply drag to the confetti
-              // createParticlePath: drawStar, // define a custom shape/path.
             ),
           ),
           Center(
@@ -110,7 +113,7 @@ class _CompletionAnimationOverlayState
                     widget.message,
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      fontSize: 22, // Increased font size
+                      fontSize: 22,
                       fontWeight: FontWeight.bold,
                       color: Theme.of(context).textTheme.titleLarge?.color,
                     ),
@@ -120,15 +123,7 @@ class _CompletionAnimationOverlayState
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Theme.of(context).primaryColor,
                     ),
-                    onPressed: () {
-                      // Manually dismiss: find the overlay entry and remove it.
-                      // This is tricky as the entry isn't directly available here.
-                      // The auto-dismiss is the primary mechanism.
-                      // For manual dismissal, the `show` method would need to return the OverlayEntry
-                      // or use a more robust overlay management system.
-                      // For now, this button can be decorative or trigger a log.
-                      print("Animation acknowledged by user.");
-                    },
+                    onPressed: widget.onDismiss,
                     child: Text(
                       'אישור',
                       style: TextStyle(color: theme.colorScheme.onPrimary),
@@ -142,27 +137,4 @@ class _CompletionAnimationOverlayState
       ),
     );
   }
-
-  // Example of a custom path for confetti
-  // Path drawStar(Size size) {
-  //   // Method to convert degree to radians
-  //   double degToRad(double deg) => deg * (pi / 180.0);
-  //   const numberOfPoints = 5;
-  //   final halfWidth = size.width / 2;
-  //   final externalRadius = halfWidth;
-  //   final internalRadius = halfWidth / 2.5;
-  //   final degreesPerStep = degToRad(360 / numberOfPoints);
-  //   final halfDegreesPerStep = degreesPerStep / 2;
-  //   final path = Path();
-  //   final fullAngle = degToRad(360);
-  //   path.moveTo(size.width, halfWidth);
-  //   for (double step = 0; step < fullAngle; step += degreesPerStep) {
-  //     path.lineTo(halfWidth + externalRadius * cos(step),
-  //         halfWidth + externalRadius * sin(step));
-  //     path.lineTo(halfWidth + internalRadius * cos(step + halfDegreesPerStep),
-  //         halfWidth + internalRadius * sin(step + halfDegreesPerStep));
-  //   }
-  //   path.close();
-  //   return path;
-  // }
 }
