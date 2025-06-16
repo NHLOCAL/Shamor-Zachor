@@ -43,9 +43,6 @@ flutter_native_splash:
   ios: true
   web: true
 
-# ==========================================================
-# ===== תצורת אייקונים (עודכנה ותוקנה) =====================
-# ==========================================================
 flutter_launcher_icons:
   # הגדרות כלליות
   android: true
@@ -53,16 +50,10 @@ flutter_launcher_icons:
   min_sdk_android: 21
   remove_alpha_ios: true
 
-  # קובץ התמונה הראשי (לאנדרואיד ישן, iOS, וכו')
   image_path: "assets/launcher_icon/app_icon.png"
 
-  # --- הגדרות לאייקונים אדפטיביים (אנדרואיד 8.0 ומעלה) ---
-  # 1. צבע הרקע שיוצג מאחורי הסמל במערכות שכופות צורה (ריבוע, עיגול וכו')
-  #    ההגדרה הזו הייתה אצלך והיא נכונה ומצוינת!
   adaptive_icon_background: "#FFDBCF"
-  
-  # 2. קובץ החזית (Foreground) - זהו החלק החשוב שנוסף
-  #    יש ליצור קובץ המכיל רק את הסמל המרכזי על רקע שקוף לחלוטין
+
   adaptive_icon_foreground: "assets/launcher_icon/app_icon_foreground.png"
 
   # הגדרות לפלטפורמות אחרות
@@ -84,8 +75,4 @@ flutter:
   assets:
     - assets/data/
     - assets/launcher_icon/
-    # שינוי חשוב: הנתיב עם השם הארוך בעברית הוסר.
-    # יש לתת לקבצים בתיקיית assets/images/ שמות פשוטים באנגלית.
-    # לדוגמה, אם יש לך תמונה בתיקייה, שנה את שמה ל-my_image.png
-    # והוסף לכאן שורה: - assets/images/my_image.png
     - assets/images/ 
