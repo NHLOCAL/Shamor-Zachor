@@ -5,7 +5,6 @@ import '../models/book_model.dart';
 import '../services/progress_service.dart';
 import './data_provider.dart';
 
-// ... (CompletionEventType and CompletionEvent remain the same) ...
 enum CompletionEventType {
   bookCompleted,
   reviewCycleCompleted,
@@ -57,7 +56,6 @@ class ProgressProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  // ... (backupProgress and restoreProgress remain the same) ...
   Future<String?> backupProgress() async {
     try {
       return await _progressService.exportProgressData();
@@ -82,96 +80,82 @@ class ProgressProvider with ChangeNotifier {
     }
   }
 
-  Map<String, Map<String, PageProgress>> getProgressForBook(
+  Map<String, PageProgress> getProgressForBook(
       String categoryName, String bookName) {
     return _fullProgress[categoryName]?[bookName] ?? {};
   }
 
-  PageProgress getProgressForPageAmud(
-      String categoryName, String bookName, String pageStr, String amudKey) {
-    return _fullProgress[categoryName]?[bookName]?[pageStr]?[amudKey] ??
+  PageProgress getProgressForItem(
+      String categoryName, String bookName, int absoluteIndex) {
+    return _fullProgress[categoryName]?[bookName]?[absoluteIndex.toString()] ??
         PageProgress();
   }
 
-  Future<void> updateProgress(
-      String categoryName,
-      String bookName,
-      int pageNumber,
-      String amudKey,
-      String columnName,
-      bool value,
-      BookDetails bookDetails,
+  Future<void> updateProgress(String categoryName, String bookName,
+      int absoluteIndex, String columnName, bool value, BookDetails bookDetails,
       {bool isBulkUpdate = false}) async {
+    final itemIndexKey = absoluteIndex.toString();
     await _progressService.saveProgress(
-        categoryName, bookName, pageNumber, amudKey, columnName, value);
+        categoryName, bookName, itemIndexKey, columnName, value);
 
     _fullProgress.putIfAbsent(categoryName, () => {});
     _fullProgress[categoryName]!.putIfAbsent(bookName, () => {});
     _fullProgress[categoryName]![bookName]!
-        .putIfAbsent(pageNumber.toString(), () => {});
-    _fullProgress[categoryName]![bookName]![pageNumber.toString()]!
-        .putIfAbsent(amudKey, () => PageProgress());
+        .putIfAbsent(itemIndexKey, () => PageProgress());
 
-    PageProgress pageProgress = _fullProgress[categoryName]![bookName]![
-        pageNumber.toString()]![amudKey]!;
+    PageProgress pageProgress =
+        _fullProgress[categoryName]![bookName]![itemIndexKey]!;
     pageProgress.setProperty(columnName, value);
 
     if (pageProgress.isEmpty) {
-      _fullProgress[categoryName]![bookName]![pageNumber.toString()]!
-          .remove(amudKey);
-      if (_fullProgress[categoryName]![bookName]![pageNumber.toString()]!
-          .isEmpty) {
-        _fullProgress[categoryName]![bookName]!.remove(pageNumber.toString());
-        if (_fullProgress[categoryName]![bookName]!.isEmpty) {
-          _fullProgress[categoryName]!.remove(bookName);
-          if (_fullProgress[categoryName]!.isEmpty) {
-            _fullProgress.remove(categoryName);
-          }
+      _fullProgress[categoryName]![bookName]!.remove(itemIndexKey);
+      if (_fullProgress[categoryName]![bookName]!.isEmpty) {
+        _fullProgress[categoryName]!.remove(bookName);
+        if (_fullProgress[categoryName]!.isEmpty) {
+          _fullProgress.remove(categoryName);
         }
       }
     }
 
-    if (value && columnName == 'learn') {
-      bool wasAlreadyCompleted =
-          getCompletionDateSync(categoryName, bookName) != null;
-      bool isNowComplete = isBookCompleted(categoryName, bookName, bookDetails);
+    if (value && !isBulkUpdate) {
+      if (columnName == 'learn') {
+        bool wasAlreadyCompleted =
+            getCompletionDateSync(categoryName, bookName) != null;
+        bool isNowComplete =
+            isBookCompleted(categoryName, bookName, bookDetails);
 
-      if (isNowComplete && !wasAlreadyCompleted && !isBulkUpdate) {
-        await _progressService.saveCompletionDate(categoryName, bookName);
-        _completionDates = await _progressService.loadCompletionDates();
-        _completionEventController.add(CompletionEvent(
-            CompletionEventType.bookCompleted,
-            bookName: bookName));
-      }
-    } else if (value &&
-        (columnName == 'review1' ||
-            columnName == 'review2' ||
-            columnName == 'review3') &&
-        !isBulkUpdate) {
-      int? reviewCycleNumber;
-      if (columnName == 'review1') {
-        reviewCycleNumber = 1;
-      } else if (columnName == 'review2')
-        reviewCycleNumber = 2;
-      else if (columnName == 'review3') reviewCycleNumber = 3;
-
-      if (reviewCycleNumber != null) {
-        bool cycleJustCompleted = _isReviewCycleCompleted(
-            categoryName, bookName, reviewCycleNumber, bookDetails);
-
-        if (cycleJustCompleted) {
+        if (isNowComplete && !wasAlreadyCompleted) {
+          await _progressService.saveCompletionDate(categoryName, bookName);
+          _completionDates = await _progressService.loadCompletionDates();
           _completionEventController.add(CompletionEvent(
-            CompletionEventType.reviewCycleCompleted,
-            bookName: bookName,
-            reviewCycleNumber: reviewCycleNumber,
-          ));
+              CompletionEventType.bookCompleted,
+              bookName: bookName));
+        }
+      } else if (columnName.startsWith('review')) {
+        int? reviewCycleNumber;
+        if (columnName == 'review1')
+          reviewCycleNumber = 1;
+        else if (columnName == 'review2')
+          reviewCycleNumber = 2;
+        else if (columnName == 'review3') reviewCycleNumber = 3;
+
+        if (reviewCycleNumber != null) {
+          bool cycleJustCompleted = _isReviewCycleCompleted(
+              categoryName, bookName, reviewCycleNumber, bookDetails);
+
+          if (cycleJustCompleted) {
+            _completionEventController.add(CompletionEvent(
+              CompletionEventType.reviewCycleCompleted,
+              bookName: bookName,
+              reviewCycleNumber: reviewCycleNumber,
+            ));
+          }
         }
       }
     }
     notifyListeners();
   }
 
-  // ... (dispose, toggleSelectAll remain mostly the same, but might need checks) ...
   @override
   void dispose() {
     _completionEventController.close();
@@ -182,7 +166,6 @@ class ProgressProvider with ChangeNotifier {
     return _completionDates[categoryName]?[bookName];
   }
 
-  // UPDATED: Uses the new totalLearnableItems getter
   bool isBookCompleted(
       String categoryName, String bookName, BookDetails bookDetails) {
     final bookProgress = getProgressForBook(categoryName, bookName);
@@ -194,7 +177,6 @@ class ProgressProvider with ChangeNotifier {
     return learnedItemsCount >= totalTargetItems;
   }
 
-  // UPDATED: Uses the new totalLearnableItems getter
   bool _isReviewCycleCompleted(
     String categoryName,
     String bookName,
@@ -207,31 +189,27 @@ class ProgressProvider with ChangeNotifier {
 
     int completedItemsInCycle = 0;
 
-    // We now count based on the actual progress data, not by iterating the book structure
-    bookProgress.forEach((pageKey, amudMap) {
-      amudMap.forEach((amudKey, pageProgress) {
-        bool isItemCompletedInCycle = false;
-        switch (reviewCycleNumber) {
-          case 1:
-            isItemCompletedInCycle = pageProgress.review1;
-            break;
-          case 2:
-            isItemCompletedInCycle = pageProgress.review2;
-            break;
-          case 3:
-            isItemCompletedInCycle = pageProgress.review3;
-            break;
-        }
-        if (isItemCompletedInCycle) {
-          completedItemsInCycle++;
-        }
-      });
+    bookProgress.forEach((itemIndexKey, pageProgress) {
+      bool isItemCompletedInCycle = false;
+      switch (reviewCycleNumber) {
+        case 1:
+          isItemCompletedInCycle = pageProgress.review1;
+          break;
+        case 2:
+          isItemCompletedInCycle = pageProgress.review2;
+          break;
+        case 3:
+          isItemCompletedInCycle = pageProgress.review3;
+          break;
+      }
+      if (isItemCompletedInCycle) {
+        completedItemsInCycle++;
+      }
     });
 
     return completedItemsInCycle >= totalItems;
   }
 
-  // ... (getTrackedBooks remains the same) ...
   List<Map<String, dynamic>> getTrackedBooks(
       Map<String, BookCategory> allBookData) {
     List<Map<String, dynamic>> tracked = [];
@@ -298,7 +276,6 @@ class ProgressProvider with ChangeNotifier {
     return tracked;
   }
 
-  // UPDATED: Iterates over learnableItems
   Future<void> toggleSelectAllForColumn(
     String categoryName,
     String bookName,
@@ -307,19 +284,14 @@ class ProgressProvider with ChangeNotifier {
     bool select,
   ) async {
     if (!allColumnNames.contains(columnName)) {
-      if (kDebugMode) print("Invalid column name: $columnName");
       return;
     }
 
-    final learnableItems = bookDetails.learnableItems;
-    for (final item in learnableItems) {
-      // Call updateProgress for each item. It will handle saving.
-      // Set isBulkUpdate to true to prevent firing completion events for every single item.
+    for (final item in bookDetails.learnableItems) {
       await updateProgress(
         categoryName,
         bookName,
-        item.pageNumber,
-        item.amudKey,
+        item.absoluteIndex,
         columnName,
         select,
         bookDetails,
@@ -327,7 +299,6 @@ class ProgressProvider with ChangeNotifier {
       );
     }
 
-    // After bulk update, check for completion once
     if (select && columnName == 'learn') {
       bool wasAlreadyCompleted =
           getCompletionDateSync(categoryName, bookName) != null;
@@ -335,17 +306,11 @@ class ProgressProvider with ChangeNotifier {
       if (isNowComplete && !wasAlreadyCompleted) {
         await _progressService.saveCompletionDate(categoryName, bookName);
         _completionDates = await _progressService.loadCompletionDates();
-        _completionEventController.add(CompletionEvent(
-            CompletionEventType.bookCompleted,
-            bookName: bookName));
       }
     }
-    // A similar check could be added for review cycles if needed
-
     notifyListeners();
   }
 
-  // UPDATED: Uses totalLearnableItems
   Map<String, bool?> getColumnSelectionStates(
     String categoryName,
     String bookName,
@@ -370,13 +335,12 @@ class ProgressProvider with ChangeNotifier {
     for (String currentColumnName in allColumnNames) {
       int itemsChecked = 0;
       if (bookProgress != null) {
-        for (var item in bookDetails.learnableItems) {
-          final pageAmudProgress =
-              bookProgress[item.pageNumber.toString()]?[item.amudKey];
-          if (pageAmudProgress?.getProperty(currentColumnName) ?? false) {
+        bookDetails.learnableItems.forEach((item) {
+          final itemProgress = bookProgress[item.absoluteIndex.toString()];
+          if (itemProgress?.getProperty(currentColumnName) ?? false) {
             itemsChecked++;
           }
-        }
+        });
       }
 
       if (itemsChecked == 0) {
@@ -384,13 +348,12 @@ class ProgressProvider with ChangeNotifier {
       } else if (itemsChecked == totalItems) {
         columnStates[currentColumnName] = true;
       } else {
-        columnStates[currentColumnName] = null; // tristate
+        columnStates[currentColumnName] = null;
       }
     }
     return columnStates;
   }
 
-  // UPDATED: All percentage functions now use totalLearnableItems
   double getLearnProgressPercentage(
       String categoryName, String bookName, BookDetails bookDetails) {
     final bookProgress = getProgressForBook(categoryName, bookName);
@@ -435,7 +398,6 @@ class ProgressProvider with ChangeNotifier {
     return review3PagesCount / totalTargetItems;
   }
 
-  // UPDATED: Uses totalLearnableItems
   int getNumberOfCompletedCycles(
       String categoryName, String bookName, BookDetails bookDetails) {
     final bookProgress = getProgressForBook(categoryName, bookName);
@@ -444,25 +406,16 @@ class ProgressProvider with ChangeNotifier {
 
     int cycles = 0;
     if (ProgressService.getCompletedPagesCount(bookProgress) >=
-        totalTargetItems) {
-      cycles++;
-    }
+        totalTargetItems) cycles++;
     if (ProgressService.getReview1CompletedPagesCount(bookProgress) >=
-        totalTargetItems) {
-      cycles++;
-    }
+        totalTargetItems) cycles++;
     if (ProgressService.getReview2CompletedPagesCount(bookProgress) >=
-        totalTargetItems) {
-      cycles++;
-    }
+        totalTargetItems) cycles++;
     if (ProgressService.getReview3CompletedPagesCount(bookProgress) >=
-        totalTargetItems) {
-      cycles++;
-    }
+        totalTargetItems) cycles++;
     return cycles;
   }
 
-  // ... (isBookInActiveReview and isBookConsideredInProgress remain the same logic, but now based on accurate percentages) ...
   bool isBookInActiveReview(
       String categoryName, String bookName, BookDetails bookDetails) {
     if (!isBookCompleted(categoryName, bookName, bookDetails)) {
@@ -500,25 +453,18 @@ class ProgressProvider with ChangeNotifier {
     double review3Progress =
         getReview3ProgressPercentage(categoryName, bookName, bookDetails);
 
-    if (learnProgress > 0 && learnProgress < 1.0) {
+    if (learnProgress > 0 && learnProgress < 1.0) return true;
+    if (learnProgress == 1.0 && review1Progress > 0 && review1Progress < 1.0)
       return true;
-    }
-    if (learnProgress == 1.0 && review1Progress > 0 && review1Progress < 1.0) {
-      return true;
-    }
     if (learnProgress == 1.0 &&
         review1Progress == 1.0 &&
         review2Progress > 0 &&
-        review2Progress < 1.0) {
-      return true;
-    }
+        review2Progress < 1.0) return true;
     if (learnProgress == 1.0 &&
         review1Progress == 1.0 &&
         review2Progress == 1.0 &&
         review3Progress > 0 &&
-        review3Progress < 1.0) {
-      return true;
-    }
+        review3Progress < 1.0) return true;
 
     return false;
   }

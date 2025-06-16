@@ -96,20 +96,20 @@ class BookCategory {
   }
 }
 
-// NEW: Helper class for a learnable item (page, amud, etc.)
 class LearnableItem {
   final String partName;
   final int pageNumber;
-  final String amudKey; // 'a' for regular pages/chapters, 'a' or 'b' for daf
+  final String amudKey;
+  final int absoluteIndex;
 
   LearnableItem({
     required this.partName,
     required this.pageNumber,
     required this.amudKey,
+    required this.absoluteIndex,
   });
 }
 
-// NEW: Represents a section of a book (e.g., "Hilchos Tefillah")
 class BookPart {
   final String name;
   final int startPage;
@@ -183,10 +183,8 @@ class BookDetails {
     );
   }
 
-  // NEW GETTER to solve UI issues
   int get pageCountForDisplay {
     if (parts.isEmpty) return 0;
-    // Sums the number of pages (end - start + 1) across all parts.
     return parts
         .map((p) => p.endPage - p.startPage + 1)
         .reduce((a, b) => a + b);
@@ -198,6 +196,7 @@ class BookDetails {
     if (_learnableItemsCache != null) return _learnableItemsCache!;
 
     final List<LearnableItem> items = [];
+    int currentIndex = 0;
     for (final part in parts) {
       for (int i = part.startPage; i <= part.endPage; i++) {
         if (part.excludedPages.contains(i)) {
@@ -205,13 +204,22 @@ class BookDetails {
         }
 
         if (isDafType) {
-          items.add(
-              LearnableItem(partName: part.name, pageNumber: i, amudKey: 'a'));
-          items.add(
-              LearnableItem(partName: part.name, pageNumber: i, amudKey: 'b'));
+          items.add(LearnableItem(
+              partName: part.name,
+              pageNumber: i,
+              amudKey: 'a',
+              absoluteIndex: currentIndex++));
+          items.add(LearnableItem(
+              partName: part.name,
+              pageNumber: i,
+              amudKey: 'b',
+              absoluteIndex: currentIndex++));
         } else {
-          items.add(
-              LearnableItem(partName: part.name, pageNumber: i, amudKey: 'a'));
+          items.add(LearnableItem(
+              partName: part.name,
+              pageNumber: i,
+              amudKey: 'a',
+              absoluteIndex: currentIndex++));
         }
       }
     }

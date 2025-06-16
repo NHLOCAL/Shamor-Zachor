@@ -11,7 +11,7 @@ class BookCardWidget extends StatelessWidget {
   final String categoryName;
   final String bookName;
   final BookDetails bookDetails;
-  final Map<String, Map<String, PageProgress>> bookProgressData;
+  final Map<String, PageProgress> bookProgressData;
   final bool isFromTrackingScreen;
   final String? completionDateOverride;
   final bool isInCompletedListContext;
@@ -33,53 +33,43 @@ class BookCardWidget extends StatelessWidget {
       return "עדיין לא התחלת";
     }
 
-    int lastPageNum = 0;
-    String lastAmud = "";
-    bool found = false;
-
-    List<int> pageNumbers = bookProgressData.keys
-        .map((e) => int.tryParse(e) ?? 0)
-        .toList()
-      ..sort((a, b) => b.compareTo(a));
-
-    for (int pageNum in pageNumbers) {
-      final pageStr = pageNum.toString();
-      final amudim = bookProgressData[pageStr];
-      if (amudim != null) {
-        if (bookDetails.isDafType) {
-          if (amudim["b"]?.learn == true) {
-            lastPageNum = pageNum;
-            lastAmud = "ב";
-            found = true;
-            break;
-          }
-          if (amudim["a"]?.learn == true) {
-            lastPageNum = pageNum;
-            lastAmud = "א";
-            found = true;
-            break;
-          }
-        } else {
-          if (amudim["a"]?.learn == true) {
-            lastPageNum = pageNum;
-            found = true;
-            break;
-          }
-        }
+    int maxLearnedIndex = -1;
+    bookProgressData.forEach((key, progress) {
+      final index = int.tryParse(key);
+      if (index != null && progress.learn && index > maxLearnedIndex) {
+        maxLearnedIndex = index;
       }
+    });
+
+    if (maxLearnedIndex == -1) {
+      return completionDateOverride != null ? "" : "עדיין לא התחלת";
     }
 
-    if (!found && completionDateOverride == null) {
-      return "עדיין לא התחלת";
-    }
-    if (!found && completionDateOverride != null) {
-      return "";
-    }
+    final learnableItems = bookDetails.learnableItems;
+    if (learnableItems.isEmpty) return "";
 
+    final lastLearnedItem = learnableItems.firstWhere(
+      (item) => item.absoluteIndex == maxLearnedIndex,
+      orElse: () => learnableItems.last,
+    );
+
+    final pageNum = lastLearnedItem.pageNumber;
+    final partName = lastLearnedItem.partName;
+
+    String locationString;
     if (bookDetails.isDafType) {
-      return "הגעת ל${bookDetails.contentType} ${HebrewUtils.intToGematria(lastPageNum)} עמוד $lastAmud";
+      final amudSymbol = lastLearnedItem.amudKey == 'a' ? 'ע"א' : 'ע"ב';
+      locationString =
+          "${bookDetails.contentType} ${HebrewUtils.intToGematria(pageNum)} $amudSymbol";
     } else {
-      return "הגעת ל${bookDetails.contentType} ${HebrewUtils.intToGematria(lastPageNum)}";
+      locationString =
+          "${bookDetails.contentType} ${HebrewUtils.intToGematria(pageNum)}";
+    }
+
+    if (bookDetails.hasMultipleParts) {
+      return "הגעת ל$locationString ב$partName";
+    } else {
+      return "הגעת ל$locationString";
     }
   }
 
@@ -100,12 +90,10 @@ class BookCardWidget extends StatelessWidget {
             topLevelCategoryKey, bookName, bookDetails);
 
         Color displayColor = theme.primaryColor.withAlpha((0.4 * 255).round());
-        if (numCompletedCycles == 2) {
+        if (numCompletedCycles == 2)
           displayColor = theme.primaryColor.withAlpha((0.6 * 255).round());
-        }
-        if (numCompletedCycles == 3) {
+        if (numCompletedCycles == 3)
           displayColor = theme.primaryColor.withAlpha((0.8 * 255).round());
-        }
         if (numCompletedCycles >= 4) displayColor = theme.primaryColor;
 
         progressWidget = LinearProgressIndicator(

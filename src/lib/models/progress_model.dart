@@ -29,7 +29,6 @@ class PageProgress {
 
   bool get isEmpty => !learn && !review1 && !review2 && !review3;
 
-  // Helper methods to set/get properties by string name
   void setProperty(String propertyName, bool value) {
     switch (propertyName) {
       case 'learn':
@@ -45,7 +44,6 @@ class PageProgress {
         review3 = value;
         break;
       default:
-        // Optionally handle unknown property name, e.g., throw an error or log
         break;
     }
   }
@@ -61,15 +59,11 @@ class PageProgress {
       case 'review3':
         return review3;
       default:
-        // Optionally handle unknown property name
         return false;
     }
   }
 }
 
-// Structure: categoryName -> bookName -> pageNumberStr (e.g., "2") -> amudKey ("a" or "b") -> PageProgress
-typedef FullProgressMap
-    = Map<String, Map<String, Map<String, Map<String, PageProgress>>>>;
+typedef FullProgressMap = Map<String, Map<String, Map<String, PageProgress>>>;
 
-// Structure for completion dates: categoryName -> bookName -> dateString (YYYY-MM-DD)
 typedef CompletionDatesMap = Map<String, Map<String, String>>;

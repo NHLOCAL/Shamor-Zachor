@@ -109,7 +109,6 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
         : Icon(Icons.circle_outlined,
             color: theme.colorScheme.onSurface.withOpacity(0.5));
 
-    // NEW: Get the list of learnable items from the model
     final learnableItems = bookDetails.learnableItems;
 
     return Directionality(
@@ -207,36 +206,31 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                     ],
                   ),
                 ),
-                // NEW: ListView.builder based on learnableItems
                 Expanded(
                   child: ListView.builder(
                     itemCount: learnableItems.length,
                     itemBuilder: (ctx, index) {
                       final item = learnableItems[index];
-                      final pageNumber = item.pageNumber;
-                      final amudKey = item.amudKey;
+                      final absoluteIndex = item.absoluteIndex;
                       final partName = item.partName;
 
-                      // Check if a header for a new part is needed
                       bool showHeader = bookDetails.hasMultipleParts &&
                           (index == 0 ||
                               partName != learnableItems[index - 1].partName);
 
                       String rowLabel;
                       if (bookDetails.isDafType) {
-                        final amudSymbol = (amudKey == "b") ? ":" : ".";
+                        final amudSymbol = (item.amudKey == "b") ? ":" : ".";
                         rowLabel =
-                            "${HebrewUtils.intToGematria(pageNumber)}$amudSymbol";
+                            "${HebrewUtils.intToGematria(item.pageNumber)}$amudSymbol";
                       } else {
-                        rowLabel = HebrewUtils.intToGematria(pageNumber);
+                        rowLabel = HebrewUtils.intToGematria(item.pageNumber);
                       }
 
-                      final pageProgress =
-                          progressProvider.getProgressForPageAmud(
-                              widget.topLevelCategoryKey,
-                              widget.bookName,
-                              pageNumber.toString(),
-                              amudKey);
+                      final pageProgress = progressProvider.getProgressForItem(
+                          widget.topLevelCategoryKey,
+                          widget.bookName,
+                          absoluteIndex);
 
                       final rowBackgroundColor =
                           index % (bookDetails.isDafType ? 4 : 2) <
@@ -249,17 +243,24 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           if (showHeader)
-                            Padding(
-                              padding: const EdgeInsets.only(
-                                  top: 16.0, right: 8.0, bottom: 4.0),
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 6),
+                              margin:
+                                  const EdgeInsets.only(top: 16.0, bottom: 4.0),
+                              decoration: BoxDecoration(
+                                color: theme.colorScheme.primaryContainer,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
                               child: Text(
                                 partName,
                                 style: theme.textTheme.titleMedium?.copyWith(
-                                  color: theme.colorScheme.primary,
+                                  color: theme.colorScheme.onPrimaryContainer,
+                                  fontWeight: FontWeight.bold,
                                 ),
                               ),
                             ),
-                          if (showHeader) const Divider(height: 1),
                           Container(
                             color: rowBackgroundColor,
                             padding: const EdgeInsets.symmetric(
@@ -293,8 +294,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                                                 progressProvider.updateProgress(
                                                     widget.topLevelCategoryKey,
                                                     widget.bookName,
-                                                    pageNumber,
-                                                    amudKey,
+                                                    absoluteIndex,
                                                     columnName,
                                                     val ?? false,
                                                     bookDetails),

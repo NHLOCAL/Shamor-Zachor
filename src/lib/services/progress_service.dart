@@ -29,16 +29,11 @@ class ProgressService {
           categoryValue.forEach((bookKey, bookValue) {
             if (bookValue is Map) {
               progressMap[categoryKey]![bookKey] = {};
-              bookValue.forEach((pageKey, pageValue) {
-                if (pageValue is Map) {
-                  progressMap[categoryKey]![bookKey]![pageKey] = {};
-                  pageValue.forEach((amudKey, amudValue) {
-                    if (amudValue is Map) {
-                      progressMap[categoryKey]![bookKey]![pageKey]![amudKey] =
-                          PageProgress.fromJson(
-                              Map<String, dynamic>.from(amudValue));
-                    }
-                  });
+              bookValue.forEach((itemIndexKey, itemProgressValue) {
+                if (itemProgressValue is Map) {
+                  progressMap[categoryKey]![bookKey]![itemIndexKey] =
+                      PageProgress.fromJson(
+                          Map<String, dynamic>.from(itemProgressValue));
                 }
               });
             }
@@ -47,68 +42,41 @@ class ProgressService {
       });
       return progressMap;
     } catch (e) {
-      // "Error decoding progress data: $e"
       return {};
     }
   }
 
   Future<void> _saveFullProgressData(FullProgressMap data) async {
     final prefs = await _getPrefs();
-    Map<String, dynamic> serializableData = {};
-    data.forEach((catKey, catValue) {
-      serializableData[catKey] = {};
-      catValue.forEach((bookKey, bookValue) {
-        serializableData[catKey][bookKey] = {};
-        bookValue.forEach((pageKey, pageValue) {
-          serializableData[catKey][bookKey][pageKey] = {};
-          pageValue.forEach((amudKey, amudProgress) {
-            serializableData[catKey][bookKey][pageKey][amudKey] =
-                amudProgress.toJson();
-          });
-        });
-      });
-    });
-    await prefs.setString(_progressDataKey, json.encode(serializableData));
+    await prefs.setString(_progressDataKey, json.encode(data));
   }
 
-  Future<Map<String, Map<String, PageProgress>>> loadBookProgress(
-      String categoryName, String bookName) async {
-    FullProgressMap fullData = await loadFullProgressData();
-    return fullData[categoryName]?[bookName] ?? {};
-  }
-
-  Future<void> saveProgress(String categoryName, String bookName, int daf,
-      String amudKey, String columnName, bool value) async {
+  Future<void> saveProgress(String categoryName, String bookName,
+      String itemIndexKey, String columnName, bool value) async {
     FullProgressMap fullData = await loadFullProgressData();
 
     fullData.putIfAbsent(categoryName, () => {});
     fullData[categoryName]!.putIfAbsent(bookName, () => {});
-    fullData[categoryName]![bookName]!.putIfAbsent(daf.toString(), () => {});
-    fullData[categoryName]![bookName]![daf.toString()]!
-        .putIfAbsent(amudKey, () => PageProgress());
+    fullData[categoryName]![bookName]!
+        .putIfAbsent(itemIndexKey, () => PageProgress());
 
-    PageProgress currentPageProgress =
-        fullData[categoryName]![bookName]![daf.toString()]![amudKey]!;
+    PageProgress currentItemProgress =
+        fullData[categoryName]![bookName]![itemIndexKey]!;
 
-    currentPageProgress.setProperty(columnName, value);
+    currentItemProgress.setProperty(columnName, value);
 
-    if (currentPageProgress.isEmpty) {
-      fullData[categoryName]![bookName]![daf.toString()]!.remove(amudKey);
+    if (currentItemProgress.isEmpty) {
+      fullData[categoryName]![bookName]!.remove(itemIndexKey);
+      if (fullData[categoryName]![bookName]!.isEmpty) {
+        fullData[categoryName]!.remove(bookName);
+        if (fullData[categoryName]!.isEmpty) {
+          fullData.remove(categoryName);
+        }
+      }
     }
-    if (fullData[categoryName]![bookName]![daf.toString()]!.isEmpty) {
-      fullData[categoryName]![bookName]!.remove(daf.toString());
-    }
-    if (fullData[categoryName]![bookName]!.isEmpty) {
-      fullData[categoryName]!.remove(bookName);
-    }
-    if (fullData[categoryName]!.isEmpty) {
-      fullData.remove(categoryName);
-    }
-
     await _saveFullProgressData(fullData);
   }
 
-  // UPDATED to use learnableItems
   Future<void> saveAllMasechta(
     String categoryName,
     String bookName,
@@ -128,16 +96,14 @@ class ProgressService {
     } else {
       fullData.putIfAbsent(categoryName, () => {});
       fullData[categoryName]!.putIfAbsent(bookName, () => {});
-      Map<String, Map<String, PageProgress>> currentBookProgress =
+      Map<String, PageProgress> currentBookProgress =
           fullData[categoryName]![bookName]!;
 
       final learnableItems = bookDetails.learnableItems;
       for (final item in learnableItems) {
-        final pageStr = item.pageNumber.toString();
-        currentBookProgress.putIfAbsent(pageStr, () => {});
-        currentBookProgress[pageStr]!
-            .putIfAbsent(item.amudKey, () => PageProgress());
-        currentBookProgress[pageStr]![item.amudKey]!.learn = true;
+        final itemIndexKey = item.absoluteIndex.toString();
+        currentBookProgress.putIfAbsent(itemIndexKey, () => PageProgress());
+        currentBookProgress[itemIndexKey]!.learn = true;
       }
 
       await saveCompletionDate(categoryName, bookName);
@@ -160,7 +126,6 @@ class ProgressService {
       });
       return datesMap;
     } catch (e) {
-      // "Error decoding completion dates: $e"
       return {};
     }
   }
@@ -186,54 +151,45 @@ class ProgressService {
     return allDates[categoryName]?[bookName];
   }
 
-  static int getCompletedPagesCount(
-      Map<String, Map<String, PageProgress>> bookProgress) {
+  static int getCompletedPagesCount(Map<String, PageProgress> bookProgress) {
     int count = 0;
-    bookProgress.forEach((pageKey, amudimMap) {
-      amudimMap.forEach((amudKey, progress) {
-        if (progress.learn) {
-          count++;
-        }
-      });
+    bookProgress.forEach((itemIndexKey, progress) {
+      if (progress.learn) {
+        count++;
+      }
     });
     return count;
   }
 
   static int getReview1CompletedPagesCount(
-      Map<String, Map<String, PageProgress>> bookProgress) {
+      Map<String, PageProgress> bookProgress) {
     int count = 0;
-    bookProgress.forEach((pageKey, amudimMap) {
-      amudimMap.forEach((amudKey, progress) {
-        if (progress.review1) {
-          count++;
-        }
-      });
+    bookProgress.forEach((itemIndexKey, progress) {
+      if (progress.review1) {
+        count++;
+      }
     });
     return count;
   }
 
   static int getReview2CompletedPagesCount(
-      Map<String, Map<String, PageProgress>> bookProgress) {
+      Map<String, PageProgress> bookProgress) {
     int count = 0;
-    bookProgress.forEach((pageKey, amudimMap) {
-      amudimMap.forEach((amudKey, progress) {
-        if (progress.review2) {
-          count++;
-        }
-      });
+    bookProgress.forEach((itemIndexKey, progress) {
+      if (progress.review2) {
+        count++;
+      }
     });
     return count;
   }
 
   static int getReview3CompletedPagesCount(
-      Map<String, Map<String, PageProgress>> bookProgress) {
+      Map<String, PageProgress> bookProgress) {
     int count = 0;
-    bookProgress.forEach((pageKey, amudimMap) {
-      amudimMap.forEach((amudKey, progress) {
-        if (progress.review3) {
-          count++;
-        }
-      });
+    bookProgress.forEach((itemIndexKey, progress) {
+      if (progress.review3) {
+        count++;
+      }
     });
     return count;
   }
@@ -242,7 +198,6 @@ class ProgressService {
     final prefs = await _getPrefs();
     final progressJsonString = prefs.getString(_progressDataKey);
     final completionDatesJsonString = prefs.getString(_completionDatesKey);
-
     final customBooksJsonString =
         prefs.getString(CustomBookService.customBooksKey);
 
@@ -267,55 +222,13 @@ class ProgressService {
       final String? customBooksDataString =
           decodedData['custom_books_data'] as String?;
 
-      if (progressDataString != null && progressDataString.isNotEmpty) {
-        try {
-          final decodedProgress = json.decode(progressDataString);
-          if (decodedProgress is Map) {
-            await prefs.setString(_progressDataKey, progressDataString);
-          } else {
-            await prefs.setString(_progressDataKey, '{}');
-          }
-        } catch (e) {
-          await prefs.setString(_progressDataKey, '{}');
-        }
-      } else {
-        await prefs.setString(_progressDataKey, '{}');
-      }
-
-      if (completionDatesString != null && completionDatesString.isNotEmpty) {
-        try {
-          final decodedDates = json.decode(completionDatesString);
-          if (decodedDates is Map) {
-            await prefs.setString(_completionDatesKey, completionDatesString);
-          } else {
-            await prefs.setString(_completionDatesKey, '{}');
-          }
-        } catch (e) {
-          await prefs.setString(_completionDatesKey, '{}');
-        }
-      } else {
-        await prefs.setString(_completionDatesKey, '{}');
-      }
-
-      if (customBooksDataString != null && customBooksDataString.isNotEmpty) {
-        try {
-          final decodedCustomBooks = json.decode(customBooksDataString);
-          if (decodedCustomBooks is List) {
-            await prefs.setString(
-                CustomBookService.customBooksKey, customBooksDataString);
-          } else {
-            await prefs.setString(CustomBookService.customBooksKey, '[]');
-          }
-        } catch (e) {
-          await prefs.setString(CustomBookService.customBooksKey, '[]');
-        }
-      } else {
-        await prefs.setString(CustomBookService.customBooksKey, '[]');
-      }
+      await prefs.setString(_progressDataKey, progressDataString ?? '{}');
+      await prefs.setString(_completionDatesKey, completionDatesString ?? '{}');
+      await prefs.setString(
+          CustomBookService.customBooksKey, customBooksDataString ?? '[]');
 
       return true;
     } catch (e) {
-      // "Error importing combined data: $e"
       await prefs.setString(_progressDataKey, '{}');
       await prefs.setString(_completionDatesKey, '{}');
       await prefs.setString(CustomBookService.customBooksKey, '[]');
