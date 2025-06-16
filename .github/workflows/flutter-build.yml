@@ -7,7 +7,7 @@ on:
       - main
       - dev
       - release/*
-    tags: # הפעל על כל תג (למשל, 0.6.0, 1.0.0, v1.0.1)
+    tags:
       - '*'
   workflow_dispatch:
 
@@ -28,39 +28,36 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.32.1'
+          flutter-version: '3.32.1' # ודא שזו הגרסה הנכונה לפרויקט שלך
           channel: 'stable'
 
       - name: Install Dependencies
         working-directory: src
         run: flutter pub get
 
-      # === שלב מאובטח ליצירת קבצי חתימה ===
-      # שלב זה משתמש בסודות מ-GitHub כדי ליצור את קובץ המפתח ואת קובץ ההגדרות
-      # הקבצים נוצרים רק עבור הריצה הנוכחית ונמחקים בסיומה.
+      # === שלב מאובטח ליצירת קבצי חתימה (עם התיקון) ===
       - name: Decode Keystore and Create Properties File
-        # ה-working-directory חשוב כדי שהקבצים ייווצרו במיקום ש-Gradle מצפה לו
-        working-directory: src/android 
+        # ✅ תיקון: הגדרת מיקום העבודה לתיקייה שבה Gradle מחפש את הקבצים
+        working-directory: src/android/app
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
           STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
         run: |
-          echo "Creating keystore and properties files..."
-          echo "$KEYSTORE_BASE64" | base64 --decode > app/upload-keystore.jks
+          echo "Creating keystore and properties files in $(pwd)..."
+          # ✅ תיקון: יצירת הקבצים ישירות בתיקייה הנוכחית (app)
+          echo "$KEYSTORE_BASE64" | base64 --decode > upload-keystore.jks
           
           echo "storePassword=$STORE_PASSWORD" > key.properties
           echo "keyPassword=$KEY_PASSWORD" >> key.properties
           echo "keyAlias=$KEY_ALIAS" >> key.properties
-          # הנתיב כאן (storeFile) תואם למיקום שיצרנו את הקובץ (app/upload-keystore.jks)
-          # והוא יחסי לקובץ key.properties שנוצר בתיקיית android
-          echo "storeFile=app/upload-keystore.jks" >> key.properties
+          # ✅ תיקון: הנתיב לקובץ המפתח פשוט יותר כי הוא באותה תיקייה
+          echo "storeFile=upload-keystore.jks" >> key.properties
           echo "Keystore and properties files created successfully."
 
       - name: Build Signed Android APK
         working-directory: src
-        # פקודה זו תשתמש אוטומטית בקבצי החתימה שיצרנו בשלב הקודם
         run: flutter build apk --release
 
       - name: Upload APK Artifact
@@ -91,8 +88,7 @@ jobs:
         run: flutter build windows --release
 
       - name: Zip Windows Release
-        # עבודה ישירות מתיקיית ה-Release כדי שה-ZIP לא יכיל את כל מבנה התיקיות
-        working-directory: src/build/windows/x64/runner/Release 
+        working-directory: src/build/windows/x64/runner/Release
         run: Compress-Archive -Path * -DestinationPath ../../../../../../windows-release.zip
 
       - name: Upload Windows ZIP Artifact
@@ -103,7 +99,7 @@ jobs:
 
   publish-release:
     name: Publish GitHub Release
-    if: startsWith(github.ref, 'refs/tags/') # הרץ רק כאשר נוצר תג
+    if: startsWith(github.ref, 'refs/tags/')
     needs: [android, windows]
     runs-on: ubuntu-latest
     permissions:
