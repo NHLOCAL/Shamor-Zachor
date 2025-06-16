@@ -1,12 +1,10 @@
 {
   "name": "תנ\"ך",
   "content_type": "פרק",
-  "columns": ["פרק"],
   "subcategories": [
     {
       "name": "תורה",
       "content_type": "פרק",
-      "columns": ["פרק"],
       "books": {
         "בראשית": { "pages": 50 },
         "שמות": { "pages": 40 },
@@ -18,7 +16,6 @@
     {
       "name": "נביאים",
       "content_type": "פרק",
-      "columns": ["פרק"],
       "books": {
         "יהושע": { "pages": 24 },
         "שופטים": { "pages": 21 },
@@ -46,7 +43,6 @@
     {
       "name": "כתובים",
       "content_type": "פרק",
-      "columns": ["פרק"],
       "books": {
         "תהילים": { "pages": 150 },
         "משלי": { "pages": 31 },

@@ -1,0 +1,42 @@
+{
+    "name": "תנ\"ך",
+    "content_type": "פרק",
+    "subcategories": [
+        {
+            "name": "כתובים",
+            "content_type": "פרק",
+            "books": {
+                "תהילים": {
+                    "parts": [
+                        {
+                            "name": "ספר ראשון",
+                            "start": 1,
+                            "end": 41
+                        },
+                        {
+                            "name": "ספר שני",
+                            "start": 42,
+                            "end": 72
+                        },
+                        {
+                            "name": "ספר שלישי",
+                            "start": 73,
+                            "end": 89
+                        },
+                        {
+                            "name": "ספר רביעי",
+                            "start": 90,
+                            "end": 106
+                        },
+                        {
+                            "name": "ספר חמישי",
+                            "start": 107,
+                            "end": 150,
+                            "exclude": [150]
+                        }
+                    ]
+                }
+            }
+        }
+    ]
+}

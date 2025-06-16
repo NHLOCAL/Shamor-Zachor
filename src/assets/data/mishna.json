@@ -1,12 +1,10 @@
 {
   "name": "משנה",
   "content_type": "פרק",
-  "columns": ["פרק"],
   "subcategories": [
     {
       "name": "סדר זרעים",
       "content_type": "פרק",
-      "columns": ["פרק"],
       "books": {
         "ברכות": { "pages": 9 },
         "פאה": { "pages": 8 },
@@ -24,7 +22,6 @@
     {
       "name": "סדר מועד",
       "content_type": "פרק",
-      "columns": ["פרק"],
       "books": {
         "שבת": { "pages": 24 },
         "עירובין": { "pages": 10 },
@@ -43,7 +40,6 @@
     {
       "name": "סדר נשים",
       "content_type": "פרק",
-      "columns": ["פרק"],
       "books": {
         "יבמות": { "pages": 16 },
         "כתובות": { "pages": 13 },
@@ -57,7 +53,6 @@
     {
       "name": "סדר נזיקין",
       "content_type": "פרק",
-      "columns": ["פרק"],
       "books": {
         "בבא קמא": { "pages": 10 },
         "בבא מציעא": { "pages": 10 },
@@ -74,7 +69,6 @@
     {
       "name": "סדר קדשים",
       "content_type": "פרק",
-      "columns": ["פרק"],
       "books": {
         "זבחים": { "pages": 14 },
         "מנחות": { "pages": 13 },
@@ -92,7 +86,6 @@
     {
       "name": "סדר טהרות",
       "content_type": "פרק",
-      "columns": ["פרק"],
       "books": {
         "כלים": { "pages": 30 },
         "אהלות": { "pages": 18 },
