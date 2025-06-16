@@ -109,12 +109,14 @@ class BookPart {
   final int startPage;
   final int endPage;
   final List<int> excludedPages;
+  final bool hasHalfPageAtEnd;
 
   BookPart({
     required this.name,
     required this.startPage,
     required this.endPage,
     this.excludedPages = const [],
+    this.hasHalfPageAtEnd = false,
   });
 
   factory BookPart.fromJson(Map<String, dynamic> json) {
@@ -134,6 +136,7 @@ class BookDetails {
   final bool isCustom;
   final String? id;
   final List<BookPart> parts;
+  final num? originalPageCount;
 
   List<LearnableItem>? _learnableItemsCache;
 
@@ -142,6 +145,7 @@ class BookDetails {
     required this.parts,
     this.isCustom = false,
     this.id,
+    this.originalPageCount,
   });
 
   factory BookDetails.fromJson(
@@ -173,7 +177,10 @@ class BookDetails {
     );
   }
 
-  int get pageCountForDisplay {
+  num get pageCountForDisplay {
+    if (isCustom && originalPageCount != null) {
+      return originalPageCount!;
+    }
     if (parts.isEmpty) return 0;
     return parts
         .map((p) => p.endPage - p.startPage + 1)
@@ -199,11 +206,14 @@ class BookDetails {
               pageNumber: i,
               amudKey: 'a',
               absoluteIndex: currentIndex++));
-          items.add(LearnableItem(
-              partName: part.name,
-              pageNumber: i,
-              amudKey: 'b',
-              absoluteIndex: currentIndex++));
+
+          if (!(part.hasHalfPageAtEnd && i == part.endPage)) {
+            items.add(LearnableItem(
+                partName: part.name,
+                pageNumber: i,
+                amudKey: 'b',
+                absoluteIndex: currentIndex++));
+          }
         } else {
           items.add(LearnableItem(
               partName: part.name,

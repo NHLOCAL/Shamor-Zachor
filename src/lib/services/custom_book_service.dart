@@ -8,7 +8,7 @@ class CustomBook {
   final String categoryName;
   final String bookName;
   final String contentType;
-  final int pages;
+  final num pages;
 
   CustomBook({
     required this.id,
@@ -34,7 +34,7 @@ class CustomBook {
       categoryName: json['categoryName'] as String? ?? 'קטגוריה לא ידועה',
       bookName: json['bookName'] as String? ?? 'ספר לא ידוע',
       contentType: json['contentType'] as String? ?? 'פרק',
-      pages: json['pages'] as int? ?? 0,
+      pages: json['pages'] as num? ?? 0,
     );
   }
 }
@@ -113,7 +113,7 @@ class CustomBookService {
     required String categoryName,
     required String bookName,
     required String contentType,
-    required int pages,
+    required num pages,
   }) async {
     final books = await loadCustomBooks();
 
@@ -134,7 +134,7 @@ class CustomBookService {
     required String categoryName,
     required String bookName,
     required String contentType,
-    required int pages,
+    required num pages,
   }) async {
     final books = await loadCustomBooks();
     final index = books.indexWhere((book) => book.id == id);

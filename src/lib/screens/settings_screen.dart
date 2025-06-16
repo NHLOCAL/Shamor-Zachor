@@ -170,12 +170,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               .surfaceContainerHighest
                               .withAlpha(77),
                         ),
-                        keyboardType: TextInputType.number,
+                        keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
                             return 'נא להזין מספר';
                           }
-                          if (int.tryParse(value) == null) {
+                          if (num.tryParse(value) == null) {
                             return 'נא להזין מספר תקין';
                           }
                           return null;
@@ -215,14 +216,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           categoryName: categoryNameController.text,
                           bookName: bookNameController.text,
                           contentType: finalContentType,
-                          pages: int.parse(pagesController.text),
+                          pages: num.parse(pagesController.text),
                         );
                       } else {
                         dataProvider.addCustomBook(
                           categoryName: categoryNameController.text,
                           bookName: bookNameController.text,
                           contentType: finalContentType,
-                          pages: int.parse(pagesController.text),
+                          pages: num.parse(pagesController.text),
                         );
                       }
                       Navigator.of(context).pop();

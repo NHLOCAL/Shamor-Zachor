@@ -67,7 +67,7 @@ class DataProvider with ChangeNotifier {
     required String categoryName,
     required String bookName,
     required String contentType,
-    required int pages,
+    required num pages,
   }) async {
     _isLoading = true;
     _error = null;
@@ -92,7 +92,7 @@ class DataProvider with ChangeNotifier {
     required String categoryName,
     required String bookName,
     required String contentType,
-    required int pages,
+    required num pages,
   }) async {
     _isLoading = true;
     _error = null;
