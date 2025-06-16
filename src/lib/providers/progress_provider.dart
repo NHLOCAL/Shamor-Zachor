@@ -133,9 +133,9 @@ class ProgressProvider with ChangeNotifier {
         }
       } else if (columnName.startsWith('review')) {
         int? reviewCycleNumber;
-        if (columnName == 'review1')
+        if (columnName == 'review1') {
           reviewCycleNumber = 1;
-        else if (columnName == 'review2')
+        } else if (columnName == 'review2')
           reviewCycleNumber = 2;
         else if (columnName == 'review3') reviewCycleNumber = 3;
 
@@ -335,12 +335,12 @@ class ProgressProvider with ChangeNotifier {
     for (String currentColumnName in allColumnNames) {
       int itemsChecked = 0;
       if (bookProgress != null) {
-        bookDetails.learnableItems.forEach((item) {
+        for (var item in bookDetails.learnableItems) {
           final itemProgress = bookProgress[item.absoluteIndex.toString()];
           if (itemProgress?.getProperty(currentColumnName) ?? false) {
             itemsChecked++;
           }
-        });
+        }
       }
 
       if (itemsChecked == 0) {
@@ -406,13 +406,21 @@ class ProgressProvider with ChangeNotifier {
 
     int cycles = 0;
     if (ProgressService.getCompletedPagesCount(bookProgress) >=
-        totalTargetItems) cycles++;
+        totalTargetItems) {
+      cycles++;
+    }
     if (ProgressService.getReview1CompletedPagesCount(bookProgress) >=
-        totalTargetItems) cycles++;
+        totalTargetItems) {
+      cycles++;
+    }
     if (ProgressService.getReview2CompletedPagesCount(bookProgress) >=
-        totalTargetItems) cycles++;
+        totalTargetItems) {
+      cycles++;
+    }
     if (ProgressService.getReview3CompletedPagesCount(bookProgress) >=
-        totalTargetItems) cycles++;
+        totalTargetItems) {
+      cycles++;
+    }
     return cycles;
   }
 
@@ -454,17 +462,22 @@ class ProgressProvider with ChangeNotifier {
         getReview3ProgressPercentage(categoryName, bookName, bookDetails);
 
     if (learnProgress > 0 && learnProgress < 1.0) return true;
-    if (learnProgress == 1.0 && review1Progress > 0 && review1Progress < 1.0)
+    if (learnProgress == 1.0 && review1Progress > 0 && review1Progress < 1.0) {
       return true;
+    }
     if (learnProgress == 1.0 &&
         review1Progress == 1.0 &&
         review2Progress > 0 &&
-        review2Progress < 1.0) return true;
+        review2Progress < 1.0) {
+      return true;
+    }
     if (learnProgress == 1.0 &&
         review1Progress == 1.0 &&
         review2Progress == 1.0 &&
         review3Progress > 0 &&
-        review3Progress < 1.0) return true;
+        review3Progress < 1.0) {
+      return true;
+    }
 
     return false;
   }

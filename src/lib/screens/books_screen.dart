@@ -65,8 +65,9 @@ class _BooksScreenState extends State<BooksScreen>
   }
 
   void _handleTabChange() {
-    if (!mounted || _tabController == null || _tabController!.indexIsChanging)
+    if (!mounted || _tabController == null || _tabController!.indexIsChanging) {
       return;
+    }
     final newIndex = _tabController!.index;
     if (_currentTabIndex == newIndex) return;
 

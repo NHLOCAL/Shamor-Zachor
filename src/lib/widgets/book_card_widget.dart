@@ -93,10 +93,12 @@ class BookCardWidget extends StatelessWidget {
             topLevelCategoryKey, bookName, bookDetails);
 
         Color displayColor = theme.primaryColor.withAlpha((0.4 * 255).round());
-        if (numCompletedCycles == 2)
+        if (numCompletedCycles == 2) {
           displayColor = theme.primaryColor.withAlpha((0.6 * 255).round());
-        if (numCompletedCycles == 3)
+        }
+        if (numCompletedCycles == 3) {
           displayColor = theme.primaryColor.withAlpha((0.8 * 255).round());
+        }
         if (numCompletedCycles >= 4) displayColor = theme.primaryColor;
 
         progressWidget = LinearProgressIndicator(

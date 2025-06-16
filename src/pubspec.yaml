@@ -15,12 +15,12 @@ dependencies:
   provider: ^6.0.5
   shared_preferences: ^2.2.0
   path_provider: ^2.1.1
-  uuid: ^4.5.1 # Added uuid dependency
+  uuid: ^4.5.1
   cupertino_icons: ^1.0.8
   kosher_dart: ^2.0.17
   confetti: ^0.8.0
   gematria: ^1.0.0+1
-  file_picker: ^10.1.9 # Added file_picker
+  file_picker: ^10.1.9
 
 dependency_overrides:
   intl: ^0.20.2
@@ -37,20 +37,35 @@ dev_dependencies:
 
 flutter_native_splash:
   color: "#FFDBCF"
-  color_dark: "#FFDBCF" # Optional: if you want a different color for dark mode
-  android: true # This can stay to explicitly enable/disable for Android
-  ios: true     # This can stay to explicitly enable/disable for iOS
-  web: true
+  color_dark: "#FFDBCF"
   image: assets/launcher_icon/app_icon.png
-
-
-flutter_launcher_icons:
-  android: "launcher_icon"
+  android: true
   ios: true
-  image_path: "assets/launcher_icon/app_icon.png"
+  web: true
+
+# ==========================================================
+# ===== תצורת אייקונים (עודכנה ותוקנה) =====================
+# ==========================================================
+flutter_launcher_icons:
+  # הגדרות כלליות
+  android: true
+  ios: true
   min_sdk_android: 21
   remove_alpha_ios: true
+
+  # קובץ התמונה הראשי (לאנדרואיד ישן, iOS, וכו')
+  image_path: "assets/launcher_icon/app_icon.png"
+
+  # --- הגדרות לאייקונים אדפטיביים (אנדרואיד 8.0 ומעלה) ---
+  # 1. צבע הרקע שיוצג מאחורי הסמל במערכות שכופות צורה (ריבוע, עיגול וכו')
+  #    ההגדרה הזו הייתה אצלך והיא נכונה ומצוינת!
   adaptive_icon_background: "#FFDBCF"
+  
+  # 2. קובץ החזית (Foreground) - זהו החלק החשוב שנוסף
+  #    יש ליצור קובץ המכיל רק את הסמל המרכזי על רקע שקוף לחלוטין
+  adaptive_icon_foreground: "assets/launcher_icon/app_icon_foreground.png"
+
+  # הגדרות לפלטפורמות אחרות
   web:
     generate: true
     image_path: "assets/launcher_icon/app_icon.png"
@@ -69,4 +84,8 @@ flutter:
   assets:
     - assets/data/
     - assets/launcher_icon/
-    - assets/images/
+    # שינוי חשוב: הנתיב עם השם הארוך בעברית הוסר.
+    # יש לתת לקבצים בתיקיית assets/images/ שמות פשוטים באנגלית.
+    # לדוגמה, אם יש לך תמונה בתיקייה, שנה את שמה ל-my_image.png
+    # והוסף לכאן שורה: - assets/images/my_image.png
+    - assets/images/ 
