@@ -1,6 +1,12 @@
 String _asString(dynamic value) => value is String ? value : '';
 int _asInt(dynamic value) =>
     value is int ? value : (value is String ? (int.tryParse(value) ?? 0) : 0);
+num _asNum(dynamic value) {
+  if (value is num) return value;
+  if (value is String) return num.tryParse(value) ?? 0;
+  return 0;
+}
+
 Map<String, dynamic> _asMap(dynamic value) =>
     value is Map ? Map<String, dynamic>.from(value) : {};
 
@@ -155,17 +161,34 @@ class BookDetails {
     String? id,
   }) {
     List<BookPart> parts = [];
+    num? pageCount;
+
     if (json['parts'] is List) {
       parts = (json['parts'] as List)
           .map((partJson) => BookPart.fromJson(_asMap(partJson)))
           .toList();
     } else if (json.containsKey('pages')) {
+      pageCount = _asNum(json['pages']);
       int startPage =
           _asInt(json['startPage'] ?? (contentType == "דף" ? 2 : 1));
+
+      int endPage;
+      bool lastPageIsHalf = false;
+
+      if (contentType == "דף") {
+        endPage = startPage + pageCount.ceil() - 1;
+        if (pageCount.floor() != pageCount) {
+          lastPageIsHalf = true;
+        }
+      } else {
+        endPage = startPage + pageCount.toInt() - 1;
+      }
+
       parts.add(BookPart(
         name: "ראשי",
         startPage: startPage,
-        endPage: _asInt(json['pages']) + startPage - 1,
+        endPage: endPage,
+        hasHalfPageAtEnd: lastPageIsHalf,
       ));
     }
 
@@ -174,14 +197,17 @@ class BookDetails {
       parts: parts,
       isCustom: isCustom,
       id: id,
+      originalPageCount: pageCount,
     );
   }
 
   num get pageCountForDisplay {
-    if (isCustom && originalPageCount != null) {
+    if (originalPageCount != null) {
       return originalPageCount!;
     }
     if (parts.isEmpty) return 0;
+
+    // Fallback for older data structures
     return parts
         .map((p) => p.endPage - p.startPage + 1)
         .reduce((a, b) => a + b);

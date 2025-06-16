@@ -59,34 +59,12 @@ class DataLoaderService {
     final List<CustomBook> customBooksList =
         await customBookService.loadCustomBooks();
     for (final customBook in customBooksList) {
-      int startPage = customBook.contentType == "דף" ? 2 : 1;
-      num pages = customBook.pages;
-      int endPage;
-      bool lastPageIsHalf = false;
-
-      if (customBook.contentType == "דף") {
-        endPage = startPage + pages.ceil() - 1;
-        if (pages.floor() != pages) {
-          lastPageIsHalf = true;
-        }
-      } else {
-        endPage = startPage + pages.toInt() - 1;
-      }
-
-      final bookDetails = BookDetails(
-          contentType: customBook.contentType,
-          isCustom: true,
-          id: customBook.id,
-          originalPageCount: customBook.pages,
-          parts: [
-            BookPart(
-              name: customBook.bookName,
-              startPage: startPage,
-              endPage: endPage,
-              excludedPages: [],
-              hasHalfPageAtEnd: lastPageIsHalf,
-            )
-          ]);
+      final bookDetails = BookDetails.fromJson(
+        {'pages': customBook.pages},
+        contentType: customBook.contentType,
+        isCustom: true,
+        id: customBook.id,
+      );
 
       if (combinedData.containsKey(customBook.categoryName)) {
         combinedData[customBook.categoryName]!.books[customBook.bookName] =
