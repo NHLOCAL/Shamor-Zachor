@@ -28,16 +28,14 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.32.1' # ודא שזו הגרסה הנכונה לפרויקט שלך
+          flutter-version: '3.32.1'
           channel: 'stable'
 
       - name: Install Dependencies
         working-directory: src
         run: flutter pub get
 
-      # === שלב מאובטח ליצירת קבצי חתימה (עם התיקון) ===
       - name: Decode Keystore and Create Properties File
-        # ✅ תיקון: הגדרת מיקום העבודה לתיקייה שבה Gradle מחפש את הקבצים
         working-directory: src/android/app
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
@@ -45,16 +43,11 @@ jobs:
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
           STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
         run: |
-          echo "Creating keystore and properties files in $(pwd)..."
-          # ✅ תיקון: יצירת הקבצים ישירות בתיקייה הנוכחית (app)
           echo "$KEYSTORE_BASE64" | base64 --decode > upload-keystore.jks
-          
           echo "storePassword=$STORE_PASSWORD" > key.properties
           echo "keyPassword=$KEY_PASSWORD" >> key.properties
           echo "keyAlias=$KEY_ALIAS" >> key.properties
-          # ✅ תיקון: הנתיב לקובץ המפתח פשוט יותר כי הוא באותה תיקייה
           echo "storeFile=upload-keystore.jks" >> key.properties
-          echo "Keystore and properties files created successfully."
 
       - name: Build Signed Android APK
         working-directory: src
@@ -76,7 +69,7 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.32.1' # אותה גרסה כמו באנדרואיד
+          flutter-version: '3.32.1'
           channel: 'stable'
 
       - name: Install Dependencies
@@ -95,7 +88,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: windows-zip-artifact
-          path: src/windows-release.zip
+          # ✅ תיקון: הנתיב לקובץ ה-ZIP הוא בתיקייה הראשית של הפרויקט
+          path: windows-release.zip
 
   publish-release:
     name: Publish GitHub Release
