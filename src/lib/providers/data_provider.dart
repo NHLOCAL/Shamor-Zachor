@@ -1,12 +1,11 @@
 import 'package:flutter/foundation.dart';
 import '../models/book_model.dart';
 import '../services/data_loader_service.dart';
-import '../services/custom_book_service.dart'; // Added import
+import '../services/custom_book_service.dart';
 
 class DataProvider with ChangeNotifier {
   final DataLoaderService _dataLoaderService = DataLoaderService();
-  final CustomBookService _customBookService =
-      CustomBookService(); // Added service instance
+  final CustomBookService _customBookService = CustomBookService();
   Map<String, BookCategory> _allBookData = {};
   bool _isLoading = false;
   String? _error;
@@ -20,7 +19,7 @@ class DataProvider with ChangeNotifier {
   }
 
   Future<void> loadAllData() async {
-    _dataLoaderService.clearCache(); // Added cache clearing
+    _dataLoaderService.clearCache();
     _isLoading = true;
     _error = null;
     notifyListeners();
@@ -64,13 +63,11 @@ class DataProvider with ChangeNotifier {
     return _allBookData[categoryName]?.books[bookName];
   }
 
-  // Custom book management methods
   Future<void> addCustomBook({
     required String categoryName,
     required String bookName,
     required String contentType,
     required int pages,
-    required List<String> columns,
   }) async {
     _isLoading = true;
     _error = null;
@@ -81,9 +78,8 @@ class DataProvider with ChangeNotifier {
         bookName: bookName,
         contentType: contentType,
         pages: pages,
-        columns: columns,
       );
-      await loadAllData(); // Reload all data after adding
+      await loadAllData();
     } catch (e) {
       _error = "Error adding custom book: ${e.toString()}";
     }
@@ -97,7 +93,6 @@ class DataProvider with ChangeNotifier {
     required String bookName,
     required String contentType,
     required int pages,
-    required List<String> columns,
   }) async {
     _isLoading = true;
     _error = null;
@@ -109,10 +104,9 @@ class DataProvider with ChangeNotifier {
         bookName: bookName,
         contentType: contentType,
         pages: pages,
-        columns: columns,
       );
       if (success) {
-        await loadAllData(); // Reload all data after editing
+        await loadAllData();
       } else {
         _error = "Failed to find custom book to edit (ID: $id).";
       }
@@ -130,7 +124,7 @@ class DataProvider with ChangeNotifier {
     try {
       final success = await _customBookService.deleteCustomBook(id);
       if (success) {
-        await loadAllData(); // Reload all data after deleting
+        await loadAllData();
       } else {
         _error = "Failed to find custom book to delete (ID: $id).";
       }
@@ -141,34 +135,30 @@ class DataProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  // Method to get custom books JSON for backup
   Future<String?> getCustomBooksJsonForBackup() async {
     _error = null;
     try {
       return await _customBookService.exportCustomBooksJsonString();
     } catch (e) {
       _error = "Error exporting custom books: ${e.toString()}";
-      notifyListeners(); // Notify if an error occurs during export
+      notifyListeners();
       return null;
     }
   }
 
-  // Method to restore custom books from JSON backup
   Future<void> restoreCustomBooksFromJsonBackup(String? jsonString) async {
     _isLoading = true;
     _error = null;
-    notifyListeners(); // Notify UI that loading has started
+    notifyListeners();
 
     try {
       await _customBookService.importCustomBooksJsonString(jsonString);
-      // After importing, reload all data to refresh the DataProvider's state
-      // loadAllData() will handle isLoading and notifyListeners internally
+
       await loadAllData();
     } catch (e) {
       _error = "Error restoring custom books: ${e.toString()}";
-      _isLoading = false; // Ensure loading is set to false on error
-      notifyListeners(); // Notify UI about the error
+      _isLoading = false;
+      notifyListeners();
     }
-    // loadAllData() will set _isLoading to false and notifyListeners upon its completion
   }
 }

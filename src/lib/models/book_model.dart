@@ -1,8 +1,6 @@
 String _asString(dynamic value) => value is String ? value : '';
 int _asInt(dynamic value) =>
     value is int ? value : (value is String ? (int.tryParse(value) ?? 0) : 0);
-List<String> _asListString(dynamic value) =>
-    value is List ? List<String>.from(value.map((e) => e.toString())) : [];
 Map<String, dynamic> _asMap(dynamic value) =>
     value is Map ? Map<String, dynamic>.from(value) : {};
 
@@ -17,7 +15,6 @@ class BookSearchResult {
 class BookCategory {
   final String name;
   final String contentType;
-  final List<String> columns;
   final Map<String, BookDetails> books;
   final int defaultStartPage;
   final bool isCustom;
@@ -28,7 +25,6 @@ class BookCategory {
   BookCategory({
     required this.name,
     required this.contentType,
-    required this.columns,
     required this.books,
     required this.defaultStartPage,
     required this.isCustom,
@@ -49,7 +45,6 @@ class BookCategory {
         parsedBooks[key] = BookDetails.fromJson(
           value,
           contentType: _asString(json['content_type']),
-          columns: _asListString(json['columns']),
           isCustom: isCustom,
         );
       }
@@ -70,7 +65,6 @@ class BookCategory {
     return BookCategory(
       name: _asString(json['name']),
       contentType: _asString(json['content_type']),
-      columns: _asListString(json['columns']),
       books: parsedBooks,
       defaultStartPage: defaultStartPage,
       isCustom: isCustom,
@@ -137,7 +131,6 @@ class BookPart {
 
 class BookDetails {
   final String contentType;
-  final List<String> columns;
   final bool isCustom;
   final String? id;
   final List<BookPart> parts;
@@ -146,7 +139,6 @@ class BookDetails {
 
   BookDetails({
     required this.contentType,
-    required this.columns,
     required this.parts,
     this.isCustom = false,
     this.id,
@@ -155,7 +147,6 @@ class BookDetails {
   factory BookDetails.fromJson(
     Map<String, dynamic> json, {
     required String contentType,
-    required List<String> columns,
     bool isCustom = false,
     String? id,
   }) {
@@ -176,7 +167,6 @@ class BookDetails {
 
     return BookDetails(
       contentType: contentType,
-      columns: columns,
       parts: parts,
       isCustom: isCustom,
       id: id,

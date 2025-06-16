@@ -36,8 +36,6 @@ class DataLoaderService {
             jsonData['name'] is! String ||
             jsonData['content_type'] == null ||
             jsonData['content_type'] is! String ||
-            jsonData['columns'] == null ||
-            jsonData['columns'] is! List ||
             (jsonData['data'] == null &&
                 jsonData['books'] == null &&
                 jsonData['subcategories'] == null) ||
@@ -46,7 +44,7 @@ class DataLoaderService {
             (jsonData['subcategories'] != null &&
                 jsonData['subcategories'] is! List)) {
           print(
-              "Skipping invalid JSON file (missing name, content_type, columns, or any data/books/subcategories, or invalid types): $path");
+              "Skipping invalid JSON file (missing name, content_type, or any data/books/subcategories, or invalid types): $path");
           continue;
         }
 
@@ -61,23 +59,17 @@ class DataLoaderService {
     final List<CustomBook> customBooksList =
         await customBookService.loadCustomBooks();
     for (final customBook in customBooksList) {
-      // This part needs updating if custom books are to support the new structure.
-      // For now, we'll create a single-part book.
-      // A full implementation would require changing the CustomBook model and UI.
       final bookDetails = BookDetails(
           contentType: customBook.contentType,
-          columns: customBook.columns.isNotEmpty
-              ? customBook.columns
-              : [customBook.contentType],
           isCustom: true,
           id: customBook.id,
           parts: [
             BookPart(
-              name: customBook.bookName, // Or a default name like "Main"
+              name: customBook.bookName,
               startPage: customBook.contentType == "דף" ? 2 : 1,
               endPage:
                   (customBook.contentType == "דף" ? 1 : 0) + customBook.pages,
-              excludedPages: [], // Custom books UI needs to be updated to support this
+              excludedPages: [],
             )
           ]);
 
@@ -88,9 +80,6 @@ class DataLoaderService {
         combinedData[customBook.categoryName] = BookCategory(
           name: customBook.categoryName,
           contentType: customBook.contentType,
-          columns: customBook.columns.isNotEmpty
-              ? customBook.columns
-              : [customBook.contentType],
           books: {customBook.bookName: bookDetails},
           defaultStartPage: customBook.contentType == "דף" ? 2 : 1,
           isCustom: true,

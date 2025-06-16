@@ -208,9 +208,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       } else {
                         finalContentType = selectedContentType ?? 'פרק';
                       }
-                      final List<String> columns = (finalContentType == 'דף')
-                          ? ["עמוד א'", "עמוד ב'"]
-                          : [finalContentType];
 
                       if (existingBook != null && existingBook.id != null) {
                         dataProvider.editCustomBook(
@@ -219,7 +216,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           bookName: bookNameController.text,
                           contentType: finalContentType,
                           pages: int.parse(pagesController.text),
-                          columns: columns,
                         );
                       } else {
                         dataProvider.addCustomBook(
@@ -227,7 +223,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           bookName: bookNameController.text,
                           contentType: finalContentType,
                           pages: int.parse(pagesController.text),
-                          columns: columns,
                         );
                       }
                       Navigator.of(context).pop();
@@ -697,7 +692,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     color: Theme.of(context).colorScheme.primary),
                 title: Text(bookName,
                     style: const TextStyle(fontWeight: FontWeight.w600)),
-                // UPDATED: Use the new pageCountForDisplay getter
                 subtitle: Text(
                     'קטגוריה: $categoryName | ${bookDetails.pageCountForDisplay} ${bookDetails.contentType}'),
                 trailing: Row(
