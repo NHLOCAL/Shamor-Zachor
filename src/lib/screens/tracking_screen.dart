@@ -81,8 +81,8 @@ class _TrackingScreenState extends State<TrackingScreen> {
         return Center(
           child: Text(
             _selectedFilter == TrackingFilter.inProgress
-                ? 'אין ספרים בתהליך כעת.'
-                : 'עדיין לא סיימת ספרים.',
+                ? 'אין ספרים בתהליך כעת'
+                : 'עדיין לא סיימת ספרים',
             style: TextStyle(
                 fontStyle: FontStyle.italic,
                 color: Theme.of(context)
@@ -181,7 +181,7 @@ class _TrackingScreenState extends State<TrackingScreen> {
               ),
               ButtonSegment<TrackingFilter>(
                 value: TrackingFilter.completed,
-                label: Text('סיימתי'),
+                label: Text('הסתיים'),
                 icon: Icon(Icons.check_circle_outline),
               ),
             ],
