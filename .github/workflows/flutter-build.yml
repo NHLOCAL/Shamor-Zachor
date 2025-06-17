@@ -1,0 +1,145 @@
+# קובץ: .github/workflows/flutter-build.yml
+name: Build Flutter APK + EXE & Create Release
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+      - release/*
+    tags:
+      - '*'
+  workflow_dispatch:
+
+jobs:
+  android:
+    name: Build Android APK
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.32.1'
+          channel: 'stable'
+
+      - name: Install Dependencies
+        working-directory: src
+        run: flutter pub get
+
+      - name: Decode Keystore and Create Properties File
+        working-directory: src/android/app
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
+        run: |
+          echo "$KEYSTORE_BASE64" | base64 --decode > upload-keystore.jks
+          echo "storePassword=$STORE_PASSWORD" > key.properties
+          echo "keyPassword=$KEY_PASSWORD" >> key.properties
+          echo "keyAlias=$KEY_ALIAS" >> key.properties
+          echo "storeFile=upload-keystore.jks" >> key.properties
+
+      - name: Build Signed Android APK
+        working-directory: src
+        run: flutter build apk --release
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk-artifact
+          path: src/build/app/outputs/flutter-apk/app-release.apk
+
+  windows:
+    name: Build Windows EXE
+    runs-on: windows-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.32.1'
+          channel: 'stable'
+
+      - name: Install Dependencies
+        working-directory: src
+        run: flutter pub get
+
+      - name: Build Windows EXE
+        working-directory: src
+        run: flutter build windows --release
+
+      - name: Zip Windows Release
+        working-directory: src/build/windows/x64/runner/Release
+        run: Compress-Archive -Path * -DestinationPath ../../../../../../windows-release.zip
+
+      - name: Upload Windows ZIP Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-zip-artifact
+          # ✅ תיקון: הנתיב לקובץ ה-ZIP הוא בתיקייה הראשית של הפרויקט
+          path: windows-release.zip
+
+  publish-release:
+    name: Publish GitHub Release
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: [android, windows]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download Android APK artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: android-apk-artifact
+          path: artifacts/android
+
+      - name: Download Windows ZIP artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-zip-artifact
+          path: artifacts/windows
+
+      - name: Prepare Release Assets and Rename
+        id: prepare_assets
+        env:
+          TAG_VERSION: ${{ github.ref_name }}
+        run: |
+          APK_ORIGINAL_PATH="artifacts/android/app-release.apk"
+          APK_NEW_NAME="shamor-vezachor-${TAG_VERSION}.apk"
+          mv "${APK_ORIGINAL_PATH}" "artifacts/android/${APK_NEW_NAME}"
+
+          ZIP_ORIGINAL_PATH="artifacts/windows/windows-release.zip"
+          ZIP_NEW_NAME="shamor-vezachor-${TAG_VERSION}-windows.zip"
+          mv "${ZIP_ORIGINAL_PATH}" "artifacts/windows/${ZIP_NEW_NAME}"
+
+          echo "Final files for release:"
+          ls -R artifacts/
+          
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            artifacts/android/shamor-vezachor-${{ github.ref_name }}.apk
+            artifacts/windows/shamor-vezachor-${{ github.ref_name }}-windows.zip
+          tag_name: ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
+          body: |
+            גרסה ${{ github.ref_name }} של שמור וזכור.
+            קבצים מצורפים:
+            - `shamor-vezachor-${{ github.ref_name }}.apk` (אנדרואיד)
+            - `shamor-vezachor-${{ github.ref_name }}-windows.zip` (חלונות)
+          draft: true
+          prerelease: false

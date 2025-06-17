@@ -1,0 +1,78 @@
+name: shamor_vezachor
+description: "שמור וזכור: כלי יעיל ללומדי תורה למעקב מסודר אחר לימוד ספרי יסוד וניהול חזרות"
+publish_to: 'none'
+version: 0.9.1+5
+
+environment:
+  sdk: ^3.5.4
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  intl: 0.20.2
+  provider: ^6.0.5
+  shared_preferences: ^2.2.0
+  path_provider: ^2.1.1
+  uuid: ^4.5.1
+  cupertino_icons: ^1.0.8
+  kosher_dart: ^2.0.17
+  confetti: ^0.8.0
+  gematria: ^1.0.0+1
+  file_picker: ^10.1.9
+
+dependency_overrides:
+  intl: ^0.20.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_native_splash: ^2.4.0
+  flutter_lints: ^6.0.0
+  mockito: ^5.4.4
+  build_runner: ^2.4.10
+  flutter_launcher_icons: ^0.14.3
+  pub_version_plus: ^3.0.0
+
+flutter_native_splash:
+  color: "#FFDBCF"
+  color_dark: "#FFDBCF"
+  image: assets/launcher_icon/app_icon.png
+  android: true
+  ios: true
+  web: true
+
+flutter_launcher_icons:
+  # הגדרות כלליות
+  android: true
+  ios: true
+  min_sdk_android: 21
+  remove_alpha_ios: true
+
+  image_path: "assets/launcher_icon/app_icon.png"
+
+  adaptive_icon_background: "#FFDBCF"
+
+  adaptive_icon_foreground: "assets/launcher_icon/app_icon_foreground.png"
+
+  # הגדרות לפלטפורמות אחרות
+  web:
+    generate: true
+    image_path: "assets/launcher_icon/app_icon.png"
+    background_color: "#FFDBCF"
+    theme_color: "#FFDBCF"
+  windows:
+    generate: true
+    image_path: "assets/launcher_icon/app_icon.png"
+    icon_size: 256
+  macos:
+    generate: true
+    image_path: "assets/launcher_icon/app_icon.png"
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/data/
+    - assets/launcher_icon/
+    - assets/images/ 
