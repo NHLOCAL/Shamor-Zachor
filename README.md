@@ -4,7 +4,7 @@
 
 ## 📸 תמונת מסך
 
-![תמונת מסך - עמוד מעקב](https://raw.githubusercontent.com/NHLOCAL/Shamor-Zachor/refs/heads/dev/assets/screen.png?raw=true)
+![תמונת מסך - עמוד מעקב](docs/assets/screen.png?raw=true)
 
 ## ✨ מאפייני היישום
 
