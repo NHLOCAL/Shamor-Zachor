@@ -15,7 +15,7 @@
         "program": "lib/main.dart",
         "cwd": "${workspaceFolder}/src",
         "env": {
-            "JAVA_HOME": "C:\\Users\\me\\AppData\\Local\\Programs\\Eclipse Adoptium\\jdk-17.0.15.6-hotspot"
+            "JAVA_HOME": "C:\\Program Files\\Android\\Android Studio\\jbr"
         }
     }
   ]
