@@ -181,7 +181,7 @@ p:last-child {
     display: block;
 }
 
-/* --- Download Section (Redesigned) --- */
+/* --- Download Section --- */
 .download-container {
     display: flex;
     justify-content: center;
@@ -273,6 +273,13 @@ p:last-child {
     display: none;
 }
 
+.privacy-note {
+    font-size: 0.9rem;
+    color: #555;
+    margin-top: 25px;
+    max-width: 500px;
+}
+
 /* --- How to Use Section --- */
 .usage-steps {
     max-width: 800px;
@@ -306,6 +313,31 @@ footer {
     color: var(--white);
     text-align: center;
     padding: 40px 20px;
+}
+
+footer .footer-cta {
+    margin-bottom: 40px;
+    padding-bottom: 30px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+footer .footer-cta h3 {
+    color: var(--white);
+    font-size: 1.8rem;
+    margin-top: 0;
+    margin-bottom: 20px;
+}
+
+.btn-footer {
+    background-color: var(--white);
+    color: var(--primary-color);
+    font-weight: 700;
+}
+
+.btn-footer:hover {
+    background-color: var(--background-color);
+    color: var(--primary-color);
+    transform: translateY(-3px);
 }
 
 footer a {
