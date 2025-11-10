@@ -74,7 +74,7 @@ p {
     max-width: 700px;
     margin: 0 auto 20px;
 }
-p strong, footer strong, header strong {
+p strong, header strong {
     font-weight: 700;
     color: var(--primary-color);
 }
@@ -131,9 +131,9 @@ p:last-child {
 
 /* --- Features Section (Centered Layout) --- */
 .features-grid {
-    display: flex; /* Changed to Flexbox */
-    flex-wrap: wrap; /* Allows wrapping */
-    justify-content: center; /* Centers items, including the last row */
+    display: flex; 
+    flex-wrap: wrap; 
+    justify-content: center; 
     gap: 40px;
     margin-top: 60px;
 }
@@ -146,7 +146,7 @@ p:last-child {
     transition: transform 0.3s ease, box-shadow 0.3s ease;
     border-top: 4px solid var(--secondary-color);
     text-align: right;
-    width: 300px; /* Define a base width for flex items */
+    width: 300px;
     flex-shrink: 0;
 }
 
@@ -176,19 +176,90 @@ p:last-child {
    max-width: 100%;
 }
 
-/* --- Screenshot Section --- */
-.screenshot-wrapper {
+/* --- Screenshot Carousel Section (Revised for Mixed Aspect Ratios) --- */
+.carousel-wrapper {
+    position: relative;
     max-width: 900px;
     margin: 0 auto;
     border-radius: var(--border-radius);
     box-shadow: var(--shadow);
-    overflow: hidden;
+    overflow: hidden; /* This is crucial */
 }
 
-.screenshot-wrapper img {
+.carousel-track {
+    display: flex;
+    transition: transform 0.5s ease-in-out;
+}
+
+.carousel-slide {
+    min-width: 100%;
+    box-sizing: border-box;
+    /* FIX: Force a consistent aspect ratio for all slides */
+    aspect-ratio: 16 / 9; 
+    background-color: #f0f0f0; /* Background for letterboxing */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.carousel-slide img {
+    /* FIX: Ensure image fits within the slide container without distortion */
     width: 100%;
+    height: 100%;
+    object-fit: contain; /* This is the key property! */
     display: block;
 }
+
+.carousel-button {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background-color: rgba(255, 255, 255, 0.7);
+    border: none;
+    color: var(--primary-color);
+    font-size: 1.5rem;
+    cursor: pointer;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.3s;
+    z-index: 10;
+}
+
+.carousel-button:hover {
+    background-color: var(--white);
+}
+
+.carousel-button.prev { left: 15px; }
+.carousel-button.next { right: 15px; }
+
+.carousel-nav {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 10px;
+    z-index: 10;
+}
+
+.carousel-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.5);
+    cursor: pointer;
+    transition: background-color 0.3s;
+    border: 1px solid rgba(0,0,0,0.1);
+}
+
+.carousel-dot.active {
+    background-color: var(--white);
+}
+
 
 /* --- Mission Section --- */
 #mission {
@@ -197,7 +268,7 @@ p:last-child {
 
 /* --- Download Section --- */
 #download {
-    background-color: var(--white); /* Ensure clean background */
+    background-color: var(--white);
 }
 
 .download-container {
@@ -357,6 +428,11 @@ footer {
     padding: 30px 20px;
 }
 
+footer .footer-brand {
+    color: var(--white);
+    font-weight: 700;
+}
+
 footer a {
     color: var(--white);
     text-decoration: none;
@@ -394,4 +470,5 @@ footer .social-icons a:hover {
     .feature-card { width: 90%; max-width: 350px; }
     .download-container { flex-direction: column; align-items: center; }
     .download-card { width: 90%; max-width: 350px; }
+    .carousel-button { width: 40px; height: 40px; font-size: 1rem; }
 }
