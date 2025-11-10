@@ -1,12 +1,13 @@
 /* --- Global Styles & Variables --- */
 :root {
     --primary-color: #9E512F; /* Main Brown */
-    --background-color: #F1DFD9; /* Light Beige/Pink background */
+    --background-color: #FBF6F5; /* Lighter Beige/Off-white */
+    --hero-bg-color: #F1DFD9; /* Original Light Beige/Pink for Hero */
     --secondary-color: #C78A67; /* Lighter complementary brown */
     --text-color: #402E32; /* Dark, readable text */
     --white: #ffffff;
-    --border-radius: 12px;
-    --shadow: 0 4px 20px rgba(158, 81, 47, 0.1);
+    --border-radius: 16px; /* Softer corners */
+    --shadow: 0 8px 24px rgba(158, 81, 47, 0.08); /* Softer, more modern shadow */
 }
 
 html {
@@ -34,7 +35,7 @@ section {
 }
 
 section:nth-of-type(even) {
-    background-color: #FBF6F5; /* A slightly off-white for section separation */
+    background-color: var(--background-color);
 }
 
 h1, h2, h3 {
@@ -55,7 +56,7 @@ h2 {
 }
 
 h2 i {
-    margin-right: 12px; /* Space between text and icon */
+    margin-right: 12px;
 }
 
 h2::after {
@@ -72,6 +73,10 @@ p {
     text-align: center;
     max-width: 700px;
     margin: 0 auto 20px;
+}
+p strong, footer strong, header strong {
+    font-weight: 700;
+    color: var(--primary-color);
 }
 
 p:last-child {
@@ -106,7 +111,7 @@ p:last-child {
 .hero {
     padding: 100px 0 60px;
     text-align: center;
-    background: var(--background-color);
+    background: var(--hero-bg-color);
 }
 
 .hero-logo {
@@ -124,10 +129,11 @@ p:last-child {
     margin-bottom: 40px;
 }
 
-/* --- Features Section --- */
+/* --- Features Section (Centered Layout) --- */
 .features-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    display: flex; /* Changed to Flexbox */
+    flex-wrap: wrap; /* Allows wrapping */
+    justify-content: center; /* Centers items, including the last row */
     gap: 40px;
     margin-top: 60px;
 }
@@ -137,13 +143,16 @@ p:last-child {
     padding: 30px;
     border-radius: var(--border-radius);
     box-shadow: var(--shadow);
-    transition: transform 0.3s ease;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
     border-top: 4px solid var(--secondary-color);
     text-align: right;
+    width: 300px; /* Define a base width for flex items */
+    flex-shrink: 0;
 }
 
 .feature-card:hover {
     transform: translateY(-5px);
+    box-shadow: 0 12px 28px rgba(158, 81, 47, 0.12);
 }
 
 .feature-card .icon-wrapper {
@@ -181,11 +190,20 @@ p:last-child {
     display: block;
 }
 
+/* --- Mission Section --- */
+#mission {
+    background-color: var(--background-color);
+}
+
 /* --- Download Section --- */
+#download {
+    background-color: var(--white); /* Ensure clean background */
+}
+
 .download-container {
     display: flex;
     justify-content: center;
-    align-items: stretch; /* Makes cards same height */
+    align-items: stretch;
     gap: 30px;
     flex-wrap: wrap;
     margin-top: 50px;
@@ -199,7 +217,7 @@ p:last-child {
     text-align: center;
     width: 300px;
     display: flex;
-    flex-direction: column; /* Key for vertical alignment */
+    flex-direction: column;
 }
 
 .download-card h3 {
@@ -208,11 +226,11 @@ p:last-child {
      display: flex;
      align-items: center;
      justify-content: center;
-     gap: 12px; /* Space between icon and text in title */
+     gap: 12px;
 }
 
 .download-card h3 i {
-    font-size: 1.5em; /* Icon size relative to h3 font size */
+    font-size: 1.5em;
 }
 
 .version-tag {
@@ -241,12 +259,12 @@ p:last-child {
     background-color: var(--primary-color);
     color: var(--white);
     text-decoration: none;
-    padding: 12px 30px; /* Reduced padding */
+    padding: 12px 30px;
     border-radius: var(--border-radius);
     font-weight: 700;
-    font-size: 1rem; /* Reduced font size */
+    font-size: 1rem;
     transition: all 0.3s ease;
-    margin-top: auto; /* Pushes button to the bottom */
+    margin-top: auto;
 }
 
 .download-btn:hover {
@@ -307,41 +325,40 @@ p:last-child {
     font-size: 1.1rem;
 }
 
-/* --- Footer --- */
-footer {
-    background-color: var(--primary-color);
-    color: var(--white);
+/* --- Pre-Footer & Footer --- */
+.pre-footer {
+    background-color: var(--background-color);
     text-align: center;
-    padding: 40px 20px;
 }
 
-footer .footer-cta {
-    margin-bottom: 40px;
-    padding-bottom: 30px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-footer .footer-cta h3 {
-    color: var(--white);
+.pre-footer h3 {
+    color: var(--text-color);
     font-size: 1.8rem;
     margin-top: 0;
     margin-bottom: 20px;
 }
 
 .btn-footer {
-    background-color: var(--white);
-    color: var(--primary-color);
+    background-color: var(--primary-color);
+    color: var(--white);
     font-weight: 700;
 }
 
 .btn-footer:hover {
-    background-color: var(--background-color);
-    color: var(--primary-color);
+    background-color: var(--secondary-color);
+    color: var(--white);
     transform: translateY(-3px);
 }
 
+footer {
+    background-color: var(--primary-color);
+    color: rgba(255, 255, 255, 0.8);
+    text-align: center;
+    padding: 30px 20px;
+}
+
 footer a {
-    color: var(--background-color);
+    color: var(--white);
     text-decoration: none;
     font-weight: 500;
 }
@@ -372,21 +389,9 @@ footer .social-icons a:hover {
 
 /* --- Responsive Design --- */
 @media (max-width: 768px) {
-    h1 {
-        font-size: 2.5rem;
-    }
-    h2 {
-        font-size: 2.2rem;
-    }
-    .features-grid {
-        grid-template-columns: 1fr;
-    }
-    .download-container {
-        flex-direction: column;
-        align-items: center;
-    }
-    .download-card {
-        width: 90%;
-        max-width: 350px;
-    }
+    h1 { font-size: 2.5rem; }
+    h2 { font-size: 2.2rem; }
+    .feature-card { width: 90%; max-width: 350px; }
+    .download-container { flex-direction: column; align-items: center; }
+    .download-card { width: 90%; max-width: 350px; }
 }
