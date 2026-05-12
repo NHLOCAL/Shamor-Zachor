@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'package:flutter/services.dart' show rootBundle;
+import 'package:flutter/services.dart' show AssetManifest, rootBundle;
 import 'package:path/path.dart' as p;
 import '../models/book_model.dart';
 import './custom_book_service.dart';
@@ -17,10 +17,10 @@ class DataLoaderService {
       return _cachedData!;
     }
 
-    final manifestContent = await rootBundle.loadString('AssetManifest.json');
-    final Map<String, dynamic> manifestMap = json.decode(manifestContent);
+    final manifest = await AssetManifest.loadFromAssetBundle(rootBundle);
 
-    final List<String> jsonFilesPaths = manifestMap.keys
+    final List<String> jsonFilesPaths = manifest
+        .listAssets()
         .where((String key) =>
             key.startsWith('assets/data/') && key.endsWith('.json'))
         .toList();
