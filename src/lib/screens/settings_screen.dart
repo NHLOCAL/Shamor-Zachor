@@ -157,7 +157,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       if (useExistingTopLevelCategory)
                         DropdownButtonFormField<String>(
                           key: ValueKey('top-level-$selectedTopLevelCategory'),
-                          initialValue: selectedTopLevelCategory,
+                          // ignore: deprecated_member_use
+                          value: selectedTopLevelCategory,
                           decoration:
                               _dialogInputDecoration(context, 'קטגוריה ראשית'),
                           items: existingTopLevelCategories
@@ -193,7 +194,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       DropdownButtonFormField<String>(
                         key: ValueKey(
                             'sub-category-$selectedTopLevelCategory-$selectedSubCategoryMode'),
-                        initialValue: selectedSubCategoryMode,
+                        // ignore: deprecated_member_use
+                        value: selectedSubCategoryMode,
                         decoration:
                             _dialogInputDecoration(context, 'תת־קטגוריה'),
                         items: [
@@ -253,7 +255,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       DropdownButtonFormField<String>(
                         key: ValueKey('content-type-$selectedContentType'),
                         decoration: _dialogInputDecoration(context, 'סוג תוכן'),
-                        initialValue: selectedContentType,
+                        // ignore: deprecated_member_use
+                        value: selectedContentType,
                         items: contentTypes.map((String value) {
                           return DropdownMenuItem<String>(
                               value: value, child: Text(value));
