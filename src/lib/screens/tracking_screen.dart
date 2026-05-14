@@ -203,7 +203,7 @@ class _TrackingScreenState extends State<TrackingScreen> {
       }
 
       return Tooltip(
-        message: 'פתח בקטגוריית $categoryName בספרים',
+        message: 'פתח את הקטגוריה בכרטיסית ספרים',
         child: headerContent,
       );
     }
@@ -309,15 +309,17 @@ class _TrackingScreenState extends State<TrackingScreen> {
       final groupedItems = _groupItemsByTopLevelCategory(itemsData);
       return LayoutBuilder(
         builder: (context, constraints) {
-          const double desiredCardWidth = 350;
-          int crossAxisCount =
-              (constraints.maxWidth / desiredCardWidth).floor();
-          if (crossAxisCount < 1) crossAxisCount = 1;
-          if (constraints.maxWidth < 500 || crossAxisCount == 1) {
-            crossAxisCount = 1;
-          }
+          const double minSectionWidth = 420;
+          const double sectionSpacing = 12;
+          const double horizontalPadding = 12;
 
-          if (crossAxisCount == 1) {
+          final availableWidth = constraints.maxWidth - (horizontalPadding * 2);
+          final sectionColumnCount = ((availableWidth + sectionSpacing) /
+                  (minSectionWidth + sectionSpacing))
+              .floor();
+          final useMultiColumnSections = sectionColumnCount >= 2;
+
+          if (!useMultiColumnSections) {
             return ListView(
               padding:
                   const EdgeInsets.symmetric(horizontal: 10.0, vertical: 6.0),
@@ -329,11 +331,13 @@ class _TrackingScreenState extends State<TrackingScreen> {
                   .toList(),
             );
           } else {
-            const double sectionSpacing = 12;
             final sectionWidth =
-                (constraints.maxWidth - (sectionSpacing * 3)) / 2;
+                (availableWidth - (sectionSpacing * (sectionColumnCount - 1))) /
+                    sectionColumnCount;
+
             return ListView(
-              padding: const EdgeInsets.fromLTRB(12.0, 8.0, 12.0, 14.0),
+              padding: const EdgeInsets.fromLTRB(
+                  horizontalPadding, 8.0, horizontalPadding, 14.0),
               children: [
                 Wrap(
                   spacing: sectionSpacing,
