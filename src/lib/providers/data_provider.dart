@@ -25,31 +25,31 @@ class DataProvider with ChangeNotifier {
     notifyListeners();
     try {
       _allBookData = await _dataLoaderService.loadData();
-      print(
+      debugPrint(
           "[DataProvider] LoadAllData Complete. _allBookData keys: ${_allBookData.keys.toList()}");
       _allBookData.forEach((key, category) {
-        print("[DataProvider] Category: ${category.name}");
-        print(
+        debugPrint("[DataProvider] Category: ${category.name}");
+        debugPrint(
             "  Has subcategories: ${category.subcategories != null && category.subcategories!.isNotEmpty}");
         if (category.subcategories != null &&
             category.subcategories!.isNotEmpty) {
           for (var subCat in category.subcategories!) {
-            print(
+            debugPrint(
                 "    SubCategory: ${subCat.name}, Books count: ${subCat.books.length}, Sub-subcategories: ${subCat.subcategories != null && subCat.subcategories!.isNotEmpty}");
             if (subCat.subcategories != null &&
                 subCat.subcategories!.isNotEmpty) {
               for (var deepSubCat in subCat.subcategories!) {
-                print(
+                debugPrint(
                     "      DeepSubCategory: ${deepSubCat.name}, Books count: ${deepSubCat.books.length}");
               }
             }
           }
         }
-        print("  Direct books count: ${category.books.length}");
+        debugPrint("  Direct books count: ${category.books.length}");
       });
     } catch (e) {
       _error = e.toString();
-      print("Error in DataProvider: $e");
+      debugPrint("Error in DataProvider: $e");
     }
     _isLoading = false;
     notifyListeners();

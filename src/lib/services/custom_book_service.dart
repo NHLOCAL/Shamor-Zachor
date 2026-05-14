@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
@@ -148,7 +149,7 @@ class CustomBookService {
               CustomBook.fromJson(jsonItem as Map<String, dynamic>))
           .toList();
     } catch (e) {
-      print('Error loading custom books from SharedPreferences: $e');
+      debugPrint('Error loading custom books from SharedPreferences: $e');
 
       return [];
     }
@@ -160,7 +161,7 @@ class CustomBookService {
       final jsonList = books.map((book) => book.toJson()).toList();
       await prefs.setString(customBooksKey, json.encode(jsonList));
     } catch (e) {
-      print('Error saving custom books to SharedPreferences: $e');
+      debugPrint('Error saving custom books to SharedPreferences: $e');
     }
   }
 
@@ -177,13 +178,14 @@ class CustomBookService {
         if (decoded is List) {
           await prefs.setString(customBooksKey, jsonString);
         } else {
-          print(
+          debugPrint(
               'Import failed: Provided string is not a valid JSON list for custom books.');
 
           await prefs.setString(customBooksKey, '[]');
         }
       } catch (e) {
-        print('Import failed: Provided string is not valid JSON. Error: $e');
+        debugPrint(
+            'Import failed: Provided string is not valid JSON. Error: $e');
 
         await prefs.setString(customBooksKey, '[]');
       }

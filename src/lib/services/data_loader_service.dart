@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart' show AssetManifest, rootBundle;
 import 'package:path/path.dart' as p;
 import '../models/book_model.dart';
@@ -43,7 +44,7 @@ class DataLoaderService {
             (jsonData['books'] != null && jsonData['books'] is! Map) ||
             (jsonData['subcategories'] != null &&
                 jsonData['subcategories'] is! List)) {
-          print(
+          debugPrint(
               "Skipping invalid JSON file (missing name, content_type, or any data/books/subcategories, or invalid types): $path");
           continue;
         }
@@ -52,7 +53,7 @@ class DataLoaderService {
         BookCategory category = BookCategory.fromJson(jsonData, fileName);
         combinedData[category.name] = category;
       } catch (e) {
-        print("Error loading or parsing $path: $e");
+        debugPrint("Error loading or parsing $path: $e");
       }
     }
 

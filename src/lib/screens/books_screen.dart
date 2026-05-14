@@ -259,16 +259,16 @@ class _BooksScreenState extends State<BooksScreen>
             decoration: InputDecoration(
               hintText: 'חיפוש ספר...',
               prefixIcon: Icon(Icons.search,
-                  color: theme.colorScheme.onSurface.withOpacity(0.6)),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.6)),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(30),
                 borderSide: BorderSide(
-                    color: theme.colorScheme.primary.withOpacity(0.5)),
+                    color: theme.colorScheme.primary.withValues(alpha: 0.5)),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(30),
                 borderSide: BorderSide(
-                    color: theme.colorScheme.primary.withOpacity(0.3)),
+                    color: theme.colorScheme.primary.withValues(alpha: 0.3)),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(30),
@@ -337,7 +337,7 @@ class _BooksScreenState extends State<BooksScreen>
                     : 'לא נמצאו תוצאות חיפוש.',
                 style: TextStyle(
                     fontStyle: FontStyle.italic,
-                    color: theme.colorScheme.onSurface.withOpacity(0.6)),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6)),
               ),
             ),
           ),

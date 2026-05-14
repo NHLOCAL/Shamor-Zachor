@@ -38,7 +38,6 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(
           seedColor: primaryBrown,
           primary: primaryBrown,
-          background: surfaceColor,
           surface: lightPinkBeige,
           onSurface: onSurfaceTextColor,
           primaryContainer: lightPeachPink,
@@ -139,11 +138,12 @@ class MyApp extends StatelessWidget {
         bottomNavigationBarTheme: BottomNavigationBarThemeData(
             backgroundColor: lightPeachPink,
             selectedItemColor: primaryBrown,
-            unselectedItemColor: onSurfaceTextColor.withAlpha((0.7 * 255).round()),
-            selectedLabelStyle:
-                const TextStyle(fontWeight: FontWeight.bold, color: primaryBrown),
-            unselectedLabelStyle:
-                TextStyle(color: onSurfaceTextColor.withAlpha((0.7 * 255).round()))),
+            unselectedItemColor:
+                onSurfaceTextColor.withAlpha((0.7 * 255).round()),
+            selectedLabelStyle: const TextStyle(
+                fontWeight: FontWeight.bold, color: primaryBrown),
+            unselectedLabelStyle: TextStyle(
+                color: onSurfaceTextColor.withAlpha((0.7 * 255).round()))),
         navigationBarTheme: NavigationBarThemeData(
           backgroundColor: lightPeachPink,
           indicatorColor: primaryBrown.withAlpha((0.2 * 255).round()),
@@ -155,28 +155,30 @@ class MyApp extends StatelessWidget {
                   color: primaryBrown);
             }
             return TextStyle(
-                fontSize: 12, color: onSurfaceTextColor.withAlpha((0.7 * 255).round()));
+                fontSize: 12,
+                color: onSurfaceTextColor.withAlpha((0.7 * 255).round()));
           }),
           iconTheme: WidgetStateProperty.resolveWith((states) {
             if (states.contains(WidgetState.selected)) {
               return const IconThemeData(color: primaryBrown);
             }
-            return IconThemeData(color: onSurfaceTextColor.withAlpha((0.7 * 255).round()));
+            return IconThemeData(
+                color: onSurfaceTextColor.withAlpha((0.7 * 255).round()));
           }),
         ),
         tabBarTheme: TabBarThemeData(
           labelColor: onSurfaceTextColor,
-          unselectedLabelColor: onSurfaceTextColor.withAlpha((0.65 * 255).round()),
+          unselectedLabelColor:
+              onSurfaceTextColor.withAlpha((0.65 * 255).round()),
           indicatorColor: primaryBrown,
           indicatorSize: TabBarIndicatorSize.label,
           // dividerColor: Colors.transparent, // Removed as per M3 guidance
-          labelStyle: const TextStyle(
-              fontWeight: FontWeight.w600,
-              fontSize: 15.5),
+          labelStyle:
+              const TextStyle(fontWeight: FontWeight.w600, fontSize: 15.5),
           unselectedLabelStyle:
               const TextStyle(fontWeight: FontWeight.normal, fontSize: 15),
-          overlayColor:
-              WidgetStateProperty.all(primaryBrown.withAlpha((0.1 * 255).round())),
+          overlayColor: WidgetStateProperty.all(
+              primaryBrown.withAlpha((0.1 * 255).round())),
         ));
 
     final ThemeData darkTheme = ThemeData(
@@ -187,7 +189,6 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(
           seedColor: darkPrimaryBrown,
           primary: darkPrimaryBrown,
-          background: darkBackground,
           surface: darkSurfaceColor,
           onSurface: onDarkSurfaceTextColor,
           primaryContainer: darkAppBarColor,
@@ -256,8 +257,8 @@ class MyApp extends StatelessWidget {
               return onDarkSurfaceTextColor.withAlpha((0.9 * 255).round());
             },
           ),
-          side: WidgetStateProperty.all(
-              BorderSide(color: darkPrimaryBrown.withAlpha((0.5 * 255).round()))),
+          side: WidgetStateProperty.all(BorderSide(
+              color: darkPrimaryBrown.withAlpha((0.5 * 255).round()))),
           shape: WidgetStateProperty.all(
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
         )),
@@ -269,8 +270,10 @@ class MyApp extends StatelessWidget {
             return Colors.transparent;
           }),
           checkColor: WidgetStateProperty.all(darkSurfaceColor),
-           side: WidgetStateBorderSide.resolveWith(
-            (states) => BorderSide(width: 2, color: onDarkSurfaceTextColor.withAlpha((0.7 * 255).round())),
+          side: WidgetStateBorderSide.resolveWith(
+            (states) => BorderSide(
+                width: 2,
+                color: onDarkSurfaceTextColor.withAlpha((0.7 * 255).round())),
           ),
         ),
         progressIndicatorTheme: ProgressIndicatorThemeData(
@@ -290,7 +293,8 @@ class MyApp extends StatelessWidget {
         bottomNavigationBarTheme: BottomNavigationBarThemeData(
             backgroundColor: darkAppBarColor,
             selectedItemColor: darkPrimaryBrown,
-            unselectedItemColor: onDarkSurfaceTextColor.withAlpha((0.7 * 255).round()),
+            unselectedItemColor:
+                onDarkSurfaceTextColor.withAlpha((0.7 * 255).round()),
             selectedLabelStyle: const TextStyle(
                 fontWeight: FontWeight.bold, color: darkPrimaryBrown),
             unselectedLabelStyle: TextStyle(
@@ -306,24 +310,26 @@ class MyApp extends StatelessWidget {
                   color: darkPrimaryBrown);
             }
             return TextStyle(
-                fontSize: 12, color: onDarkSurfaceTextColor.withAlpha((0.7 * 255).round()));
+                fontSize: 12,
+                color: onDarkSurfaceTextColor.withAlpha((0.7 * 255).round()));
           }),
           iconTheme: WidgetStateProperty.resolveWith((states) {
             if (states.contains(WidgetState.selected)) {
               return const IconThemeData(color: darkPrimaryBrown);
             }
-            return IconThemeData(color: onDarkSurfaceTextColor.withAlpha((0.7 * 255).round()));
+            return IconThemeData(
+                color: onDarkSurfaceTextColor.withAlpha((0.7 * 255).round()));
           }),
         ),
         tabBarTheme: TabBarThemeData(
           labelColor: onDarkSurfaceTextColor,
-          unselectedLabelColor: onDarkSurfaceTextColor.withAlpha((0.65 * 255).round()),
+          unselectedLabelColor:
+              onDarkSurfaceTextColor.withAlpha((0.65 * 255).round()),
           indicatorColor: darkPrimaryBrown,
           indicatorSize: TabBarIndicatorSize.label,
           // dividerColor: Colors.transparent, // Removed
-          labelStyle: const TextStyle(
-              fontWeight: FontWeight.w600,
-              fontSize: 15.5),
+          labelStyle:
+              const TextStyle(fontWeight: FontWeight.w600, fontSize: 15.5),
           unselectedLabelStyle:
               const TextStyle(fontWeight: FontWeight.normal, fontSize: 15),
           overlayColor: WidgetStateProperty.all(
@@ -362,7 +368,8 @@ class MyApp extends StatelessWidget {
               if (settings.name == BookDetailScreen.routeName) {
                 final args = settings.arguments as Map<String, String>;
                 final topLevelCategoryKey = args['topLevelCategoryKey']!;
-                final categoryName = args['categoryName']!; // This is the display name
+                final categoryName =
+                    args['categoryName']!; // This is the display name
                 final bookName = args['bookName']!;
                 return MaterialPageRoute(
                   builder: (context) {

@@ -182,7 +182,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
     final isBookCompleteIcon = currentCompletionStatus
         ? Icon(Icons.check_circle, color: theme.colorScheme.primary)
         : Icon(Icons.circle_outlined,
-            color: theme.colorScheme.onSurface.withOpacity(0.5));
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.5));
 
     final learnableItems = bookDetails.learnableItems;
 
@@ -227,7 +227,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                               border: Border(
                                   bottom: BorderSide(
                                       color: theme.dividerColor
-                                          .withOpacity(0.5)))),
+                                          .withValues(alpha: 0.5)))),
                           child: Row(
                             children: [
                               Expanded(
@@ -334,7 +334,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                                           (bookDetails.isDafType ? 2 : 1)
                                       ? Colors.transparent
                                       : theme.colorScheme.primaryContainer
-                                          .withOpacity(0.15);
+                                          .withValues(alpha: 0.15);
 
                               return Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
