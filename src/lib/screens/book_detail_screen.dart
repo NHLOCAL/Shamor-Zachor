@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/data_provider.dart';
 import '../providers/progress_provider.dart';
+import '../utils/top_app_bar_visibility.dart';
 import '../widgets/hebrew_utils.dart';
 import '../widgets/completion_animation_overlay.dart';
 
@@ -26,6 +27,9 @@ class BookDetailScreen extends StatefulWidget {
 
 class _BookDetailScreenState extends State<BookDetailScreen> {
   StreamSubscription<CompletionEvent>? _completionSubscription;
+  final ScrollController _scrollController = ScrollController();
+  Timer? _scrollSaveDebounce;
+  bool _didRestoreScrollOffset = false;
 
   final List<Map<String, String>> _columnData = [
     {'id': ProgressProvider.learnColumn, 'label': 'לימוד'},
@@ -39,6 +43,10 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
     super.initState();
     final progressProvider =
         Provider.of<ProgressProvider>(context, listen: false);
+    _scrollController.addListener(_scheduleScrollOffsetSave);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _restoreSavedScrollOffset();
+    });
     _completionSubscription = progressProvider.completionEvents.listen((event) {
       if (!mounted) return;
       if (event.type == CompletionEventType.bookCompleted) {
@@ -51,8 +59,55 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
     });
   }
 
+  Future<void> _restoreSavedScrollOffset() async {
+    final progressProvider =
+        Provider.of<ProgressProvider>(context, listen: false);
+    final savedOffset = await progressProvider.loadBookScrollOffset(
+        widget.topLevelCategoryKey, widget.bookName);
+
+    if (!mounted || !_scrollController.hasClients) return;
+
+    final maxScrollExtent = _scrollController.position.maxScrollExtent;
+    final targetOffset = savedOffset.clamp(0.0, maxScrollExtent).toDouble();
+    _scrollController.jumpTo(targetOffset);
+    _didRestoreScrollOffset = true;
+  }
+
+  void _scheduleScrollOffsetSave() {
+    if (!_didRestoreScrollOffset || !_scrollController.hasClients) return;
+
+    _scrollSaveDebounce?.cancel();
+    _scrollSaveDebounce = Timer(const Duration(milliseconds: 350), () {
+      if (!mounted || !_scrollController.hasClients) return;
+
+      final progressProvider =
+          Provider.of<ProgressProvider>(context, listen: false);
+      unawaited(progressProvider.saveBookScrollOffset(
+        widget.topLevelCategoryKey,
+        widget.bookName,
+        _scrollController.offset,
+      ));
+    });
+  }
+
+  void _saveCurrentScrollOffset() {
+    if (!_didRestoreScrollOffset || !_scrollController.hasClients) return;
+
+    final progressProvider =
+        Provider.of<ProgressProvider>(context, listen: false);
+    unawaited(progressProvider.saveBookScrollOffset(
+      widget.topLevelCategoryKey,
+      widget.bookName,
+      _scrollController.offset,
+    ));
+  }
+
   @override
   void dispose() {
+    _saveCurrentScrollOffset();
+    _scrollSaveDebounce?.cancel();
+    _scrollController.removeListener(_scheduleScrollOffsetSave);
+    _scrollController.dispose();
     _completionSubscription?.cancel();
     super.dispose();
   }
@@ -84,6 +139,10 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
     final dataProvider = Provider.of<DataProvider>(context, listen: false);
     final progressProvider = Provider.of<ProgressProvider>(context);
     final theme = Theme.of(context);
+    final platform = theme.platform;
+    final bool showTopAppBar = shouldShowTopAppBar(platform);
+    final bool useAndroidTopSafeArea = shouldUseAndroidTopSafeArea(platform);
+    final bool showCompactBookTopBar = shouldShowCompactBookTopBar(platform);
 
     final topLevelCategory =
         dataProvider.allBookData[widget.topLevelCategoryKey];
@@ -93,8 +152,24 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
 
     if (bookDetails == null) {
       return Scaffold(
-        appBar: AppBar(title: Text('שגיאה: ${widget.bookName}')),
-        body: Center(child: Text('פרטי הספר \'${widget.bookName}\' לא נמצאו.')),
+        appBar: showTopAppBar
+            ? AppBar(title: Text('שגיאה: ${widget.bookName}'))
+            : null,
+        body: SafeArea(
+          top: useAndroidTopSafeArea,
+          bottom: false,
+          child: Column(
+            children: [
+              if (showCompactBookTopBar)
+                _CompactBookTopBar(title: widget.bookName),
+              Expanded(
+                child: Center(
+                  child: Text('פרטי הספר \'${widget.bookName}\' לא נמצאו.'),
+                ),
+              ),
+            ],
+          ),
+        ),
       );
     }
 
@@ -107,213 +182,306 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
     final isBookCompleteIcon = currentCompletionStatus
         ? Icon(Icons.check_circle, color: theme.colorScheme.primary)
         : Icon(Icons.circle_outlined,
-            color: theme.colorScheme.onSurface.withOpacity(0.5));
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.5));
 
     final learnableItems = bookDetails.learnableItems;
 
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
-        appBar: AppBar(
-          title: Text(widget.bookName),
-          actions: [
-            Padding(
-                padding: const EdgeInsets.all(12.0), child: isBookCompleteIcon)
-          ],
-        ),
-        body: Card(
-          margin: const EdgeInsets.all(12),
-          elevation: 2,
-          color: theme.colorScheme.surface,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          child: Padding(
-            padding: const EdgeInsets.all(15.0),
-            child: Column(
-              children: [
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
-                  decoration: BoxDecoration(
-                      border: Border(
-                          bottom: BorderSide(
-                              color: theme.dividerColor.withOpacity(0.5)))),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        flex: 2,
-                        child: Text(
-                          bookDetails.contentType,
-                          style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14,
-                              color: theme.colorScheme.onSurface),
-                          textAlign: TextAlign.right,
-                        ),
-                      ),
-                      Expanded(
-                        flex: 10,
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                          children: _columnData.map((col) {
-                            final columnId = col['id']!;
-                            final columnLabel = col['label']!;
-                            final bool? checkboxValue =
-                                columnSelectionStates[columnId];
-
-                            return Expanded(
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Checkbox(
-                                    visualDensity: VisualDensity.compact,
-                                    value: checkboxValue,
-                                    onChanged: (bool? newValue) async {
-                                      final bool selectAction =
-                                          newValue == true;
-                                      final confirmed =
-                                          await _showWarningDialog();
-                                      if (confirmed && mounted) {
-                                        await Provider.of<ProgressProvider>(
-                                                context,
-                                                listen: false)
-                                            .toggleSelectAllForColumn(
-                                          widget.topLevelCategoryKey,
-                                          widget.bookName,
-                                          bookDetails,
-                                          columnId,
-                                          selectAction,
-                                        );
-                                      }
-                                    },
-                                    tristate: true,
-                                    activeColor: theme.primaryColor,
-                                  ),
-                                  FittedBox(
-                                    fit: BoxFit.scaleDown,
-                                    child: Text(columnLabel,
-                                        style: TextStyle(
-                                            fontSize: 11,
-                                            color: theme.colorScheme.onSurface),
-                                        overflow: TextOverflow.ellipsis),
-                                  ),
-                                ],
-                              ),
-                            );
-                          }).toList(),
-                        ),
-                      ),
-                    ],
-                  ),
+        appBar: showTopAppBar
+            ? AppBar(
+                title: Text(widget.bookName),
+                actions: [
+                  Padding(
+                      padding: const EdgeInsets.all(12.0),
+                      child: isBookCompleteIcon)
+                ],
+              )
+            : null,
+        body: SafeArea(
+          top: useAndroidTopSafeArea,
+          bottom: false,
+          child: Column(
+            children: [
+              if (showCompactBookTopBar)
+                _CompactBookTopBar(
+                  title: widget.bookName,
+                  trailing: isBookCompleteIcon,
                 ),
-                Expanded(
-                  child: ListView.builder(
-                    itemCount: learnableItems.length,
-                    itemBuilder: (ctx, index) {
-                      final item = learnableItems[index];
-                      final absoluteIndex = item.absoluteIndex;
-                      final partName = item.partName;
-
-                      bool showHeader = bookDetails.hasMultipleParts &&
-                          (index == 0 ||
-                              partName != learnableItems[index - 1].partName);
-
-                      String rowLabel;
-                      if (bookDetails.isDafType) {
-                        final amudSymbol = (item.amudKey == "b") ? ":" : ".";
-                        rowLabel =
-                            "${HebrewUtils.intToGematria(item.pageNumber)}$amudSymbol";
-                      } else {
-                        rowLabel = HebrewUtils.intToGematria(item.pageNumber);
-                      }
-
-                      final pageProgress = progressProvider.getProgressForItem(
-                          widget.topLevelCategoryKey,
-                          widget.bookName,
-                          absoluteIndex);
-
-                      final rowBackgroundColor =
-                          index % (bookDetails.isDafType ? 4 : 2) <
-                                  (bookDetails.isDafType ? 2 : 1)
-                              ? Colors.transparent
-                              : theme.colorScheme.primaryContainer
-                                  .withOpacity(0.15);
-
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          if (showHeader)
-                            Container(
-                              width: double.infinity,
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 6),
-                              margin:
-                                  const EdgeInsets.only(top: 16.0, bottom: 4.0),
-                              decoration: BoxDecoration(
-                                color: theme.colorScheme.primaryContainer,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                partName,
-                                style: theme.textTheme.titleMedium?.copyWith(
-                                  color: theme.colorScheme.onPrimaryContainer,
-                                  fontWeight: FontWeight.bold,
+              Expanded(
+                child: Card(
+                  margin: const EdgeInsets.all(12),
+                  elevation: 2,
+                  color: theme.colorScheme.surface,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                  child: Padding(
+                    padding: const EdgeInsets.all(15.0),
+                    child: Column(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              vertical: 8, horizontal: 8),
+                          decoration: BoxDecoration(
+                              border: Border(
+                                  bottom: BorderSide(
+                                      color: theme.dividerColor
+                                          .withValues(alpha: 0.5)))),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                flex: 2,
+                                child: Text(
+                                  bookDetails.contentType,
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                      color: theme.colorScheme.onSurface),
+                                  textAlign: TextAlign.right,
                                 ),
                               ),
-                            ),
-                          Container(
-                            color: rowBackgroundColor,
-                            padding: const EdgeInsets.symmetric(
-                                vertical: 2, horizontal: 8),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  flex: 2,
-                                  child: Text(rowLabel,
-                                      textAlign: TextAlign.right,
-                                      style: TextStyle(
-                                          fontFamily: 'Heebo',
-                                          color: theme.colorScheme.onSurface)),
-                                ),
-                                Expanded(
-                                  flex: 10,
-                                  child: Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceEvenly,
-                                    children: _columnData.map((col) {
-                                      final columnName = col['id']!;
-                                      return Expanded(
-                                        child: Tooltip(
-                                          message: col['label']!,
-                                          child: Checkbox(
+                              Expanded(
+                                flex: 10,
+                                child: Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceEvenly,
+                                  children: _columnData.map((col) {
+                                    final columnId = col['id']!;
+                                    final columnLabel = col['label']!;
+                                    final bool? checkboxValue =
+                                        columnSelectionStates[columnId];
+
+                                    return Expanded(
+                                      child: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Checkbox(
                                             visualDensity:
                                                 VisualDensity.compact,
-                                            value: pageProgress
-                                                .getProperty(columnName),
-                                            onChanged: (val) =>
-                                                progressProvider.updateProgress(
-                                                    widget.topLevelCategoryKey,
-                                                    widget.bookName,
-                                                    absoluteIndex,
-                                                    columnName,
-                                                    val ?? false,
-                                                    bookDetails),
+                                            value: checkboxValue,
+                                            onChanged: (bool? newValue) async {
+                                              final bool selectAction =
+                                                  newValue == true;
+                                              final confirmed =
+                                                  await _showWarningDialog();
+                                              if (confirmed && mounted) {
+                                                await progressProvider
+                                                    .toggleSelectAllForColumn(
+                                                  widget.topLevelCategoryKey,
+                                                  widget.bookName,
+                                                  bookDetails,
+                                                  columnId,
+                                                  selectAction,
+                                                );
+                                              }
+                                            },
+                                            tristate: true,
+                                            activeColor: theme.primaryColor,
+                                          ),
+                                          FittedBox(
+                                            fit: BoxFit.scaleDown,
+                                            child: Text(columnLabel,
+                                                style: TextStyle(
+                                                    fontSize: 11,
+                                                    color: theme
+                                                        .colorScheme.onSurface),
+                                                overflow:
+                                                    TextOverflow.ellipsis),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  }).toList(),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Expanded(
+                          child: ListView.builder(
+                            controller: _scrollController,
+                            itemCount: learnableItems.length,
+                            itemBuilder: (ctx, index) {
+                              final item = learnableItems[index];
+                              final absoluteIndex = item.absoluteIndex;
+                              final partName = item.partName;
+
+                              bool showHeader = bookDetails.hasMultipleParts &&
+                                  (index == 0 ||
+                                      partName !=
+                                          learnableItems[index - 1].partName);
+
+                              String rowLabel;
+                              if (bookDetails.isDafType) {
+                                final amudSymbol =
+                                    (item.amudKey == "b") ? ":" : ".";
+                                rowLabel =
+                                    "${HebrewUtils.intToGematria(item.pageNumber)}$amudSymbol";
+                              } else {
+                                rowLabel =
+                                    HebrewUtils.intToGematria(item.pageNumber);
+                              }
+
+                              final pageProgress =
+                                  progressProvider.getProgressForItem(
+                                      widget.topLevelCategoryKey,
+                                      widget.bookName,
+                                      absoluteIndex);
+
+                              final rowBackgroundColor =
+                                  index % (bookDetails.isDafType ? 4 : 2) <
+                                          (bookDetails.isDafType ? 2 : 1)
+                                      ? Colors.transparent
+                                      : theme.colorScheme.primaryContainer
+                                          .withValues(alpha: 0.15);
+
+                              return Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  if (showHeader)
+                                    Container(
+                                      width: double.infinity,
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 12, vertical: 6),
+                                      margin: const EdgeInsets.only(
+                                          top: 16.0, bottom: 4.0),
+                                      decoration: BoxDecoration(
+                                        color:
+                                            theme.colorScheme.primaryContainer,
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Text(
+                                        partName,
+                                        style: theme.textTheme.titleMedium
+                                            ?.copyWith(
+                                          color: theme
+                                              .colorScheme.onPrimaryContainer,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                  Container(
+                                    color: rowBackgroundColor,
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 2, horizontal: 8),
+                                    child: Row(
+                                      children: [
+                                        Expanded(
+                                          flex: 2,
+                                          child: Text(rowLabel,
+                                              textAlign: TextAlign.right,
+                                              style: TextStyle(
+                                                  fontFamily: 'Heebo',
+                                                  color: theme
+                                                      .colorScheme.onSurface)),
+                                        ),
+                                        Expanded(
+                                          flex: 10,
+                                          child: Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.spaceEvenly,
+                                            children: _columnData.map((col) {
+                                              final columnName = col['id']!;
+                                              return Expanded(
+                                                child: Tooltip(
+                                                  message: col['label']!,
+                                                  child: Checkbox(
+                                                    visualDensity:
+                                                        VisualDensity.compact,
+                                                    value: pageProgress
+                                                        .getProperty(
+                                                            columnName),
+                                                    onChanged: (val) =>
+                                                        progressProvider
+                                                            .updateProgress(
+                                                                widget
+                                                                    .topLevelCategoryKey,
+                                                                widget.bookName,
+                                                                absoluteIndex,
+                                                                columnName,
+                                                                val ?? false,
+                                                                bookDetails),
+                                                  ),
+                                                ),
+                                              );
+                                            }).toList(),
                                           ),
                                         ),
-                                      );
-                                    }).toList(),
+                                      ],
+                                    ),
                                   ),
-                                ),
-                              ],
-                            ),
+                                ],
+                              );
+                            },
                           ),
-                        ],
-                      );
-                    },
+                        ),
+                      ],
+                    ),
                   ),
                 ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CompactBookTopBar extends StatelessWidget {
+  final String title;
+  final Widget? trailing;
+
+  const _CompactBookTopBar({
+    required this.title,
+    this.trailing,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final foregroundColor =
+        theme.appBarTheme.foregroundColor ?? theme.colorScheme.onSurface;
+    final dividerColor =
+        theme.colorScheme.onSurface.withAlpha((0.10 * 255).round());
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: theme.scaffoldBackgroundColor,
+        border: Border(bottom: BorderSide(color: dividerColor)),
+      ),
+      child: SizedBox(
+        height: 44,
+        child: Padding(
+          padding: const EdgeInsetsDirectional.only(start: 4, end: 12),
+          child: Row(
+            children: [
+              IconButton(
+                tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+                visualDensity: VisualDensity.compact,
+                onPressed: () => Navigator.of(context).maybePop(),
+                icon: const Icon(Icons.arrow_back),
+                color: foregroundColor,
+              ),
+              const SizedBox(width: 4),
+              Expanded(
+                child: Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    color: foregroundColor,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0,
+                  ),
+                ),
+              ),
+              if (trailing != null) ...[
+                const SizedBox(width: 8),
+                SizedBox(width: 32, height: 32, child: Center(child: trailing)),
               ],
-            ),
+            ],
           ),
         ),
       ),

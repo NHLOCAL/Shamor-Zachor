@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:gematria/gematria.dart';
 import 'package:kosher_dart/kosher_dart.dart';
 
@@ -31,7 +32,7 @@ class HebrewUtils {
 
       return '$dayGematria $monthName $yearHebrew';
     } catch (e) {
-      print("Error in getCompletionDateString: $e");
+      debugPrint("Error in getCompletionDateString: $e");
       return null;
     }
   }

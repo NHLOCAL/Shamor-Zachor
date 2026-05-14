@@ -67,7 +67,7 @@ class _CompletionAnimationOverlayState
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Material(
-      color: theme.colorScheme.scrim.withOpacity(0.5),
+      color: theme.colorScheme.scrim.withValues(alpha: 0.5),
       child: Stack(
         alignment: Alignment.center,
         children: [
@@ -97,7 +97,7 @@ class _CompletionAnimationOverlayState
                 borderRadius: BorderRadius.circular(16.0),
                 boxShadow: [
                   BoxShadow(
-                    color: theme.shadowColor.withOpacity(0.25),
+                    color: theme.shadowColor.withValues(alpha: 0.25),
                     blurRadius: 10.0,
                     offset: const Offset(0, 4),
                   ),

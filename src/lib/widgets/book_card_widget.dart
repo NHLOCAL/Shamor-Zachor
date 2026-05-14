@@ -234,7 +234,7 @@ class BookCardWidget extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  '$bookName ($topLevelCategoryKey)',
+                  '$bookName ($categoryName)',
                   style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,

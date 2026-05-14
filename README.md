@@ -25,7 +25,12 @@
 
 🔗 [**הורד את הגרסה האחרונה מכאן**](https://github.com/NHLOCAL/Shamor-Zachor/releases/latest)
 
-הורידו את קובץ ההתקנה המתאים למערכת ההפעלה שלכם (לדוגמה, **APK** עבור **Android**, קובץ התקנה עבור **Windows**, וכו') והפעילו/התקינו אותו בהתאם להוראות הפלטפורמה.
+הורידו את קובץ ההתקנה המתאים למערכת ההפעלה שלכם:
+
+- **Android**: קובץ `APK`.
+- **Windows**: קובץ `windows-setup.exe` להתקנה רגילה בעברית, או `windows-portable.zip` לגרסה ניידת ללא התקנה.
+
+פרטים טכניים על חבילות Windows זמינים ב-[תיעוד הפצת Windows](docs/windows-release.md).
 
 ## 🔍 אופן השימוש
 
@@ -61,11 +66,35 @@
 ```bash
 flutter pub get
 ```
-לאחר מכן, ניתן להריץ את האפליקציה באמצעות הפקודה הבאה (מומלץ להריץ מתוך תיקיית `src/`):
+
+### תצוגה מקדימה ב-Windows
+
 ```bash
-flutter run
+flutter config --enable-windows-desktop
+flutter run -d windows
 ```
-האפליקציה תרוץ על המכשיר/אמולטור המחובר או על דפדפן האינטרנט, בהתאם להגדרות.
+
+אם מתקבלת שגיאת build ב-Windows, ודאו שמותקן Visual Studio עם רכיב **Desktop development with C++**.
+
+### תצוגה מקדימה באנדרואיד
+
+פתחו Android Emulator או חברו מכשיר עם USB debugging, ואז בדקו שהמכשיר מזוהה:
+
+```bash
+flutter devices
+```
+
+לאחר מכן הריצו:
+
+```bash
+flutter run -d android
+```
+
+אם קיימים כמה מכשירים, השתמשו ב-`device-id` שמופיע בפלט של `flutter devices`:
+
+```bash
+flutter run -d <device-id>
+```
 
 ## 🤝 תרומה ושיפור
 
