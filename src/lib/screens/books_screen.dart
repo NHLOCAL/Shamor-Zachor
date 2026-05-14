@@ -350,18 +350,19 @@ class _BooksScreenState extends State<BooksScreen>
       final categoryData = dataProvider.allBookData[topLevelCategoryName]!;
       List<Widget> children = [];
 
-      // This is a helper function to build the grid for a category.
-      // It returns a list of widgets to be placed inside the main ListView.
       List<Widget> buildGridWidgetsForCategory(
-          String displayName, BookCategory category) {
+          String displayName, BookCategory category,
+          {bool showHeading = true}) {
         List<Widget> widgets = [];
         if (category.books.isNotEmpty) {
-          widgets.add(
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-              child: Text(displayName, style: theme.textTheme.titleLarge),
-            ),
-          );
+          if (showHeading) {
+            widgets.add(
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                child: Text(displayName, style: theme.textTheme.titleLarge),
+              ),
+            );
+          }
           widgets.add(
             GridView.builder(
               key: PageStorageKey<String>(
@@ -392,47 +393,56 @@ class _BooksScreenState extends State<BooksScreen>
         return widgets;
       }
 
+      List<Widget> buildCategoryWidgets(
+        String displayName,
+        BookCategory category, {
+        required String storagePath,
+        bool showHeading = true,
+      }) {
+        final widgets = <Widget>[
+          ...buildGridWidgetsForCategory(
+            displayName,
+            category,
+            showHeading: showHeading,
+          ),
+        ];
+
+        for (final subCategory in category.subcategories ?? []) {
+          final subCategoryStoragePath = '$storagePath-${subCategory.name}';
+          widgets.add(
+            ExpansionTile(
+              key: PageStorageKey<String>(subCategoryStoragePath),
+              title: Text(subCategory.name, style: theme.textTheme.titleMedium),
+              children: buildCategoryWidgets(
+                subCategory.name,
+                subCategory,
+                storagePath: subCategoryStoragePath,
+                showHeading: false,
+              )
+                  .map(
+                    (child) => Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: child,
+                    ),
+                  )
+                  .toList(),
+            ),
+          );
+        }
+
+        return widgets;
+      }
+
       if (categoryData.subcategories == null ||
           categoryData.subcategories!.isEmpty) {
         children.addAll(
             buildGridWidgetsForCategory(categoryData.name, categoryData));
       } else {
-        for (var subCategory in categoryData.subcategories!) {
-          children.add(
-            ExpansionTile(
-              key: PageStorageKey<String>(
-                  '$topLevelCategoryName-${subCategory.name}'),
-              title: Text(subCategory.name, style: theme.textTheme.titleMedium),
-              children: [
-                GridView.builder(
-                  key: PageStorageKey<String>(
-                      '$topLevelCategoryName-${subCategory.name}-grid'),
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  padding: const EdgeInsets.all(15),
-                  gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                      maxCrossAxisExtent: 170,
-                      childAspectRatio: 150 / 75,
-                      crossAxisSpacing: 12,
-                      mainAxisSpacing: 12),
-                  itemCount: subCategory.books.length,
-                  itemBuilder: (ctx, i) {
-                    final bookName = subCategory.books.keys.elementAt(i);
-                    final bookDetails = subCategory.books.values.elementAt(i);
-                    return BookCardWidget(
-                      topLevelCategoryKey: topLevelCategoryName,
-                      categoryName: subCategory.name,
-                      bookName: bookName,
-                      bookDetails: bookDetails,
-                      bookProgressData: progressProvider.getProgressForBook(
-                          topLevelCategoryName, bookName),
-                    );
-                  },
-                ),
-              ],
-            ),
-          );
-        }
+        children.addAll(buildCategoryWidgets(
+          categoryData.name,
+          categoryData,
+          storagePath: topLevelCategoryName,
+        ));
       }
 
       return ListView(

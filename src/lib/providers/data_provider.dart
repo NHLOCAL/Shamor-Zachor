@@ -64,20 +64,24 @@ class DataProvider with ChangeNotifier {
   }
 
   Future<void> addCustomBook({
-    required String categoryName,
+    required String topLevelCategoryName,
+    List<String> subCategoryPath = const [],
     required String bookName,
     required String contentType,
-    required num pages,
+    num? pages,
+    List<CustomBookPart> parts = const [],
   }) async {
     _isLoading = true;
     _error = null;
     notifyListeners();
     try {
       await _customBookService.addCustomBook(
-        categoryName: categoryName,
+        topLevelCategoryName: topLevelCategoryName,
+        subCategoryPath: subCategoryPath,
         bookName: bookName,
         contentType: contentType,
         pages: pages,
+        parts: parts,
       );
       await loadAllData();
     } catch (e) {
@@ -89,10 +93,12 @@ class DataProvider with ChangeNotifier {
 
   Future<void> editCustomBook({
     required String id,
-    required String categoryName,
+    required String topLevelCategoryName,
+    List<String> subCategoryPath = const [],
     required String bookName,
     required String contentType,
-    required num pages,
+    num? pages,
+    List<CustomBookPart> parts = const [],
   }) async {
     _isLoading = true;
     _error = null;
@@ -100,10 +106,12 @@ class DataProvider with ChangeNotifier {
     try {
       final success = await _customBookService.editCustomBook(
         id: id,
-        categoryName: categoryName,
+        topLevelCategoryName: topLevelCategoryName,
+        subCategoryPath: subCategoryPath,
         bookName: bookName,
         contentType: contentType,
         pages: pages,
+        parts: parts,
       );
       if (success) {
         await loadAllData();

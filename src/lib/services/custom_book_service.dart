@@ -3,38 +3,121 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
-class CustomBook {
-  final String id;
-  final String categoryName;
-  final String bookName;
-  final String contentType;
-  final num pages;
+int _asInt(dynamic value) {
+  if (value is int) return value;
+  if (value is num) return value.toInt();
+  if (value is String) return int.tryParse(value) ?? 0;
+  return 0;
+}
 
-  CustomBook({
-    required this.id,
-    required this.categoryName,
-    required this.bookName,
-    required this.contentType,
-    required this.pages,
+num? _asOptionalNum(dynamic value) {
+  if (value is num) return value;
+  if (value is String) return num.tryParse(value);
+  return null;
+}
+
+List<String> _asStringList(dynamic value) {
+  if (value is! List) return const [];
+  return value
+      .whereType<String>()
+      .map((item) => item.trim())
+      .where((item) => item.isNotEmpty)
+      .toList();
+}
+
+class CustomBookPart {
+  final String name;
+  final int start;
+  final int end;
+  final List<int> exclude;
+
+  const CustomBookPart({
+    required this.name,
+    required this.start,
+    required this.end,
+    this.exclude = const [],
   });
 
   Map<String, dynamic> toJson() {
     return {
+      'name': name,
+      'start': start,
+      'end': end,
+      if (exclude.isNotEmpty) 'exclude': exclude,
+    };
+  }
+
+  factory CustomBookPart.fromJson(Map<String, dynamic> json) {
+    return CustomBookPart(
+      name: json['name'] as String? ?? '',
+      start: _asInt(json['start']),
+      end: _asInt(json['end']),
+      exclude: (json['exclude'] as List<dynamic>?)
+              ?.map((value) => _asInt(value))
+              .where((value) => value > 0)
+              .toList() ??
+          const [],
+    );
+  }
+}
+
+class CustomBook {
+  final String id;
+  final String topLevelCategoryName;
+  final List<String> subCategoryPath;
+  final String bookName;
+  final String contentType;
+  final num? pages;
+  final List<CustomBookPart> parts;
+
+  CustomBook({
+    required this.id,
+    required this.topLevelCategoryName,
+    this.subCategoryPath = const [],
+    required this.bookName,
+    required this.contentType,
+    this.pages,
+    this.parts = const [],
+  });
+
+  String get categoryName =>
+      subCategoryPath.isNotEmpty ? subCategoryPath.last : topLevelCategoryName;
+
+  Map<String, dynamic> toJson() {
+    return {
       'id': id,
+      'topLevelCategoryName': topLevelCategoryName,
+      'subCategoryPath': subCategoryPath,
       'categoryName': categoryName,
       'bookName': bookName,
       'contentType': contentType,
-      'pages': pages,
+      if (pages != null) 'pages': pages,
+      if (parts.isNotEmpty)
+        'parts': parts.map((part) => part.toJson()).toList(),
     };
   }
 
   factory CustomBook.fromJson(Map<String, dynamic> json) {
+    final topLevelCategoryName = (json['topLevelCategoryName'] as String?) ??
+        (json['categoryName'] as String?) ??
+        'קטגוריה לא ידועה';
+    final parts = (json['parts'] as List<dynamic>?)
+            ?.whereType<Map>()
+            .map((part) =>
+                CustomBookPart.fromJson(Map<String, dynamic>.from(part)))
+            .where((part) =>
+                part.name.trim().isNotEmpty && part.start > 0 && part.end > 0)
+            .toList() ??
+        const <CustomBookPart>[];
+
     return CustomBook(
       id: json['id'] as String? ?? const Uuid().v4(),
-      categoryName: json['categoryName'] as String? ?? 'קטגוריה לא ידועה',
+      topLevelCategoryName: topLevelCategoryName,
+      subCategoryPath: _asStringList(json['subCategoryPath']),
       bookName: json['bookName'] as String? ?? 'ספר לא ידוע',
       contentType: json['contentType'] as String? ?? 'פרק',
-      pages: json['pages'] as num? ?? 0,
+      pages: _asOptionalNum(json['pages']),
+      parts: parts,
     );
   }
 }
@@ -110,19 +193,23 @@ class CustomBookService {
   }
 
   Future<CustomBook?> addCustomBook({
-    required String categoryName,
+    required String topLevelCategoryName,
+    List<String> subCategoryPath = const [],
     required String bookName,
     required String contentType,
-    required num pages,
+    num? pages,
+    List<CustomBookPart> parts = const [],
   }) async {
     final books = await loadCustomBooks();
 
     final newBook = CustomBook(
       id: generateId(),
-      categoryName: categoryName,
+      topLevelCategoryName: topLevelCategoryName,
+      subCategoryPath: subCategoryPath,
       bookName: bookName,
       contentType: contentType,
       pages: pages,
+      parts: parts,
     );
     books.add(newBook);
     await _saveCustomBooks(books);
@@ -131,20 +218,24 @@ class CustomBookService {
 
   Future<bool> editCustomBook({
     required String id,
-    required String categoryName,
+    required String topLevelCategoryName,
+    List<String> subCategoryPath = const [],
     required String bookName,
     required String contentType,
-    required num pages,
+    num? pages,
+    List<CustomBookPart> parts = const [],
   }) async {
     final books = await loadCustomBooks();
     final index = books.indexWhere((book) => book.id == id);
     if (index != -1) {
       books[index] = CustomBook(
         id: id,
-        categoryName: categoryName,
+        topLevelCategoryName: topLevelCategoryName,
+        subCategoryPath: subCategoryPath,
         bookName: bookName,
         contentType: contentType,
         pages: pages,
+        parts: parts,
       );
       await _saveCustomBooks(books);
       return true;

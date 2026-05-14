@@ -60,28 +60,87 @@ class DataLoaderService {
         await customBookService.loadCustomBooks();
     for (final customBook in customBooksList) {
       final bookDetails = BookDetails.fromJson(
-        {'pages': customBook.pages},
+        customBook.parts.isNotEmpty
+            ? {
+                'parts': customBook.parts
+                    .map((part) => {
+                          'name': part.name,
+                          'start': part.start,
+                          'end': part.end,
+                          if (part.exclude.isNotEmpty) 'exclude': part.exclude,
+                        })
+                    .toList(),
+              }
+            : {'pages': customBook.pages ?? 0},
         contentType: customBook.contentType,
         isCustom: true,
         id: customBook.id,
       );
 
-      if (combinedData.containsKey(customBook.categoryName)) {
-        combinedData[customBook.categoryName]!.books[customBook.bookName] =
-            bookDetails;
-      } else {
-        combinedData[customBook.categoryName] = BookCategory(
-          name: customBook.categoryName,
-          contentType: customBook.contentType,
-          books: {customBook.bookName: bookDetails},
-          defaultStartPage: customBook.contentType == "דף" ? 2 : 1,
-          isCustom: true,
-          sourceFile: "custom_books.json",
-        );
-      }
+      _addCustomBookToCombinedData(combinedData, customBook, bookDetails);
     }
 
     _cachedData = combinedData;
     return combinedData;
+  }
+
+  void _addCustomBookToCombinedData(
+    Map<String, BookCategory> combinedData,
+    CustomBook customBook,
+    BookDetails bookDetails,
+  ) {
+    final topLevelCategoryName = customBook.topLevelCategoryName.trim();
+    if (topLevelCategoryName.isEmpty) return;
+
+    final topLevelCategory = combinedData.putIfAbsent(
+      topLevelCategoryName,
+      () => BookCategory(
+        name: topLevelCategoryName,
+        contentType: customBook.contentType,
+        books: {},
+        defaultStartPage: customBook.contentType == "דף" ? 2 : 1,
+        isCustom: true,
+        sourceFile: "custom_books.json",
+        subcategories: <BookCategory>[],
+      ),
+    );
+
+    if (customBook.subCategoryPath.isEmpty) {
+      topLevelCategory.books[customBook.bookName] = bookDetails;
+      return;
+    }
+
+    BookCategory currentCategory = topLevelCategory;
+    for (final rawSubCategoryName in customBook.subCategoryPath) {
+      final subCategoryName = rawSubCategoryName.trim();
+      if (subCategoryName.isEmpty) continue;
+
+      final subcategories = currentCategory.subcategories!;
+      BookCategory? matchingSubCategory;
+      for (final subCategory in subcategories) {
+        if (subCategory.name == subCategoryName) {
+          matchingSubCategory = subCategory;
+          break;
+        }
+      }
+
+      if (matchingSubCategory == null) {
+        matchingSubCategory = BookCategory(
+          name: subCategoryName,
+          contentType: customBook.contentType,
+          books: {},
+          defaultStartPage: customBook.contentType == "דף" ? 2 : 1,
+          isCustom: true,
+          sourceFile: "custom_books.json",
+          subcategories: <BookCategory>[],
+          parentCategoryName: currentCategory.name,
+        );
+        subcategories.add(matchingSubCategory);
+      }
+
+      currentCategory = matchingSubCategory;
+    }
+
+    currentCategory.books[customBook.bookName] = bookDetails;
   }
 }
