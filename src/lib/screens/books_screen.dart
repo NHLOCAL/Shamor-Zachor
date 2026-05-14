@@ -7,7 +7,14 @@ import '../utils/category_sorter.dart';
 import '../models/book_model.dart';
 
 class BooksScreen extends StatefulWidget {
-  const BooksScreen({super.key});
+  final String? selectedCategoryKey;
+  final int selectedCategoryRequestId;
+
+  const BooksScreen({
+    super.key,
+    this.selectedCategoryKey,
+    this.selectedCategoryRequestId = 0,
+  });
 
   @override
   State<BooksScreen> createState() => _BooksScreenState();
@@ -33,7 +40,52 @@ class _BooksScreenState extends State<BooksScreen>
       final categories =
           CategorySorter.sort(dataProvider.allBookData.keys.toList());
       _setupTabController(categories, switchToIndex: _currentTabIndex);
+      _selectCategoryTab(widget.selectedCategoryKey, categories);
     }
+  }
+
+  @override
+  void didUpdateWidget(covariant BooksScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.selectedCategoryKey != oldWidget.selectedCategoryKey ||
+        widget.selectedCategoryRequestId !=
+            oldWidget.selectedCategoryRequestId) {
+      final dataProvider = Provider.of<DataProvider>(context, listen: false);
+      final categories =
+          CategorySorter.sort(dataProvider.allBookData.keys.toList());
+      _selectCategoryTab(widget.selectedCategoryKey, categories);
+    }
+  }
+
+  void _selectCategoryTab(String? categoryKey, List<String> categories) {
+    if (categoryKey == null || categories.isEmpty) return;
+
+    final categoryIndex = categories.indexOf(categoryKey);
+    if (categoryIndex == -1) return;
+
+    void switchTab() {
+      if (!mounted) return;
+      setState(() {
+        _searchController.clear();
+        _searchResults = [];
+        _setupTabController(categories, switchToIndex: categoryIndex);
+      });
+    }
+
+    if (_tabController == null ||
+        _tabController!.length != categories.length ||
+        _searchResults.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => switchTab());
+      return;
+    }
+
+    if (_tabController!.index == categoryIndex) {
+      _currentTabIndex = categoryIndex;
+      return;
+    }
+
+    _tabController!.animateTo(categoryIndex);
+    _currentTabIndex = categoryIndex;
   }
 
   void _setupTabController(List<String> categories, {int? switchToIndex}) {

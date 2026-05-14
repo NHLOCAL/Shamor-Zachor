@@ -12,16 +12,20 @@ class MainLayoutScreen extends StatefulWidget {
 
 class _MainLayoutScreenState extends State<MainLayoutScreen> {
   int _selectedIndex = 0;
-
-  static const List<Widget> _widgetOptions = <Widget>[
-    TrackingScreen(),
-    BooksScreen(),
-    SettingsScreen(), // New screen added
-  ];
+  String? _selectedBooksCategoryKey;
+  int _booksCategoryRequestId = 0;
 
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
+    });
+  }
+
+  void _openBooksCategory(String categoryKey) {
+    setState(() {
+      _selectedIndex = 1;
+      _selectedBooksCategoryKey = categoryKey;
+      _booksCategoryRequestId++;
     });
   }
 
@@ -55,7 +59,14 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
         body: IndexedStack(
           // Padding הוסר מכאן ויושם בתוך המסכים עצמם
           index: _selectedIndex,
-          children: _widgetOptions,
+          children: [
+            TrackingScreen(onCategorySelected: _openBooksCategory),
+            BooksScreen(
+              selectedCategoryKey: _selectedBooksCategoryKey,
+              selectedCategoryRequestId: _booksCategoryRequestId,
+            ),
+            const SettingsScreen(), // New screen added
+          ],
         ),
         bottomNavigationBar: Material(
           child: NavigationBar(
