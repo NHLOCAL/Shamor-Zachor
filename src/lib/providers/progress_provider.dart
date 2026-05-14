@@ -166,6 +166,16 @@ class ProgressProvider with ChangeNotifier {
     return _completionDates[categoryName]?[bookName];
   }
 
+  Future<double> loadBookScrollOffset(
+      String categoryName, String bookName) async {
+    return _progressService.loadBookScrollOffset(categoryName, bookName);
+  }
+
+  Future<void> saveBookScrollOffset(
+      String categoryName, String bookName, double offset) async {
+    await _progressService.saveBookScrollOffset(categoryName, bookName, offset);
+  }
+
   bool isBookCompleted(
       String categoryName, String bookName, BookDetails bookDetails) {
     final bookProgress = getProgressForBook(categoryName, bookName);

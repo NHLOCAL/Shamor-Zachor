@@ -61,11 +61,35 @@
 ```bash
 flutter pub get
 ```
-לאחר מכן, ניתן להריץ את האפליקציה באמצעות הפקודה הבאה (מומלץ להריץ מתוך תיקיית `src/`):
+
+### תצוגה מקדימה ב-Windows
+
 ```bash
-flutter run
+flutter config --enable-windows-desktop
+flutter run -d windows
 ```
-האפליקציה תרוץ על המכשיר/אמולטור המחובר או על דפדפן האינטרנט, בהתאם להגדרות.
+
+אם מתקבלת שגיאת build ב-Windows, ודאו שמותקן Visual Studio עם רכיב **Desktop development with C++**.
+
+### תצוגה מקדימה באנדרואיד
+
+פתחו Android Emulator או חברו מכשיר עם USB debugging, ואז בדקו שהמכשיר מזוהה:
+
+```bash
+flutter devices
+```
+
+לאחר מכן הריצו:
+
+```bash
+flutter run -d android
+```
+
+אם קיימים כמה מכשירים, השתמשו ב-`device-id` שמופיע בפלט של `flutter devices`:
+
+```bash
+flutter run -d <device-id>
+```
 
 ## 🤝 תרומה ושיפור
 

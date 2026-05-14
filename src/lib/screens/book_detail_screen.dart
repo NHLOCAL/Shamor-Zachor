@@ -26,6 +26,9 @@ class BookDetailScreen extends StatefulWidget {
 
 class _BookDetailScreenState extends State<BookDetailScreen> {
   StreamSubscription<CompletionEvent>? _completionSubscription;
+  final ScrollController _scrollController = ScrollController();
+  Timer? _scrollSaveDebounce;
+  bool _didRestoreScrollOffset = false;
 
   final List<Map<String, String>> _columnData = [
     {'id': ProgressProvider.learnColumn, 'label': 'לימוד'},
@@ -39,6 +42,10 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
     super.initState();
     final progressProvider =
         Provider.of<ProgressProvider>(context, listen: false);
+    _scrollController.addListener(_scheduleScrollOffsetSave);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _restoreSavedScrollOffset();
+    });
     _completionSubscription = progressProvider.completionEvents.listen((event) {
       if (!mounted) return;
       if (event.type == CompletionEventType.bookCompleted) {
@@ -51,8 +58,55 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
     });
   }
 
+  Future<void> _restoreSavedScrollOffset() async {
+    final progressProvider =
+        Provider.of<ProgressProvider>(context, listen: false);
+    final savedOffset = await progressProvider.loadBookScrollOffset(
+        widget.topLevelCategoryKey, widget.bookName);
+
+    if (!mounted || !_scrollController.hasClients) return;
+
+    final maxScrollExtent = _scrollController.position.maxScrollExtent;
+    final targetOffset = savedOffset.clamp(0.0, maxScrollExtent).toDouble();
+    _scrollController.jumpTo(targetOffset);
+    _didRestoreScrollOffset = true;
+  }
+
+  void _scheduleScrollOffsetSave() {
+    if (!_didRestoreScrollOffset || !_scrollController.hasClients) return;
+
+    _scrollSaveDebounce?.cancel();
+    _scrollSaveDebounce = Timer(const Duration(milliseconds: 350), () {
+      if (!mounted || !_scrollController.hasClients) return;
+
+      final progressProvider =
+          Provider.of<ProgressProvider>(context, listen: false);
+      unawaited(progressProvider.saveBookScrollOffset(
+        widget.topLevelCategoryKey,
+        widget.bookName,
+        _scrollController.offset,
+      ));
+    });
+  }
+
+  void _saveCurrentScrollOffset() {
+    if (!_didRestoreScrollOffset || !_scrollController.hasClients) return;
+
+    final progressProvider =
+        Provider.of<ProgressProvider>(context, listen: false);
+    unawaited(progressProvider.saveBookScrollOffset(
+      widget.topLevelCategoryKey,
+      widget.bookName,
+      _scrollController.offset,
+    ));
+  }
+
   @override
   void dispose() {
+    _saveCurrentScrollOffset();
+    _scrollSaveDebounce?.cancel();
+    _scrollController.removeListener(_scheduleScrollOffsetSave);
+    _scrollController.dispose();
     _completionSubscription?.cancel();
     super.dispose();
   }
@@ -174,9 +228,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                                       final confirmed =
                                           await _showWarningDialog();
                                       if (confirmed && mounted) {
-                                        await Provider.of<ProgressProvider>(
-                                                context,
-                                                listen: false)
+                                        await progressProvider
                                             .toggleSelectAllForColumn(
                                           widget.topLevelCategoryKey,
                                           widget.bookName,
@@ -208,6 +260,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                 ),
                 Expanded(
                   child: ListView.builder(
+                    controller: _scrollController,
                     itemCount: learnableItems.length,
                     itemBuilder: (ctx, index) {
                       final item = learnableItems[index];
