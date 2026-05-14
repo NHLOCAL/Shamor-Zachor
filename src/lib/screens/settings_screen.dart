@@ -5,6 +5,7 @@ import '../providers/data_provider.dart';
 import '../models/book_model.dart';
 import '../providers/theme_provider.dart';
 import '../utils/external_links.dart';
+import '../utils/top_app_bar_visibility.dart';
 import 'package:file_picker/file_picker.dart';
 import 'dart:io';
 import 'dart:typed_data';
@@ -687,25 +688,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
+    final bool showTopAppBar = shouldShowTopAppBar(Theme.of(context).platform);
 
     return Directionality(
       textDirection: ui.TextDirection.rtl,
       child: Scaffold(
-        appBar: AppBar(
-          centerTitle: true,
-          title: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.settings_outlined,
-                  color: Theme.of(context).appBarTheme.foregroundColor,
-                  size: 26),
-              const SizedBox(width: 8),
-              Text('הגדרות',
-                  style: Theme.of(context).appBarTheme.titleTextStyle),
-            ],
-          ),
-        ),
+        appBar: showTopAppBar
+            ? AppBar(
+                centerTitle: true,
+                title: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.settings_outlined,
+                        color: Theme.of(context).appBarTheme.foregroundColor,
+                        size: 26),
+                    const SizedBox(width: 8),
+                    Text('הגדרות',
+                        style: Theme.of(context).appBarTheme.titleTextStyle),
+                  ],
+                ),
+              )
+            : null,
         body: Consumer<DataProvider>(
           builder: (context, dataProvider, child) {
             if (dataProvider.isLoading) {

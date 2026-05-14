@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import './tracking_screen.dart';
 import './books_screen.dart';
 import './settings_screen.dart'; // Assuming settings_screen.dart is in the same directory
+import '../utils/top_app_bar_visibility.dart';
 
 class MainLayoutScreen extends StatefulWidget {
   const MainLayoutScreen({super.key});
@@ -35,11 +36,12 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
         const Color(0xFF8F4C33);
     final TextStyle? appBarTitleTextStyle =
         Theme.of(context).appBarTheme.titleTextStyle;
+    final bool showTopAppBar = shouldShowTopAppBar(Theme.of(context).platform);
 
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
-        appBar: _selectedIndex != 2
+        appBar: showTopAppBar && _selectedIndex != 2
             ? AppBar(
                 title: Row(
                   mainAxisAlignment: MainAxisAlignment.center, // ממורכז כבר

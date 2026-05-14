@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/data_provider.dart';
 import '../providers/progress_provider.dart';
+import '../utils/top_app_bar_visibility.dart';
 import '../widgets/hebrew_utils.dart';
 import '../widgets/completion_animation_overlay.dart';
 
@@ -138,6 +139,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
     final dataProvider = Provider.of<DataProvider>(context, listen: false);
     final progressProvider = Provider.of<ProgressProvider>(context);
     final theme = Theme.of(context);
+    final bool showTopAppBar = shouldShowTopAppBar(theme.platform);
 
     final topLevelCategory =
         dataProvider.allBookData[widget.topLevelCategoryKey];
@@ -147,7 +149,9 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
 
     if (bookDetails == null) {
       return Scaffold(
-        appBar: AppBar(title: Text('שגיאה: ${widget.bookName}')),
+        appBar: showTopAppBar
+            ? AppBar(title: Text('שגיאה: ${widget.bookName}'))
+            : null,
         body: Center(child: Text('פרטי הספר \'${widget.bookName}\' לא נמצאו.')),
       );
     }
@@ -168,13 +172,16 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
-        appBar: AppBar(
-          title: Text(widget.bookName),
-          actions: [
-            Padding(
-                padding: const EdgeInsets.all(12.0), child: isBookCompleteIcon)
-          ],
-        ),
+        appBar: showTopAppBar
+            ? AppBar(
+                title: Text(widget.bookName),
+                actions: [
+                  Padding(
+                      padding: const EdgeInsets.all(12.0),
+                      child: isBookCompleteIcon)
+                ],
+              )
+            : null,
         body: Card(
           margin: const EdgeInsets.all(12),
           elevation: 2,
