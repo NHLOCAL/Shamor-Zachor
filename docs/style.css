@@ -204,35 +204,20 @@ p:last-child {
 
 .download-container {
     display: flex;
+    flex-direction: column;
     justify-content: center;
-    align-items: stretch;
-    gap: 30px;
-    flex-wrap: wrap;
+    align-items: center;
+    gap: 18px;
     margin-top: 50px;
 }
 
-.download-card {
-    background-color: var(--white);
-    padding: 30px;
-    border-radius: var(--border-radius);
-    box-shadow: var(--shadow);
-    text-align: center;
-    width: 300px;
+.download-buttons {
     display: flex;
-    flex-direction: column;
-}
-
-.download-card h3 {
-     font-size: 1.8rem;
-     margin-bottom: 15px;
-     display: flex;
-     align-items: center;
-     justify-content: center;
-     gap: 12px;
-}
-
-.download-card h3 i {
-    font-size: 1.5em;
+    justify-content: center;
+    align-items: stretch;
+    gap: 18px;
+    width: 100%;
+    max-width: 980px;
 }
 
 .version-tag {
@@ -257,16 +242,23 @@ p:last-child {
 }
 
 .download-btn {
-    display: inline-block;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    gap: 14px;
     background-color: var(--primary-color);
     color: var(--white);
     text-decoration: none;
-    padding: 12px 30px;
+    padding: 18px 24px;
     border-radius: var(--border-radius);
     font-weight: 700;
-    font-size: 1rem;
+    font-size: 1.08rem;
     transition: all 0.3s ease;
-    margin-top: auto;
+    min-width: 0;
+    flex: 1 1 0;
+    min-height: 78px;
+    text-align: right;
+    box-shadow: 0 8px 20px rgba(158, 81, 47, 0.12);
 }
 
 .download-btn:hover {
@@ -283,7 +275,42 @@ p:last-child {
 .download-btn.disabled:hover { transform: none; }
 
 .download-btn i {
-    margin-right: 8px;
+    font-size: 1.8rem;
+    flex: 0 0 auto;
+}
+
+.download-btn span {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.35;
+}
+
+.download-btn strong {
+    color: inherit;
+    font-size: 1.1em;
+}
+
+.download-btn small {
+    color: inherit;
+    font-size: 0.82em;
+    font-weight: 500;
+    opacity: 0.85;
+}
+
+.download-btn.secondary {
+    background-color: var(--white);
+    color: var(--primary-color);
+    border: 2px solid var(--secondary-color);
+}
+
+.download-btn.secondary:hover {
+    background-color: var(--background-color);
+}
+
+.download-btn.secondary.disabled {
+    background-color: #f1f1f1;
+    border-color: #ccc;
+    color: #777;
 }
 
 .error-message {
@@ -399,6 +426,6 @@ footer .social-icons a:hover {
     h1 { font-size: 2.5rem; }
     h2 { font-size: 2.2rem; }
     .feature-card { width: 90%; max-width: 350px; }
-    .download-container { flex-direction: column; align-items: center; }
-    .download-card { width: 90%; max-width: 350px; }
+    .download-buttons { flex-direction: column; max-width: 350px; }
+    .download-btn { width: 100%; box-sizing: border-box; }
 }
