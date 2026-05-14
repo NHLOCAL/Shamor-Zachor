@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 import '../providers/data_provider.dart';
 import '../models/book_model.dart';
 import '../providers/theme_provider.dart';
+import '../utils/external_links.dart';
 import 'package:file_picker/file_picker.dart';
 import 'dart:io';
 import 'dart:typed_data';
@@ -21,6 +22,23 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   final _formKey = GlobalKey<FormState>();
+  static final Uri _appWebsiteUrl = buildTrackedUri(
+    Uri.parse('https://shamor-zachor.ze-kal.top/'),
+    content: 'app_website',
+  );
+  static final Uri _developerWebsiteUrl = buildTrackedUri(
+    Uri.parse('https://nhlocal.github.io/'),
+    content: 'developer_website',
+  );
+
+  Future<void> _openExternalLink(Uri url) async {
+    final opened = await openExternalUri(url);
+    if (!opened && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('לא ניתן לפתוח את הקישור: $url')),
+      );
+    }
+  }
 
   void _showAddOrEditBookDialog(
       {BookDetails? existingBook,
@@ -438,6 +456,50 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  Widget _buildAboutSection() {
+    final theme = Theme.of(context);
+
+    return _buildSettingsSection(
+      icon: Icons.info_outline,
+      title: 'אודות',
+      children: [
+        Text(
+          'שמור וזכור הוא כלי למעקב מסודר אחר לימוד וחזרות בספרי יסוד. ניתן לסמן התקדמות, לעקוב אחר חזרות, ולראות בצורה ברורה מה נלמד ומה עדיין דורש השלמה.',
+          style: theme.textTheme.bodyMedium,
+        ),
+        const SizedBox(height: 12),
+        Text(
+          'הנתונים נשמרים במכשיר בלבד, וניתן לגבות ולשחזר אותם מקובץ דרך מסך ההגדרות.',
+          style: theme.textTheme.bodyMedium,
+        ),
+        const SizedBox(height: 16),
+        ListTile(
+          leading: Icon(Icons.public, color: theme.colorScheme.primary),
+          title: const Text('אתר שמור וזכור'),
+          subtitle: const Text('מידע, הורדות והיכרות עם האפליקציה'),
+          trailing: const Icon(Icons.open_in_new),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 8),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8.0),
+          ),
+          onTap: () => _openExternalLink(_appWebsiteUrl),
+        ),
+        const Divider(indent: 16, endIndent: 16, height: 1),
+        ListTile(
+          leading: Icon(Icons.code_outlined, color: theme.colorScheme.primary),
+          title: const Text('אתר המפתח'),
+          subtitle: const Text('עוד כלים ופרויקטים מאת NH Local'),
+          trailing: const Icon(Icons.open_in_new),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 8),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8.0),
+          ),
+          onTap: () => _openExternalLink(_developerWebsiteUrl),
+        ),
+      ],
+    );
+  }
+
   Widget _buildCustomBooksManagement(List<Widget> customBookWidgets) {
     return _buildSettingsSection(
       icon: Icons.article_outlined,
@@ -736,6 +798,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     _buildThemeSelection(themeProvider),
                     _buildCustomBooksManagement(customBookWidgets),
                     _buildBackupRestoreSection(),
+                    _buildAboutSection(),
                   ],
                 ),
               ),
