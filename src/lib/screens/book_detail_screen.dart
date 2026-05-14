@@ -139,7 +139,10 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
     final dataProvider = Provider.of<DataProvider>(context, listen: false);
     final progressProvider = Provider.of<ProgressProvider>(context);
     final theme = Theme.of(context);
-    final bool showTopAppBar = shouldShowTopAppBar(theme.platform);
+    final platform = theme.platform;
+    final bool showTopAppBar = shouldShowTopAppBar(platform);
+    final bool useAndroidTopSafeArea = shouldUseAndroidTopSafeArea(platform);
+    final bool showCompactBookTopBar = shouldShowCompactBookTopBar(platform);
 
     final topLevelCategory =
         dataProvider.allBookData[widget.topLevelCategoryKey];
@@ -152,7 +155,21 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
         appBar: showTopAppBar
             ? AppBar(title: Text('שגיאה: ${widget.bookName}'))
             : null,
-        body: Center(child: Text('פרטי הספר \'${widget.bookName}\' לא נמצאו.')),
+        body: SafeArea(
+          top: useAndroidTopSafeArea,
+          bottom: false,
+          child: Column(
+            children: [
+              if (showCompactBookTopBar)
+                _CompactBookTopBar(title: widget.bookName),
+              Expanded(
+                child: Center(
+                  child: Text('פרטי הספר \'${widget.bookName}\' לא נמצאו.'),
+                ),
+              ),
+            ],
+          ),
+        ),
       );
     }
 
@@ -182,198 +199,289 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                 ],
               )
             : null,
-        body: Card(
-          margin: const EdgeInsets.all(12),
-          elevation: 2,
-          color: theme.colorScheme.surface,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          child: Padding(
-            padding: const EdgeInsets.all(15.0),
-            child: Column(
-              children: [
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
-                  decoration: BoxDecoration(
-                      border: Border(
-                          bottom: BorderSide(
-                              color: theme.dividerColor.withOpacity(0.5)))),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        flex: 2,
-                        child: Text(
-                          bookDetails.contentType,
-                          style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14,
-                              color: theme.colorScheme.onSurface),
-                          textAlign: TextAlign.right,
-                        ),
-                      ),
-                      Expanded(
-                        flex: 10,
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                          children: _columnData.map((col) {
-                            final columnId = col['id']!;
-                            final columnLabel = col['label']!;
-                            final bool? checkboxValue =
-                                columnSelectionStates[columnId];
-
-                            return Expanded(
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Checkbox(
-                                    visualDensity: VisualDensity.compact,
-                                    value: checkboxValue,
-                                    onChanged: (bool? newValue) async {
-                                      final bool selectAction =
-                                          newValue == true;
-                                      final confirmed =
-                                          await _showWarningDialog();
-                                      if (confirmed && mounted) {
-                                        await progressProvider
-                                            .toggleSelectAllForColumn(
-                                          widget.topLevelCategoryKey,
-                                          widget.bookName,
-                                          bookDetails,
-                                          columnId,
-                                          selectAction,
-                                        );
-                                      }
-                                    },
-                                    tristate: true,
-                                    activeColor: theme.primaryColor,
-                                  ),
-                                  FittedBox(
-                                    fit: BoxFit.scaleDown,
-                                    child: Text(columnLabel,
-                                        style: TextStyle(
-                                            fontSize: 11,
-                                            color: theme.colorScheme.onSurface),
-                                        overflow: TextOverflow.ellipsis),
-                                  ),
-                                ],
-                              ),
-                            );
-                          }).toList(),
-                        ),
-                      ),
-                    ],
-                  ),
+        body: SafeArea(
+          top: useAndroidTopSafeArea,
+          bottom: false,
+          child: Column(
+            children: [
+              if (showCompactBookTopBar)
+                _CompactBookTopBar(
+                  title: widget.bookName,
+                  trailing: isBookCompleteIcon,
                 ),
-                Expanded(
-                  child: ListView.builder(
-                    controller: _scrollController,
-                    itemCount: learnableItems.length,
-                    itemBuilder: (ctx, index) {
-                      final item = learnableItems[index];
-                      final absoluteIndex = item.absoluteIndex;
-                      final partName = item.partName;
-
-                      bool showHeader = bookDetails.hasMultipleParts &&
-                          (index == 0 ||
-                              partName != learnableItems[index - 1].partName);
-
-                      String rowLabel;
-                      if (bookDetails.isDafType) {
-                        final amudSymbol = (item.amudKey == "b") ? ":" : ".";
-                        rowLabel =
-                            "${HebrewUtils.intToGematria(item.pageNumber)}$amudSymbol";
-                      } else {
-                        rowLabel = HebrewUtils.intToGematria(item.pageNumber);
-                      }
-
-                      final pageProgress = progressProvider.getProgressForItem(
-                          widget.topLevelCategoryKey,
-                          widget.bookName,
-                          absoluteIndex);
-
-                      final rowBackgroundColor =
-                          index % (bookDetails.isDafType ? 4 : 2) <
-                                  (bookDetails.isDafType ? 2 : 1)
-                              ? Colors.transparent
-                              : theme.colorScheme.primaryContainer
-                                  .withOpacity(0.15);
-
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          if (showHeader)
-                            Container(
-                              width: double.infinity,
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 6),
-                              margin:
-                                  const EdgeInsets.only(top: 16.0, bottom: 4.0),
-                              decoration: BoxDecoration(
-                                color: theme.colorScheme.primaryContainer,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                partName,
-                                style: theme.textTheme.titleMedium?.copyWith(
-                                  color: theme.colorScheme.onPrimaryContainer,
-                                  fontWeight: FontWeight.bold,
+              Expanded(
+                child: Card(
+                  margin: const EdgeInsets.all(12),
+                  elevation: 2,
+                  color: theme.colorScheme.surface,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                  child: Padding(
+                    padding: const EdgeInsets.all(15.0),
+                    child: Column(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              vertical: 8, horizontal: 8),
+                          decoration: BoxDecoration(
+                              border: Border(
+                                  bottom: BorderSide(
+                                      color: theme.dividerColor
+                                          .withOpacity(0.5)))),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                flex: 2,
+                                child: Text(
+                                  bookDetails.contentType,
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                      color: theme.colorScheme.onSurface),
+                                  textAlign: TextAlign.right,
                                 ),
                               ),
-                            ),
-                          Container(
-                            color: rowBackgroundColor,
-                            padding: const EdgeInsets.symmetric(
-                                vertical: 2, horizontal: 8),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  flex: 2,
-                                  child: Text(rowLabel,
-                                      textAlign: TextAlign.right,
-                                      style: TextStyle(
-                                          fontFamily: 'Heebo',
-                                          color: theme.colorScheme.onSurface)),
-                                ),
-                                Expanded(
-                                  flex: 10,
-                                  child: Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceEvenly,
-                                    children: _columnData.map((col) {
-                                      final columnName = col['id']!;
-                                      return Expanded(
-                                        child: Tooltip(
-                                          message: col['label']!,
-                                          child: Checkbox(
+                              Expanded(
+                                flex: 10,
+                                child: Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceEvenly,
+                                  children: _columnData.map((col) {
+                                    final columnId = col['id']!;
+                                    final columnLabel = col['label']!;
+                                    final bool? checkboxValue =
+                                        columnSelectionStates[columnId];
+
+                                    return Expanded(
+                                      child: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Checkbox(
                                             visualDensity:
                                                 VisualDensity.compact,
-                                            value: pageProgress
-                                                .getProperty(columnName),
-                                            onChanged: (val) =>
-                                                progressProvider.updateProgress(
-                                                    widget.topLevelCategoryKey,
-                                                    widget.bookName,
-                                                    absoluteIndex,
-                                                    columnName,
-                                                    val ?? false,
-                                                    bookDetails),
+                                            value: checkboxValue,
+                                            onChanged: (bool? newValue) async {
+                                              final bool selectAction =
+                                                  newValue == true;
+                                              final confirmed =
+                                                  await _showWarningDialog();
+                                              if (confirmed && mounted) {
+                                                await progressProvider
+                                                    .toggleSelectAllForColumn(
+                                                  widget.topLevelCategoryKey,
+                                                  widget.bookName,
+                                                  bookDetails,
+                                                  columnId,
+                                                  selectAction,
+                                                );
+                                              }
+                                            },
+                                            tristate: true,
+                                            activeColor: theme.primaryColor,
+                                          ),
+                                          FittedBox(
+                                            fit: BoxFit.scaleDown,
+                                            child: Text(columnLabel,
+                                                style: TextStyle(
+                                                    fontSize: 11,
+                                                    color: theme
+                                                        .colorScheme.onSurface),
+                                                overflow:
+                                                    TextOverflow.ellipsis),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  }).toList(),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Expanded(
+                          child: ListView.builder(
+                            controller: _scrollController,
+                            itemCount: learnableItems.length,
+                            itemBuilder: (ctx, index) {
+                              final item = learnableItems[index];
+                              final absoluteIndex = item.absoluteIndex;
+                              final partName = item.partName;
+
+                              bool showHeader = bookDetails.hasMultipleParts &&
+                                  (index == 0 ||
+                                      partName !=
+                                          learnableItems[index - 1].partName);
+
+                              String rowLabel;
+                              if (bookDetails.isDafType) {
+                                final amudSymbol =
+                                    (item.amudKey == "b") ? ":" : ".";
+                                rowLabel =
+                                    "${HebrewUtils.intToGematria(item.pageNumber)}$amudSymbol";
+                              } else {
+                                rowLabel =
+                                    HebrewUtils.intToGematria(item.pageNumber);
+                              }
+
+                              final pageProgress =
+                                  progressProvider.getProgressForItem(
+                                      widget.topLevelCategoryKey,
+                                      widget.bookName,
+                                      absoluteIndex);
+
+                              final rowBackgroundColor =
+                                  index % (bookDetails.isDafType ? 4 : 2) <
+                                          (bookDetails.isDafType ? 2 : 1)
+                                      ? Colors.transparent
+                                      : theme.colorScheme.primaryContainer
+                                          .withOpacity(0.15);
+
+                              return Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  if (showHeader)
+                                    Container(
+                                      width: double.infinity,
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 12, vertical: 6),
+                                      margin: const EdgeInsets.only(
+                                          top: 16.0, bottom: 4.0),
+                                      decoration: BoxDecoration(
+                                        color:
+                                            theme.colorScheme.primaryContainer,
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Text(
+                                        partName,
+                                        style: theme.textTheme.titleMedium
+                                            ?.copyWith(
+                                          color: theme
+                                              .colorScheme.onPrimaryContainer,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                  Container(
+                                    color: rowBackgroundColor,
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 2, horizontal: 8),
+                                    child: Row(
+                                      children: [
+                                        Expanded(
+                                          flex: 2,
+                                          child: Text(rowLabel,
+                                              textAlign: TextAlign.right,
+                                              style: TextStyle(
+                                                  fontFamily: 'Heebo',
+                                                  color: theme
+                                                      .colorScheme.onSurface)),
+                                        ),
+                                        Expanded(
+                                          flex: 10,
+                                          child: Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.spaceEvenly,
+                                            children: _columnData.map((col) {
+                                              final columnName = col['id']!;
+                                              return Expanded(
+                                                child: Tooltip(
+                                                  message: col['label']!,
+                                                  child: Checkbox(
+                                                    visualDensity:
+                                                        VisualDensity.compact,
+                                                    value: pageProgress
+                                                        .getProperty(
+                                                            columnName),
+                                                    onChanged: (val) =>
+                                                        progressProvider
+                                                            .updateProgress(
+                                                                widget
+                                                                    .topLevelCategoryKey,
+                                                                widget.bookName,
+                                                                absoluteIndex,
+                                                                columnName,
+                                                                val ?? false,
+                                                                bookDetails),
+                                                  ),
+                                                ),
+                                              );
+                                            }).toList(),
                                           ),
                                         ),
-                                      );
-                                    }).toList(),
+                                      ],
+                                    ),
                                   ),
-                                ),
-                              ],
-                            ),
+                                ],
+                              );
+                            },
                           ),
-                        ],
-                      );
-                    },
+                        ),
+                      ],
+                    ),
                   ),
                 ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CompactBookTopBar extends StatelessWidget {
+  final String title;
+  final Widget? trailing;
+
+  const _CompactBookTopBar({
+    required this.title,
+    this.trailing,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final foregroundColor =
+        theme.appBarTheme.foregroundColor ?? theme.colorScheme.onSurface;
+    final dividerColor =
+        theme.colorScheme.onSurface.withAlpha((0.10 * 255).round());
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: theme.scaffoldBackgroundColor,
+        border: Border(bottom: BorderSide(color: dividerColor)),
+      ),
+      child: SizedBox(
+        height: 44,
+        child: Padding(
+          padding: const EdgeInsetsDirectional.only(start: 4, end: 12),
+          child: Row(
+            children: [
+              IconButton(
+                tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+                visualDensity: VisualDensity.compact,
+                onPressed: () => Navigator.of(context).maybePop(),
+                icon: const Icon(Icons.arrow_back),
+                color: foregroundColor,
+              ),
+              const SizedBox(width: 4),
+              Expanded(
+                child: Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    color: foregroundColor,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0,
+                  ),
+                ),
+              ),
+              if (trailing != null) ...[
+                const SizedBox(width: 8),
+                SizedBox(width: 32, height: 32, child: Center(child: trailing)),
               ],
-            ),
+            ],
           ),
         ),
       ),

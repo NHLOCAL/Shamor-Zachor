@@ -1011,7 +1011,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
-    final bool showTopAppBar = shouldShowTopAppBar(Theme.of(context).platform);
+    final platform = Theme.of(context).platform;
+    final bool showTopAppBar = shouldShowTopAppBar(platform);
 
     return Directionality(
       textDirection: ui.TextDirection.rtl,

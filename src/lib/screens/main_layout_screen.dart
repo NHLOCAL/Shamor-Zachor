@@ -36,7 +36,9 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
         const Color(0xFF8F4C33);
     final TextStyle? appBarTitleTextStyle =
         Theme.of(context).appBarTheme.titleTextStyle;
-    final bool showTopAppBar = shouldShowTopAppBar(Theme.of(context).platform);
+    final platform = Theme.of(context).platform;
+    final bool showTopAppBar = shouldShowTopAppBar(platform);
+    final bool useAndroidTopSafeArea = shouldUseAndroidTopSafeArea(platform);
 
     return Directionality(
       textDirection: TextDirection.rtl,
@@ -58,17 +60,21 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
                 centerTitle: true, // מוודא שהכותרת ממורכזת
               )
             : null, // אין AppBar במסך הגדרות
-        body: IndexedStack(
-          // Padding הוסר מכאן ויושם בתוך המסכים עצמם
-          index: _selectedIndex,
-          children: [
-            TrackingScreen(onCategorySelected: _openBooksCategory),
-            BooksScreen(
-              selectedCategoryKey: _selectedBooksCategoryKey,
-              selectedCategoryRequestId: _booksCategoryRequestId,
-            ),
-            const SettingsScreen(), // New screen added
-          ],
+        body: SafeArea(
+          top: useAndroidTopSafeArea,
+          bottom: false,
+          child: IndexedStack(
+            // Padding הוסר מכאן ויושם בתוך המסכים עצמם
+            index: _selectedIndex,
+            children: [
+              TrackingScreen(onCategorySelected: _openBooksCategory),
+              BooksScreen(
+                selectedCategoryKey: _selectedBooksCategoryKey,
+                selectedCategoryRequestId: _booksCategoryRequestId,
+              ),
+              const SettingsScreen(), // New screen added
+            ],
+          ),
         ),
         bottomNavigationBar: Material(
           child: NavigationBar(
