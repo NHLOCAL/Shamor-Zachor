@@ -6,6 +6,7 @@ import '../widgets/book_card_widget.dart';
 import '../models/book_model.dart';
 import '../models/progress_model.dart';
 import '../utils/category_sorter.dart';
+import '../utils/masonry_layout.dart';
 
 enum TrackingFilter { inProgress, completed }
 
@@ -335,20 +336,46 @@ class _TrackingScreenState extends State<TrackingScreen> {
                 (availableWidth - (sectionSpacing * (sectionColumnCount - 1))) /
                     sectionColumnCount;
 
+            final masonryColumns = buildBalancedMasonryColumns<
+                MapEntry<String, List<Map<String, dynamic>>>>(
+              groupedItems.entries.toList(),
+              columnCount: sectionColumnCount,
+              weightOf: (entry) => entry.value.length + 1,
+            );
+
             return ListView(
               padding: const EdgeInsets.fromLTRB(
                   horizontalPadding, 8.0, horizontalPadding, 14.0),
               children: [
-                Wrap(
-                  spacing: sectionSpacing,
-                  runSpacing: sectionSpacing,
-                  children: groupedItems.entries
-                      .map((entry) => buildCategorySectionShell(
-                            entry.key,
-                            entry.value,
-                            sectionWidth,
-                          ))
-                      .toList(),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    for (var columnIndex = 0;
+                        columnIndex < masonryColumns.length;
+                        columnIndex++) ...[
+                      if (columnIndex > 0)
+                        const SizedBox(width: sectionSpacing),
+                      Expanded(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            for (var sectionIndex = 0;
+                                sectionIndex <
+                                    masonryColumns[columnIndex].length;
+                                sectionIndex++) ...[
+                              if (sectionIndex > 0)
+                                const SizedBox(height: sectionSpacing),
+                              buildCategorySectionShell(
+                                masonryColumns[columnIndex][sectionIndex].key,
+                                masonryColumns[columnIndex][sectionIndex].value,
+                                sectionWidth,
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ],
             );
