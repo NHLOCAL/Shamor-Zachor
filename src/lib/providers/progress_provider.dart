@@ -60,7 +60,7 @@ class ProgressProvider with ChangeNotifier {
     try {
       return await _progressService.exportProgressData();
     } catch (e) {
-      print("Error during backupProgress in Provider: $e");
+      debugPrint("Error during backupProgress in Provider: $e");
       return null;
     }
   }
@@ -75,7 +75,7 @@ class ProgressProvider with ChangeNotifier {
       }
       return importSuccess;
     } catch (e) {
-      print("Error during restoreProgress in ProgressProvider: $e");
+      debugPrint("Error during restoreProgress in ProgressProvider: $e");
       return false;
     }
   }
@@ -135,9 +135,11 @@ class ProgressProvider with ChangeNotifier {
         int? reviewCycleNumber;
         if (columnName == 'review1') {
           reviewCycleNumber = 1;
-        } else if (columnName == 'review2')
+        } else if (columnName == 'review2') {
           reviewCycleNumber = 2;
-        else if (columnName == 'review3') reviewCycleNumber = 3;
+        } else if (columnName == 'review3') {
+          reviewCycleNumber = 3;
+        }
 
         if (reviewCycleNumber != null) {
           bool cycleJustCompleted = _isReviewCycleCompleted(
@@ -164,6 +166,16 @@ class ProgressProvider with ChangeNotifier {
 
   String? getCompletionDateSync(String categoryName, String bookName) {
     return _completionDates[categoryName]?[bookName];
+  }
+
+  Future<double> loadBookScrollOffset(
+      String categoryName, String bookName) async {
+    return _progressService.loadBookScrollOffset(categoryName, bookName);
+  }
+
+  Future<void> saveBookScrollOffset(
+      String categoryName, String bookName, double offset) async {
+    await _progressService.saveBookScrollOffset(categoryName, bookName, offset);
   }
 
   bool isBookCompleted(

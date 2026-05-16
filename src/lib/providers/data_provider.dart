@@ -25,31 +25,31 @@ class DataProvider with ChangeNotifier {
     notifyListeners();
     try {
       _allBookData = await _dataLoaderService.loadData();
-      print(
+      debugPrint(
           "[DataProvider] LoadAllData Complete. _allBookData keys: ${_allBookData.keys.toList()}");
       _allBookData.forEach((key, category) {
-        print("[DataProvider] Category: ${category.name}");
-        print(
+        debugPrint("[DataProvider] Category: ${category.name}");
+        debugPrint(
             "  Has subcategories: ${category.subcategories != null && category.subcategories!.isNotEmpty}");
         if (category.subcategories != null &&
             category.subcategories!.isNotEmpty) {
           for (var subCat in category.subcategories!) {
-            print(
+            debugPrint(
                 "    SubCategory: ${subCat.name}, Books count: ${subCat.books.length}, Sub-subcategories: ${subCat.subcategories != null && subCat.subcategories!.isNotEmpty}");
             if (subCat.subcategories != null &&
                 subCat.subcategories!.isNotEmpty) {
               for (var deepSubCat in subCat.subcategories!) {
-                print(
+                debugPrint(
                     "      DeepSubCategory: ${deepSubCat.name}, Books count: ${deepSubCat.books.length}");
               }
             }
           }
         }
-        print("  Direct books count: ${category.books.length}");
+        debugPrint("  Direct books count: ${category.books.length}");
       });
     } catch (e) {
       _error = e.toString();
-      print("Error in DataProvider: $e");
+      debugPrint("Error in DataProvider: $e");
     }
     _isLoading = false;
     notifyListeners();
@@ -64,20 +64,24 @@ class DataProvider with ChangeNotifier {
   }
 
   Future<void> addCustomBook({
-    required String categoryName,
+    required String topLevelCategoryName,
+    List<String> subCategoryPath = const [],
     required String bookName,
     required String contentType,
-    required num pages,
+    num? pages,
+    List<CustomBookPart> parts = const [],
   }) async {
     _isLoading = true;
     _error = null;
     notifyListeners();
     try {
       await _customBookService.addCustomBook(
-        categoryName: categoryName,
+        topLevelCategoryName: topLevelCategoryName,
+        subCategoryPath: subCategoryPath,
         bookName: bookName,
         contentType: contentType,
         pages: pages,
+        parts: parts,
       );
       await loadAllData();
     } catch (e) {
@@ -89,10 +93,12 @@ class DataProvider with ChangeNotifier {
 
   Future<void> editCustomBook({
     required String id,
-    required String categoryName,
+    required String topLevelCategoryName,
+    List<String> subCategoryPath = const [],
     required String bookName,
     required String contentType,
-    required num pages,
+    num? pages,
+    List<CustomBookPart> parts = const [],
   }) async {
     _isLoading = true;
     _error = null;
@@ -100,10 +106,12 @@ class DataProvider with ChangeNotifier {
     try {
       final success = await _customBookService.editCustomBook(
         id: id,
-        categoryName: categoryName,
+        topLevelCategoryName: topLevelCategoryName,
+        subCategoryPath: subCategoryPath,
         bookName: bookName,
         contentType: contentType,
         pages: pages,
+        parts: parts,
       );
       if (success) {
         await loadAllData();

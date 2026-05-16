@@ -7,7 +7,14 @@ import '../utils/category_sorter.dart';
 import '../models/book_model.dart';
 
 class BooksScreen extends StatefulWidget {
-  const BooksScreen({super.key});
+  final String? selectedCategoryKey;
+  final int selectedCategoryRequestId;
+
+  const BooksScreen({
+    super.key,
+    this.selectedCategoryKey,
+    this.selectedCategoryRequestId = 0,
+  });
 
   @override
   State<BooksScreen> createState() => _BooksScreenState();
@@ -33,7 +40,52 @@ class _BooksScreenState extends State<BooksScreen>
       final categories =
           CategorySorter.sort(dataProvider.allBookData.keys.toList());
       _setupTabController(categories, switchToIndex: _currentTabIndex);
+      _selectCategoryTab(widget.selectedCategoryKey, categories);
     }
+  }
+
+  @override
+  void didUpdateWidget(covariant BooksScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.selectedCategoryKey != oldWidget.selectedCategoryKey ||
+        widget.selectedCategoryRequestId !=
+            oldWidget.selectedCategoryRequestId) {
+      final dataProvider = Provider.of<DataProvider>(context, listen: false);
+      final categories =
+          CategorySorter.sort(dataProvider.allBookData.keys.toList());
+      _selectCategoryTab(widget.selectedCategoryKey, categories);
+    }
+  }
+
+  void _selectCategoryTab(String? categoryKey, List<String> categories) {
+    if (categoryKey == null || categories.isEmpty) return;
+
+    final categoryIndex = categories.indexOf(categoryKey);
+    if (categoryIndex == -1) return;
+
+    void switchTab() {
+      if (!mounted) return;
+      setState(() {
+        _searchController.clear();
+        _searchResults = [];
+        _setupTabController(categories, switchToIndex: categoryIndex);
+      });
+    }
+
+    if (_tabController == null ||
+        _tabController!.length != categories.length ||
+        _searchResults.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => switchTab());
+      return;
+    }
+
+    if (_tabController!.index == categoryIndex) {
+      _currentTabIndex = categoryIndex;
+      return;
+    }
+
+    _tabController!.animateTo(categoryIndex);
+    _currentTabIndex = categoryIndex;
   }
 
   void _setupTabController(List<String> categories, {int? switchToIndex}) {
@@ -207,16 +259,16 @@ class _BooksScreenState extends State<BooksScreen>
             decoration: InputDecoration(
               hintText: 'חיפוש ספר...',
               prefixIcon: Icon(Icons.search,
-                  color: theme.colorScheme.onSurface.withOpacity(0.6)),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.6)),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(30),
                 borderSide: BorderSide(
-                    color: theme.colorScheme.primary.withOpacity(0.5)),
+                    color: theme.colorScheme.primary.withValues(alpha: 0.5)),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(30),
                 borderSide: BorderSide(
-                    color: theme.colorScheme.primary.withOpacity(0.3)),
+                    color: theme.colorScheme.primary.withValues(alpha: 0.3)),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(30),
@@ -285,7 +337,7 @@ class _BooksScreenState extends State<BooksScreen>
                     : 'לא נמצאו תוצאות חיפוש.',
                 style: TextStyle(
                     fontStyle: FontStyle.italic,
-                    color: theme.colorScheme.onSurface.withOpacity(0.6)),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6)),
               ),
             ),
           ),
@@ -298,18 +350,19 @@ class _BooksScreenState extends State<BooksScreen>
       final categoryData = dataProvider.allBookData[topLevelCategoryName]!;
       List<Widget> children = [];
 
-      // This is a helper function to build the grid for a category.
-      // It returns a list of widgets to be placed inside the main ListView.
       List<Widget> buildGridWidgetsForCategory(
-          String displayName, BookCategory category) {
+          String displayName, BookCategory category,
+          {bool showHeading = true}) {
         List<Widget> widgets = [];
         if (category.books.isNotEmpty) {
-          widgets.add(
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-              child: Text(displayName, style: theme.textTheme.titleLarge),
-            ),
-          );
+          if (showHeading) {
+            widgets.add(
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                child: Text(displayName, style: theme.textTheme.titleLarge),
+              ),
+            );
+          }
           widgets.add(
             GridView.builder(
               key: PageStorageKey<String>(
@@ -340,47 +393,56 @@ class _BooksScreenState extends State<BooksScreen>
         return widgets;
       }
 
+      List<Widget> buildCategoryWidgets(
+        String displayName,
+        BookCategory category, {
+        required String storagePath,
+        bool showHeading = true,
+      }) {
+        final widgets = <Widget>[
+          ...buildGridWidgetsForCategory(
+            displayName,
+            category,
+            showHeading: showHeading,
+          ),
+        ];
+
+        for (final subCategory in category.subcategories ?? []) {
+          final subCategoryStoragePath = '$storagePath-${subCategory.name}';
+          widgets.add(
+            ExpansionTile(
+              key: PageStorageKey<String>(subCategoryStoragePath),
+              title: Text(subCategory.name, style: theme.textTheme.titleMedium),
+              children: buildCategoryWidgets(
+                subCategory.name,
+                subCategory,
+                storagePath: subCategoryStoragePath,
+                showHeading: false,
+              )
+                  .map(
+                    (child) => Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: child,
+                    ),
+                  )
+                  .toList(),
+            ),
+          );
+        }
+
+        return widgets;
+      }
+
       if (categoryData.subcategories == null ||
           categoryData.subcategories!.isEmpty) {
         children.addAll(
             buildGridWidgetsForCategory(categoryData.name, categoryData));
       } else {
-        for (var subCategory in categoryData.subcategories!) {
-          children.add(
-            ExpansionTile(
-              key: PageStorageKey<String>(
-                  '$topLevelCategoryName-${subCategory.name}'),
-              title: Text(subCategory.name, style: theme.textTheme.titleMedium),
-              children: [
-                GridView.builder(
-                  key: PageStorageKey<String>(
-                      '$topLevelCategoryName-${subCategory.name}-grid'),
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  padding: const EdgeInsets.all(15),
-                  gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                      maxCrossAxisExtent: 170,
-                      childAspectRatio: 150 / 75,
-                      crossAxisSpacing: 12,
-                      mainAxisSpacing: 12),
-                  itemCount: subCategory.books.length,
-                  itemBuilder: (ctx, i) {
-                    final bookName = subCategory.books.keys.elementAt(i);
-                    final bookDetails = subCategory.books.values.elementAt(i);
-                    return BookCardWidget(
-                      topLevelCategoryKey: topLevelCategoryName,
-                      categoryName: subCategory.name,
-                      bookName: bookName,
-                      bookDetails: bookDetails,
-                      bookProgressData: progressProvider.getProgressForBook(
-                          topLevelCategoryName, bookName),
-                    );
-                  },
-                ),
-              ],
-            ),
-          );
-        }
+        children.addAll(buildCategoryWidgets(
+          categoryData.name,
+          categoryData,
+          storagePath: topLevelCategoryName,
+        ));
       }
 
       return ListView(

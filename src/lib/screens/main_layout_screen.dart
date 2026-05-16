@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import './tracking_screen.dart';
 import './books_screen.dart';
 import './settings_screen.dart'; // Assuming settings_screen.dart is in the same directory
+import '../utils/top_app_bar_visibility.dart';
 
 class MainLayoutScreen extends StatefulWidget {
   const MainLayoutScreen({super.key});
@@ -12,16 +13,20 @@ class MainLayoutScreen extends StatefulWidget {
 
 class _MainLayoutScreenState extends State<MainLayoutScreen> {
   int _selectedIndex = 0;
-
-  static const List<Widget> _widgetOptions = <Widget>[
-    TrackingScreen(),
-    BooksScreen(),
-    SettingsScreen(), // New screen added
-  ];
+  String? _selectedBooksCategoryKey;
+  int _booksCategoryRequestId = 0;
 
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
+    });
+  }
+
+  void _openBooksCategory(String categoryKey) {
+    setState(() {
+      _selectedIndex = 1;
+      _selectedBooksCategoryKey = categoryKey;
+      _booksCategoryRequestId++;
     });
   }
 
@@ -31,11 +36,14 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
         const Color(0xFF8F4C33);
     final TextStyle? appBarTitleTextStyle =
         Theme.of(context).appBarTheme.titleTextStyle;
+    final platform = Theme.of(context).platform;
+    final bool showTopAppBar = shouldShowTopAppBar(platform);
+    final bool useAndroidTopSafeArea = shouldUseAndroidTopSafeArea(platform);
 
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
-        appBar: _selectedIndex != 2
+        appBar: showTopAppBar && _selectedIndex != 2
             ? AppBar(
                 title: Row(
                   mainAxisAlignment: MainAxisAlignment.center, // ממורכז כבר
@@ -52,10 +60,21 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
                 centerTitle: true, // מוודא שהכותרת ממורכזת
               )
             : null, // אין AppBar במסך הגדרות
-        body: IndexedStack(
-          // Padding הוסר מכאן ויושם בתוך המסכים עצמם
-          index: _selectedIndex,
-          children: _widgetOptions,
+        body: SafeArea(
+          top: useAndroidTopSafeArea,
+          bottom: false,
+          child: IndexedStack(
+            // Padding הוסר מכאן ויושם בתוך המסכים עצמם
+            index: _selectedIndex,
+            children: [
+              TrackingScreen(onCategorySelected: _openBooksCategory),
+              BooksScreen(
+                selectedCategoryKey: _selectedBooksCategoryKey,
+                selectedCategoryRequestId: _booksCategoryRequestId,
+              ),
+              const SettingsScreen(), // New screen added
+            ],
+          ),
         ),
         bottomNavigationBar: Material(
           child: NavigationBar(

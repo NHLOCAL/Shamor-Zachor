@@ -9,6 +9,7 @@ class ProgressService {
   static const String _appPrefix = "nhlocal.shamor_vezachor";
   static const String _progressDataKey = "$_appPrefix.progress_data";
   static const String _completionDatesKey = "$_appPrefix.completion_dates";
+  static const String _bookScrollOffsetsKey = "$_appPrefix.book_scroll_offsets";
 
   Future<SharedPreferences> _getPrefs() async {
     return SharedPreferences.getInstance();
@@ -149,6 +150,50 @@ class ProgressService {
       String categoryName, String bookName) async {
     CompletionDatesMap allDates = await loadCompletionDates();
     return allDates[categoryName]?[bookName];
+  }
+
+  Future<Map<String, Map<String, double>>> _loadBookScrollOffsets() async {
+    final prefs = await _getPrefs();
+    final jsonString = prefs.getString(_bookScrollOffsetsKey);
+    if (jsonString == null) return {};
+
+    try {
+      final decoded = json.decode(jsonString);
+      if (decoded is! Map) return {};
+
+      final offsets = <String, Map<String, double>>{};
+      decoded.forEach((categoryKey, categoryValue) {
+        if (categoryValue is Map) {
+          offsets[categoryKey.toString()] = {};
+          categoryValue.forEach((bookKey, offsetValue) {
+            if (offsetValue is num) {
+              offsets[categoryKey.toString()]![bookKey.toString()] =
+                  offsetValue.toDouble();
+            }
+          });
+        }
+      });
+      return offsets;
+    } catch (e) {
+      return {};
+    }
+  }
+
+  Future<double> loadBookScrollOffset(
+      String categoryName, String bookName) async {
+    final offsets = await _loadBookScrollOffsets();
+    return offsets[categoryName]?[bookName] ?? 0;
+  }
+
+  Future<void> saveBookScrollOffset(
+      String categoryName, String bookName, double offset) async {
+    final prefs = await _getPrefs();
+    final offsets = await _loadBookScrollOffsets();
+
+    offsets.putIfAbsent(categoryName, () => {});
+    offsets[categoryName]![bookName] = offset < 0 ? 0 : offset;
+
+    await prefs.setString(_bookScrollOffsetsKey, json.encode(offsets));
   }
 
   static int getCompletedPagesCount(Map<String, PageProgress> bookProgress) {

@@ -75,7 +75,7 @@ class BookCategory {
       defaultStartPage: defaultStartPage,
       isCustom: isCustom,
       sourceFile: sourceFile,
-      subcategories: subcategories,
+      subcategories: subcategories ?? <BookCategory>[],
       parentCategoryName: parentCategoryName,
     );
   }

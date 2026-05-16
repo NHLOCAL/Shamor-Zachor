@@ -3,7 +3,10 @@ import 'package:provider/provider.dart';
 import 'dart:ui' as ui;
 import '../providers/data_provider.dart';
 import '../models/book_model.dart';
+import '../services/custom_book_service.dart';
 import '../providers/theme_provider.dart';
+import '../utils/external_links.dart';
+import '../utils/top_app_bar_visibility.dart';
 import 'package:file_picker/file_picker.dart';
 import 'dart:io';
 import 'dart:typed_data';
@@ -21,23 +24,72 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   final _formKey = GlobalKey<FormState>();
+  static final Uri _appWebsiteUrl = buildTrackedUri(
+    Uri.parse('https://shamor-zachor.ze-kal.top/'),
+    content: 'app_website',
+  );
+  static final Uri _developerWebsiteUrl = buildTrackedUri(
+    Uri.parse('https://nhlocal.github.io/'),
+    content: 'developer_website',
+  );
+
+  Future<void> _openExternalLink(Uri url) async {
+    final opened = await openExternalUri(url);
+    if (!opened && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('לא ניתן לפתוח את הקישור: $url')),
+      );
+    }
+  }
 
   void _showAddOrEditBookDialog(
       {BookDetails? existingBook,
-      String? categoryOfBook,
+      String? topLevelCategoryOfBook,
+      List<String> subCategoryPathOfBook = const [],
       String? bookNameKey}) {
     final dataProvider = Provider.of<DataProvider>(context, listen: false);
-    final categoryNameController =
-        TextEditingController(text: categoryOfBook ?? '');
+    final existingTopLevelCategories = dataProvider.allBookData.keys.toList()
+      ..sort();
+    final newTopLevelCategoryController = TextEditingController();
+    final newSubCategoryController = TextEditingController();
     final bookNameController = TextEditingController(text: bookNameKey ?? '');
-    // UPDATED: Use the new pageCountForDisplay getter
     final pagesController = TextEditingController(
-        text: existingBook?.pageCountForDisplay.toString() ?? '');
+      text: existingBook?.originalPageCount?.toString() ??
+          (existingBook == null || existingBook.hasMultipleParts
+              ? ''
+              : existingBook.pageCountForDisplay.toString()),
+    );
 
     final List<String> contentTypes = ['פרק', 'דף', 'סימן', 'אחר...'];
     String? selectedContentType = existingBook?.contentType;
     final customContentTypeController = TextEditingController();
     bool isCustomType = false;
+    bool useExistingTopLevelCategory = topLevelCategoryOfBook != null &&
+        existingTopLevelCategories.contains(topLevelCategoryOfBook);
+    String? selectedTopLevelCategory = useExistingTopLevelCategory
+        ? topLevelCategoryOfBook
+        : (existingTopLevelCategories.isNotEmpty
+            ? existingTopLevelCategories.first
+            : null);
+    final initialSubCategoryNames =
+        _subCategoryNamesFor(dataProvider, selectedTopLevelCategory);
+    String selectedSubCategoryMode = subCategoryPathOfBook.isEmpty
+        ? '__none__'
+        : (initialSubCategoryNames.contains(subCategoryPathOfBook.last)
+            ? subCategoryPathOfBook.last
+            : '__new__');
+    if (selectedSubCategoryMode == '__new__' &&
+        subCategoryPathOfBook.isNotEmpty) {
+      newSubCategoryController.text = subCategoryPathOfBook.last;
+    }
+    bool useParts = existingBook?.hasMultipleParts == true ||
+        (existingBook != null && existingBook.originalPageCount == null);
+    final List<_EditableBookPart> editableParts =
+        existingBook?.parts.isNotEmpty == true
+            ? existingBook!.parts
+                .map((part) => _EditableBookPart.fromBookPart(part))
+                .toList()
+            : [_EditableBookPart()];
 
     if (selectedContentType != null &&
         !['פרק', 'דף', 'סימן'].contains(selectedContentType)) {
@@ -48,6 +100,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (existingBook == null) {
       selectedContentType = 'פרק';
       isCustomType = false;
+      useExistingTopLevelCategory = existingTopLevelCategories.isNotEmpty;
     }
 
     showDialog(
@@ -69,36 +122,130 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: <Widget>[
-                      TextFormField(
-                        controller: categoryNameController,
-                        decoration: InputDecoration(
-                          labelText: 'שם קטגוריה',
-                          border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8.0)),
-                          filled: true,
-                          fillColor: Theme.of(context)
-                              .colorScheme
-                              .surfaceContainerHighest
-                              .withAlpha(77),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: Text(
+                          'מיקום הספר',
+                          style: Theme.of(context).textTheme.titleMedium,
                         ),
-                        textDirection: ui.TextDirection.rtl,
-                        validator: (value) => (value == null || value.isEmpty)
-                            ? 'נא להזין שם קטגוריה'
-                            : null,
+                      ),
+                      const SizedBox(height: 12),
+                      SegmentedButton<bool>(
+                        segments: const [
+                          ButtonSegment(
+                            value: true,
+                            icon: Icon(Icons.folder_open_outlined),
+                            label: Text('קטגוריה קיימת'),
+                          ),
+                          ButtonSegment(
+                            value: false,
+                            icon: Icon(Icons.create_new_folder_outlined),
+                            label: Text('קטגוריה חדשה'),
+                          ),
+                        ],
+                        selected: {useExistingTopLevelCategory},
+                        onSelectionChanged: existingTopLevelCategories.isEmpty
+                            ? null
+                            : (selection) {
+                                setState(() {
+                                  useExistingTopLevelCategory = selection.first;
+                                  selectedSubCategoryMode = '__none__';
+                                });
+                              },
+                      ),
+                      const SizedBox(height: 12),
+                      if (useExistingTopLevelCategory)
+                        DropdownButtonFormField<String>(
+                          key: ValueKey('top-level-$selectedTopLevelCategory'),
+                          // ignore: deprecated_member_use
+                          value: selectedTopLevelCategory,
+                          decoration:
+                              _dialogInputDecoration(context, 'קטגוריה ראשית'),
+                          items: existingTopLevelCategories
+                              .map((categoryName) => DropdownMenuItem(
+                                    value: categoryName,
+                                    child: Text(categoryName),
+                                  ))
+                              .toList(),
+                          onChanged: (value) {
+                            setState(() {
+                              selectedTopLevelCategory = value;
+                              selectedSubCategoryMode = '__none__';
+                            });
+                          },
+                          validator: (value) =>
+                              value == null ? 'נא לבחור קטגוריה' : null,
+                        )
+                      else
+                        TextFormField(
+                          controller: newTopLevelCategoryController,
+                          decoration: _dialogInputDecoration(
+                              context, 'שם קטגוריה ראשית חדשה'),
+                          textDirection: ui.TextDirection.rtl,
+                          validator: (value) {
+                            if (!useExistingTopLevelCategory &&
+                                (value == null || value.trim().isEmpty)) {
+                              return 'נא להזין שם קטגוריה';
+                            }
+                            return null;
+                          },
+                        ),
+                      const SizedBox(height: 16),
+                      DropdownButtonFormField<String>(
+                        key: ValueKey(
+                            'sub-category-$selectedTopLevelCategory-$selectedSubCategoryMode'),
+                        // ignore: deprecated_member_use
+                        value: selectedSubCategoryMode,
+                        decoration:
+                            _dialogInputDecoration(context, 'תת־קטגוריה'),
+                        items: [
+                          const DropdownMenuItem(
+                              value: '__none__', child: Text('ללא')),
+                          ...(useExistingTopLevelCategory
+                                  ? _subCategoryNamesFor(
+                                      dataProvider, selectedTopLevelCategory)
+                                  : const <String>[])
+                              .map((name) => DropdownMenuItem(
+                                    value: name,
+                                    child: Text(name),
+                                  )),
+                          const DropdownMenuItem(
+                              value: '__new__', child: Text('תת־קטגוריה חדשה')),
+                        ],
+                        onChanged: (value) {
+                          setState(() {
+                            selectedSubCategoryMode = value ?? '__none__';
+                          });
+                        },
+                      ),
+                      if (selectedSubCategoryMode == '__new__') ...[
+                        const SizedBox(height: 12),
+                        TextFormField(
+                          controller: newSubCategoryController,
+                          decoration: _dialogInputDecoration(
+                              context, 'שם תת־קטגוריה חדשה'),
+                          textDirection: ui.TextDirection.rtl,
+                          validator: (value) {
+                            if (selectedSubCategoryMode == '__new__' &&
+                                (value == null || value.trim().isEmpty)) {
+                              return 'נא להזין שם תת־קטגוריה';
+                            }
+                            return null;
+                          },
+                        ),
+                      ],
+                      const SizedBox(height: 20),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: Text(
+                          'פרטי הספר',
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
                       ),
                       const SizedBox(height: 16),
                       TextFormField(
                         controller: bookNameController,
-                        decoration: InputDecoration(
-                          labelText: 'שם הספר',
-                          border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8.0)),
-                          filled: true,
-                          fillColor: Theme.of(context)
-                              .colorScheme
-                              .surfaceContainerHighest
-                              .withAlpha(77),
-                        ),
+                        decoration: _dialogInputDecoration(context, 'שם הספר'),
                         textDirection: ui.TextDirection.rtl,
                         validator: (value) => (value == null || value.isEmpty)
                             ? 'נא להזין שם ספר'
@@ -106,16 +253,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                       const SizedBox(height: 16),
                       DropdownButtonFormField<String>(
-                        decoration: InputDecoration(
-                          labelText: 'סוג תוכן',
-                          border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8.0)),
-                          filled: true,
-                          fillColor: Theme.of(context)
-                              .colorScheme
-                              .surfaceContainerHighest
-                              .withAlpha(77),
-                        ),
+                        key: ValueKey('content-type-$selectedContentType'),
+                        decoration: _dialogInputDecoration(context, 'סוג תוכן'),
+                        // ignore: deprecated_member_use
                         value: selectedContentType,
                         items: contentTypes.map((String value) {
                           return DropdownMenuItem<String>(
@@ -137,16 +277,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         const SizedBox(height: 12),
                         TextFormField(
                           controller: customContentTypeController,
-                          decoration: InputDecoration(
-                            labelText: 'הזן סוג תוכן מותאם',
-                            border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8.0)),
-                            filled: true,
-                            fillColor: Theme.of(context)
-                                .colorScheme
-                                .surfaceContainerHighest
-                                .withAlpha(77),
-                          ),
+                          decoration: _dialogInputDecoration(
+                              context, 'הזן סוג תוכן מותאם'),
                           textDirection: ui.TextDirection.rtl,
                           validator: (value) {
                             if (isCustomType &&
@@ -158,30 +290,72 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                       ],
                       const SizedBox(height: 16),
-                      TextFormField(
-                        controller: pagesController,
-                        decoration: InputDecoration(
-                          labelText: 'מספר עמודים/פרקים',
-                          border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8.0)),
-                          filled: true,
-                          fillColor: Theme.of(context)
-                              .colorScheme
-                              .surfaceContainerHighest
-                              .withAlpha(77),
-                        ),
-                        keyboardType: const TextInputType.numberWithOptions(
-                            decimal: true),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'נא להזין מספר';
-                          }
-                          if (num.tryParse(value) == null) {
-                            return 'נא להזין מספר תקין';
-                          }
-                          return null;
+                      SegmentedButton<bool>(
+                        segments: const [
+                          ButtonSegment(
+                            value: false,
+                            icon: Icon(Icons.format_list_numbered_rtl),
+                            label: Text('רציף'),
+                          ),
+                          ButtonSegment(
+                            value: true,
+                            icon: Icon(Icons.account_tree_outlined),
+                            label: Text('מחולק'),
+                          ),
+                        ],
+                        selected: {useParts},
+                        onSelectionChanged: (selection) {
+                          setState(() {
+                            useParts = selection.first;
+                            if (editableParts.isEmpty) {
+                              editableParts.add(_EditableBookPart());
+                            }
+                          });
                         },
                       ),
+                      const SizedBox(height: 16),
+                      if (!useParts)
+                        TextFormField(
+                          controller: pagesController,
+                          decoration: _dialogInputDecoration(
+                              context, 'מספר עמודים/פרקים/סימנים'),
+                          keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true),
+                          validator: (value) {
+                            if (useParts) return null;
+                            if (value == null || value.isEmpty) {
+                              return 'נא להזין מספר';
+                            }
+                            if (num.tryParse(value) == null) {
+                              return 'נא להזין מספר תקין';
+                            }
+                            return null;
+                          },
+                        )
+                      else
+                        Column(
+                          children: [
+                            for (var i = 0; i < editableParts.length; i++)
+                              _buildEditablePartFields(
+                                context,
+                                editableParts,
+                                i,
+                                setState,
+                              ),
+                            Align(
+                              alignment: Alignment.centerRight,
+                              child: TextButton.icon(
+                                onPressed: () {
+                                  setState(() {
+                                    editableParts.add(_EditableBookPart());
+                                  });
+                                },
+                                icon: const Icon(Icons.add),
+                                label: const Text('הוסף חלק'),
+                              ),
+                            ),
+                          ],
+                        ),
                     ],
                   ),
                 ),
@@ -210,20 +384,39 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         finalContentType = selectedContentType ?? 'פרק';
                       }
 
+                      final topLevelCategoryName = useExistingTopLevelCategory
+                          ? (selectedTopLevelCategory ?? '').trim()
+                          : newTopLevelCategoryController.text.trim();
+                      final subCategoryPath = _selectedSubCategoryPathForDialog(
+                        selectedSubCategoryMode,
+                        newSubCategoryController.text,
+                      );
+                      final parts = useParts
+                          ? editableParts
+                              .map((part) => part.toCustomBookPart())
+                              .toList()
+                          : const <CustomBookPart>[];
+
                       if (existingBook != null && existingBook.id != null) {
                         dataProvider.editCustomBook(
                           id: existingBook.id!,
-                          categoryName: categoryNameController.text,
+                          topLevelCategoryName: topLevelCategoryName,
+                          subCategoryPath: subCategoryPath,
                           bookName: bookNameController.text,
                           contentType: finalContentType,
-                          pages: num.parse(pagesController.text),
+                          pages:
+                              useParts ? null : num.parse(pagesController.text),
+                          parts: parts,
                         );
                       } else {
                         dataProvider.addCustomBook(
-                          categoryName: categoryNameController.text,
+                          topLevelCategoryName: topLevelCategoryName,
+                          subCategoryPath: subCategoryPath,
                           bookName: bookNameController.text,
                           contentType: finalContentType,
-                          pages: num.parse(pagesController.text),
+                          pages:
+                              useParts ? null : num.parse(pagesController.text),
+                          parts: parts,
                         );
                       }
                       Navigator.of(context).pop();
@@ -237,6 +430,158 @@ class _SettingsScreenState extends State<SettingsScreen> {
         );
       },
     );
+  }
+
+  InputDecoration _dialogInputDecoration(BuildContext context, String label) {
+    return InputDecoration(
+      labelText: label,
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.0)),
+      filled: true,
+      fillColor:
+          Theme.of(context).colorScheme.surfaceContainerHighest.withAlpha(77),
+    );
+  }
+
+  List<String> _subCategoryNamesFor(
+      DataProvider dataProvider, String? topLevelCategoryName) {
+    final category = dataProvider.allBookData[topLevelCategoryName];
+    if (category?.subcategories == null) return const [];
+    final names = category!.subcategories!
+        .map((subCategory) => subCategory.name)
+        .where((name) => name.trim().isNotEmpty)
+        .toSet()
+        .toList()
+      ..sort();
+    return names;
+  }
+
+  List<String> _selectedSubCategoryPathForDialog(
+    String selectedSubCategoryMode,
+    String newSubCategoryName,
+  ) {
+    if (selectedSubCategoryMode == '__none__') {
+      return const [];
+    }
+    if (selectedSubCategoryMode == '__new__') {
+      final trimmed = newSubCategoryName.trim();
+      return trimmed.isEmpty ? const [] : [trimmed];
+    }
+    return [selectedSubCategoryMode];
+  }
+
+  Widget _buildEditablePartFields(
+    BuildContext context,
+    List<_EditableBookPart> parts,
+    int index,
+    void Function(void Function()) setDialogState,
+  ) {
+    final part = parts[index];
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'חלק ${index + 1}',
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
+                ),
+                IconButton(
+                  tooltip: 'מחק חלק',
+                  onPressed: parts.length == 1
+                      ? null
+                      : () {
+                          setDialogState(() {
+                            parts.removeAt(index);
+                          });
+                        },
+                  icon: const Icon(Icons.delete_outline),
+                ),
+              ],
+            ),
+            TextFormField(
+              controller: part.nameController,
+              decoration: _dialogInputDecoration(context, 'שם החלק'),
+              textDirection: ui.TextDirection.rtl,
+              validator: (value) {
+                if (value == null || value.trim().isEmpty) {
+                  return 'נא להזין שם חלק';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: TextFormField(
+                    controller: part.startController,
+                    decoration: _dialogInputDecoration(context, 'התחלה'),
+                    keyboardType: TextInputType.number,
+                    validator: (value) {
+                      final number = int.tryParse(value ?? '');
+                      if (number == null || number <= 0) {
+                        return 'מספר תקין';
+                      }
+                      return null;
+                    },
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: TextFormField(
+                    controller: part.endController,
+                    decoration: _dialogInputDecoration(context, 'סיום'),
+                    keyboardType: TextInputType.number,
+                    validator: (value) {
+                      final end = int.tryParse(value ?? '');
+                      final start = int.tryParse(part.startController.text);
+                      if (end == null || end <= 0) {
+                        return 'מספר תקין';
+                      }
+                      if (start != null && end < start) {
+                        return 'לפחות התחלה';
+                      }
+                      return null;
+                    },
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: part.excludeController,
+              decoration: _dialogInputDecoration(
+                  context, 'דילוגים, מופרדים בפסיקים (אופציונלי)'),
+              keyboardType: TextInputType.text,
+              validator: (value) {
+                final invalidItems = _parseExcludedPartItems(value)
+                    .where((item) => item == null)
+                    .toList();
+                if (invalidItems.isNotEmpty) {
+                  return 'נא להזין מספרים מופרדים בפסיקים';
+                }
+                return null;
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  List<int?> _parseExcludedPartItems(String? value) {
+    if (value == null || value.trim().isEmpty) return const [];
+    return value
+        .split(',')
+        .map((item) => item.trim())
+        .where((item) => item.isNotEmpty)
+        .map((item) => int.tryParse(item))
+        .toList();
   }
 
   void _confirmDeleteBook(String bookId, String bookName, String categoryName) {
@@ -438,6 +783,50 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  Widget _buildAboutSection() {
+    final theme = Theme.of(context);
+
+    return _buildSettingsSection(
+      icon: Icons.info_outline,
+      title: 'אודות',
+      children: [
+        Text(
+          'שמור וזכור הוא כלי למעקב מסודר אחר לימוד וחזרות בספרי יסוד. ניתן לסמן התקדמות, לעקוב אחר חזרות, ולראות בצורה ברורה מה נלמד ומה עדיין דורש השלמה.',
+          style: theme.textTheme.bodyMedium,
+        ),
+        const SizedBox(height: 12),
+        Text(
+          'הנתונים נשמרים במכשיר בלבד, וניתן לגבות ולשחזר אותם מקובץ דרך מסך ההגדרות.',
+          style: theme.textTheme.bodyMedium,
+        ),
+        const SizedBox(height: 16),
+        ListTile(
+          leading: Icon(Icons.public, color: theme.colorScheme.primary),
+          title: const Text('אתר שמור וזכור'),
+          subtitle: const Text('מידע, הורדות והיכרות עם האפליקציה'),
+          trailing: const Icon(Icons.open_in_new),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 8),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8.0),
+          ),
+          onTap: () => _openExternalLink(_appWebsiteUrl),
+        ),
+        const Divider(indent: 16, endIndent: 16, height: 1),
+        ListTile(
+          leading: Icon(Icons.code_outlined, color: theme.colorScheme.primary),
+          title: const Text('אתר המפתח'),
+          subtitle: const Text('עוד כלים ופרויקטים מאת NH Local'),
+          trailing: const Icon(Icons.open_in_new),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 8),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8.0),
+          ),
+          onTap: () => _openExternalLink(_developerWebsiteUrl),
+        ),
+      ],
+    );
+  }
+
   Widget _buildCustomBooksManagement(List<Widget> customBookWidgets) {
     return _buildSettingsSection(
       icon: Icons.article_outlined,
@@ -625,25 +1014,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
+    final platform = Theme.of(context).platform;
+    final bool showTopAppBar = shouldShowTopAppBar(platform);
 
     return Directionality(
       textDirection: ui.TextDirection.rtl,
       child: Scaffold(
-        appBar: AppBar(
-          centerTitle: true,
-          title: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.settings_outlined,
-                  color: Theme.of(context).appBarTheme.foregroundColor,
-                  size: 26),
-              const SizedBox(width: 8),
-              Text('הגדרות',
-                  style: Theme.of(context).appBarTheme.titleTextStyle),
-            ],
-          ),
-        ),
+        appBar: showTopAppBar
+            ? AppBar(
+                centerTitle: true,
+                title: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.settings_outlined,
+                        color: Theme.of(context).appBarTheme.foregroundColor,
+                        size: 26),
+                    const SizedBox(width: 8),
+                    Text('הגדרות',
+                        style: Theme.of(context).appBarTheme.titleTextStyle),
+                  ],
+                ),
+              )
+            : null,
         body: Consumer<DataProvider>(
           builder: (context, dataProvider, child) {
             if (dataProvider.isLoading) {
@@ -661,16 +1054,37 @@ class _SettingsScreenState extends State<SettingsScreen> {
             }
 
             List<Map<String, dynamic>> customBooksData = [];
-            dataProvider.allBookData.forEach((categoryName, category) {
+
+            void collectCustomBooks(
+              String topLevelCategoryName,
+              List<String> subCategoryPath,
+              BookCategory category,
+            ) {
               category.books.forEach((bookName, bookDetails) {
                 if (bookDetails.isCustom && bookDetails.id != null) {
                   customBooksData.add({
-                    'categoryName': categoryName,
+                    'topLevelCategoryName': topLevelCategoryName,
+                    'subCategoryPath': subCategoryPath,
+                    'categoryName': subCategoryPath.isEmpty
+                        ? topLevelCategoryName
+                        : subCategoryPath.last,
                     'bookName': bookName,
                     'bookDetails': bookDetails,
                   });
                 }
               });
+
+              for (final subCategory in category.subcategories ?? []) {
+                collectCustomBooks(
+                  topLevelCategoryName,
+                  [...subCategoryPath, subCategory.name],
+                  subCategory,
+                );
+              }
+            }
+
+            dataProvider.allBookData.forEach((categoryName, category) {
+              collectCustomBooks(categoryName, const [], category);
             });
 
             customBooksData.sort((a, b) =>
@@ -679,9 +1093,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
             List<Widget> customBookWidgets = [];
             for (var i = 0; i < customBooksData.length; i++) {
               final bookData = customBooksData[i];
+              final topLevelCategoryName =
+                  bookData['topLevelCategoryName'] as String;
+              final subCategoryPath =
+                  (bookData['subCategoryPath'] as List<String>);
               final categoryName = bookData['categoryName'] as String;
               final bookName = bookData['bookName'] as String;
               final bookDetails = bookData['bookDetails'] as BookDetails;
+              final categoryPathLabel = subCategoryPath.isEmpty
+                  ? topLevelCategoryName
+                  : '$topLevelCategoryName > ${subCategoryPath.join(' > ')}';
 
               customBookWidgets.add(ListTile(
                 shape: RoundedRectangleBorder(
@@ -694,7 +1115,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 title: Text(bookName,
                     style: const TextStyle(fontWeight: FontWeight.w600)),
                 subtitle: Text(
-                    'קטגוריה: $categoryName | ${bookDetails.pageCountForDisplay} ${bookDetails.contentType}'),
+                    'קטגוריה: $categoryPathLabel | ${bookDetails.pageCountForDisplay} ${bookDetails.contentType}'),
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -704,7 +1125,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       tooltip: 'ערוך ספר',
                       onPressed: () => _showAddOrEditBookDialog(
                           existingBook: bookDetails,
-                          categoryOfBook: categoryName,
+                          topLevelCategoryOfBook: topLevelCategoryName,
+                          subCategoryPathOfBook: subCategoryPath,
                           bookNameKey: bookName),
                     ),
                     IconButton(
@@ -718,7 +1140,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 onTap: () => _showAddOrEditBookDialog(
                     existingBook: bookDetails,
-                    categoryOfBook: categoryName,
+                    topLevelCategoryOfBook: topLevelCategoryName,
+                    subCategoryPathOfBook: subCategoryPath,
                     bookNameKey: bookName),
               ));
               if (i < customBooksData.length - 1) {
@@ -736,6 +1159,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     _buildThemeSelection(themeProvider),
                     _buildCustomBooksManagement(customBookWidgets),
                     _buildBackupRestoreSection(),
+                    _buildAboutSection(),
                   ],
                 ),
               ),
@@ -743,6 +1167,48 @@ class _SettingsScreenState extends State<SettingsScreen> {
           },
         ),
       ),
+    );
+  }
+}
+
+class _EditableBookPart {
+  final TextEditingController nameController;
+  final TextEditingController startController;
+  final TextEditingController endController;
+  final TextEditingController excludeController;
+
+  _EditableBookPart({
+    String name = '',
+    String start = '',
+    String end = '',
+    String exclude = '',
+  })  : nameController = TextEditingController(text: name),
+        startController = TextEditingController(text: start),
+        endController = TextEditingController(text: end),
+        excludeController = TextEditingController(text: exclude);
+
+  factory _EditableBookPart.fromBookPart(BookPart part) {
+    return _EditableBookPart(
+      name: part.name,
+      start: part.startPage.toString(),
+      end: part.endPage.toString(),
+      exclude: part.excludedPages.join(', '),
+    );
+  }
+
+  CustomBookPart toCustomBookPart() {
+    final exclude = excludeController.text
+        .split(',')
+        .map((item) => item.trim())
+        .where((item) => item.isNotEmpty)
+        .map(int.parse)
+        .toList();
+
+    return CustomBookPart(
+      name: nameController.text.trim(),
+      start: int.parse(startController.text),
+      end: int.parse(endController.text),
+      exclude: exclude,
     );
   }
 }

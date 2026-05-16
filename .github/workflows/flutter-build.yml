@@ -11,6 +11,9 @@ on:
       - '*'
   workflow_dispatch:
 
+env:
+  APP_VERSION: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || format('0.0.0-build-{0}', github.run_number) }}
+
 jobs:
   android:
     name: Build Android APK
@@ -60,7 +63,7 @@ jobs:
           path: src/build/app/outputs/flutter-apk/app-release.apk
 
   windows:
-    name: Build Windows EXE
+    name: Build Windows Installer + Portable ZIP
     runs-on: windows-latest
     steps:
       - name: Checkout Repository
@@ -80,16 +83,48 @@ jobs:
         working-directory: src
         run: flutter build windows --release
 
-      - name: Zip Windows Release
-        working-directory: src/build/windows/x64/runner/Release
-        run: Compress-Archive -Path * -DestinationPath ../../../../../../windows-release.zip
+      - name: Create Portable Windows ZIP
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $releaseDir = Join-Path $PWD 'src\build\windows\x64\runner\Release'
+          Compress-Archive -Path "$releaseDir\*" -DestinationPath 'windows-portable.zip' -Force
 
-      - name: Upload Windows ZIP Artifact
+      - name: Install Inno Setup
+        shell: pwsh
+        run: choco install innosetup --no-progress --yes
+
+      - name: Build Hebrew Windows Installer
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $iscc = Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6\ISCC.exe'
+          if (-not (Test-Path $iscc)) {
+            $iscc = Join-Path $env:ProgramFiles 'Inno Setup 6\ISCC.exe'
+          }
+          if (-not (Test-Path $iscc)) {
+            throw 'ISCC.exe was not found after installing Inno Setup.'
+          }
+
+          $sourceDir = Join-Path $PWD 'src\build\windows\x64\runner\Release'
+          & $iscc `
+            'installer\windows\shamor-vezachor.iss' `
+            "/DMyAppVersion=${env:APP_VERSION}" `
+            "/DMyAppSourceDir=$sourceDir" `
+            "/DMyAppOutputDir=$PWD" `
+            '/DMyAppOutputBaseFilename=windows-setup'
+
+      - name: Upload Windows Portable ZIP Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: windows-zip-artifact
-          # ✅ תיקון: הנתיב לקובץ ה-ZIP הוא בתיקייה הראשית של הפרויקט
-          path: windows-release.zip
+          name: windows-portable-artifact
+          path: windows-portable.zip
+
+      - name: Upload Windows Installer Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-installer-artifact
+          path: windows-setup.exe
 
   publish-release:
     name: Publish GitHub Release
@@ -109,7 +144,13 @@ jobs:
       - name: Download Windows ZIP artifact
         uses: actions/download-artifact@v4
         with:
-          name: windows-zip-artifact
+          name: windows-portable-artifact
+          path: artifacts/windows
+
+      - name: Download Windows Installer artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-installer-artifact
           path: artifacts/windows
 
       - name: Prepare Release Assets and Rename
@@ -121,9 +162,13 @@ jobs:
           APK_NEW_NAME="shamor-vezachor-${TAG_VERSION}.apk"
           mv "${APK_ORIGINAL_PATH}" "artifacts/android/${APK_NEW_NAME}"
 
-          ZIP_ORIGINAL_PATH="artifacts/windows/windows-release.zip"
-          ZIP_NEW_NAME="shamor-vezachor-${TAG_VERSION}-windows.zip"
+          ZIP_ORIGINAL_PATH="artifacts/windows/windows-portable.zip"
+          ZIP_NEW_NAME="shamor-vezachor-${TAG_VERSION}-windows-portable.zip"
           mv "${ZIP_ORIGINAL_PATH}" "artifacts/windows/${ZIP_NEW_NAME}"
+
+          INSTALLER_ORIGINAL_PATH="artifacts/windows/windows-setup.exe"
+          INSTALLER_NEW_NAME="shamor-vezachor-${TAG_VERSION}-windows-setup.exe"
+          mv "${INSTALLER_ORIGINAL_PATH}" "artifacts/windows/${INSTALLER_NEW_NAME}"
 
           echo "Final files for release:"
           ls -R artifacts/
@@ -133,13 +178,15 @@ jobs:
         with:
           files: |
             artifacts/android/shamor-vezachor-${{ github.ref_name }}.apk
-            artifacts/windows/shamor-vezachor-${{ github.ref_name }}-windows.zip
+            artifacts/windows/shamor-vezachor-${{ github.ref_name }}-windows-setup.exe
+            artifacts/windows/shamor-vezachor-${{ github.ref_name }}-windows-portable.zip
           tag_name: ${{ github.ref_name }}
           name: Release ${{ github.ref_name }}
           body: |
             גרסה ${{ github.ref_name }} של שמור וזכור.
             קבצים מצורפים:
             - `shamor-vezachor-${{ github.ref_name }}.apk` (אנדרואיד)
-            - `shamor-vezachor-${{ github.ref_name }}-windows.zip` (חלונות)
+            - `shamor-vezachor-${{ github.ref_name }}-windows-setup.exe` (מתקין Windows בעברית, מבוסס Inno Setup)
+            - `shamor-vezachor-${{ github.ref_name }}-windows-portable.zip` (גרסה ניידת ל-Windows ללא התקנה)
           draft: true
           prerelease: false
