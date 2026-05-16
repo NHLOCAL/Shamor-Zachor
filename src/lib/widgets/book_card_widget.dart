@@ -6,6 +6,10 @@ import '../providers/progress_provider.dart';
 import '../screens/book_detail_screen.dart';
 import './hebrew_utils.dart';
 
+bool _hasStartedProgress(Map<String, PageProgress> bookProgressData) {
+  return bookProgressData.values.any((progress) => !progress.isEmpty);
+}
+
 class BookCardWidget extends StatelessWidget {
   final String topLevelCategoryKey;
   final String categoryName;
@@ -278,6 +282,10 @@ class BookCardWidget extends StatelessWidget {
 
     final bool isCompleted = progressProvider.isBookCompleted(
         topLevelCategoryKey, bookName, bookDetails);
+    final bool isInProgress = !isCompleted &&
+        _hasStartedProgress(
+            progressProvider.getProgressForBook(topLevelCategoryKey, bookName));
+
     return SizedBox(
       height: 70,
       child: ElevatedButton(
@@ -313,6 +321,12 @@ class BookCardWidget extends StatelessWidget {
                     padding: const EdgeInsets.only(left: 4.0),
                     child: Icon(Icons.check_circle,
                         size: 18, color: theme.colorScheme.primary),
+                  )
+                else if (isInProgress)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 4.0),
+                    child: Icon(Icons.auto_stories,
+                        size: 18, color: theme.colorScheme.secondary),
                   ),
                 Flexible(
                   child: Text(
@@ -355,6 +369,9 @@ class SearchBookCardWidget extends StatelessWidget {
 
     final bool isCompleted = progressProvider.isBookCompleted(
         topLevelCategoryKey, bookName, bookDetails);
+    final bool isInProgress = !isCompleted &&
+        _hasStartedProgress(
+            progressProvider.getProgressForBook(topLevelCategoryKey, bookName));
 
     return SizedBox(
       height: 85,
@@ -391,6 +408,12 @@ class SearchBookCardWidget extends StatelessWidget {
                     padding: const EdgeInsets.only(left: 4.0),
                     child: Icon(Icons.check_circle,
                         size: 18, color: theme.colorScheme.primary),
+                  )
+                else if (isInProgress)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 4.0),
+                    child: Icon(Icons.auto_stories,
+                        size: 18, color: theme.colorScheme.secondary),
                   ),
                 Flexible(
                   child: Text(
